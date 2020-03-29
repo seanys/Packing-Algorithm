@@ -487,7 +487,7 @@ class PltFunc(object):
     def showPolys(polys):
         for poly in polys:
             PltFunc.addPolygon(poly)
-        PltFunc.showPlt()
+        PltFunc.showPlt(width=2000,height=2000)
 
     def saveFig(name):
         plt.savefig('figs\\'+name+'.png')
@@ -876,12 +876,12 @@ def getConvex(**kw):
     if os.getlogin()=='Prinway':
         df = pd.read_csv("record/convex.csv")
     else:
-        df = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/convex.csv")
+        df = pd.read_csv("/Users/sean/Documents/Projects/data/convex.csv")
     polygons=[]
     poly_index=[]
     if 'num' in kw:
         for i in range(kw["num"]):
-            poly_index.append(random.randint(0,11200))
+            poly_index.append(random.randint(0,7000))
     elif 'certain' in kw:
         poly_index=[1000,2000,3000,4000,5000,6000,7000]
     else:

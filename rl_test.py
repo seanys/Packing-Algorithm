@@ -1,5 +1,5 @@
 '''
-用于进行benchmark
+本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
 from sequence import BottomLeftFill

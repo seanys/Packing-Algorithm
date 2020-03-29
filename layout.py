@@ -5,7 +5,8 @@ Several algorithms are achieved in this file
 形状情况：计算NFP、BottomLeftFill等均不能影响原始对象
 '''
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex
-from sequence import BottomLeftFill,PolyListProcessor,NFPAssistant
+from tools.heuristic import TOPOS,BottomLeftFill
+from tools.packing import PolyListProcessor,NFPAssistant
 import pandas as pd
 import json
 from shapely.geometry import Polygon,Point,mapping,LineString

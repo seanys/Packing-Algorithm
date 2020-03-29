@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 from torch.utils.data.dataset import Dataset
-from seq_data import getTrainData
-
+import os
+from train_data import train_data
 
 class DatasetFromCSV(Dataset):
     def __init__(self,mode):

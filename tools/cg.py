@@ -1,3 +1,6 @@
+'''
+Comlumn Generation Python 版本
+'''
 from pulp import *
 import random
 
