@@ -40,23 +40,41 @@ class NFPAssistant(object):
         self.nfp_list=[[0]*len(self.polys) for i in range(len(self.polys))]
         
         self.load_history=False
+        self.history=None
         if 'load_history' in kw:
             if kw['load_history']==True:
-                # print("加载历史中")
+                # 从内存中加载history 直接传递pandas的df对象 缩短I/O时间
+                if 'history' in kw:
+                    self.history=kw['history']
                 self.load_history=True
                 self.loadHistory()
+        
+        self.history_path=None
+        if 'history_path' in kw:
+            self.history_path=kw['history_path']
 
         self.store_nfp=False
         if 'store_nfp' in kw:
             if kw['store_nfp']==True:
                 self.store_nfp=True
+        
+        self.store_path=None
+        if 'store_path' in kw:
+            self.store_path=kw['store_path']
 
         if 'get_all_nfp' in kw:
             if kw['get_all_nfp']==True and self.load_history==False:
                 self.getAllNFP()
     
     def loadHistory(self):
-        df = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv")
+        if self.history==None:
+            if self.history_path==None:
+                path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
+            else:
+                path=self.history_path
+            df = pd.read_csv(path)
+        else:
+            df = self.history
         for index in range(df.shape[0]):
             i=self.getPolyIndex(json.loads(df["poly1"][index]))
             j=self.getPolyIndex(json.loads(df["poly2"][index]))
@@ -97,7 +115,11 @@ class NFPAssistant(object):
             self.storeNFP()
     
     def storeNFP(self):
-        with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv","a+") as csvfile:
+        if self.store_path==None:
+            path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
+        else:
+            path=self.store_path
+        with open(path,"a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(len(self.polys)):
                 for j in range(len(self.polys)):
