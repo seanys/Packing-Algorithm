@@ -16,7 +16,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
 from tensorboard_logger import configure, log_value
 from rl import NeuralCombOptRL
-from sequence import BottomLeftFill
+from tools.heuristic import BottomLeftFill
 
 class PolygonsDataset(Dataset):
     def __init__(self,size,max_point_num,train=True,path=None):

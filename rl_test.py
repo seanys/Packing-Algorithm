@@ -2,7 +2,7 @@
 本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
-from sequence import BottomLeftFill
+from tools.heuristic import BottomLeftFill
 max_point_num=5
 
 def BLFwithSequence(test_path,seq_path=None):
