@@ -16,18 +16,18 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
 from tensorboard_logger import configure, log_value
 from rl import NeuralCombOptRL
+from rl_test import generatePolygon
 from tools.heuristic import BottomLeftFill
 
 class PolygonsDataset(Dataset):
-    def __init__(self,size,max_point_num,train=True,path=None):
+    def __init__(self,size,max_point_num,path=None):
         '''
         size: 数据集容量
         max_point_num: 最大点的个数
-        train: 是否训练
         path: 从文件加载
         '''
         x=[]
-        if train:
+        if not path:
             for i in range(size):
                 polys=generatePolygon(8,max_point_num)
                 polys=polys.T
@@ -83,38 +83,6 @@ class BottomLeftFillThread (threading.Thread):
 
 def str2bool(v):
       return v.lower() in ('true', '1')
-
-def generatePolygon(poly_num,max_point_num):
-    '''
-    随机生成多边形
-    poly_num: 多边形个数
-    max_point_num: 最大点的个数
-    '''
-    polys=np.zeros((poly_num,max_point_num*2))
-    center=[250,250] # 中心坐标
-    for i in range(poly_num):
-        point_num=np.random.randint(5,max_point_num+1)
-        angle=360/point_num # 根据边数划分角度区域
-        for j in range(point_num):
-            theta=np.random.randint(angle*j,angle*(j+1))*np.pi/180 # 在每个区域中取随机角度并转为弧度
-            #max_r=min(np.math.fabs(500/np.math.cos(theta)),np.math.fabs(500/np.math.sin(theta)))
-            #r=np.random.randint(0,max_r) # 取随机长度
-            r=np.random.randint(25,250) # 降低难度
-            x=center[0]+r*np.math.cos(theta)
-            y=center[1]+r*np.math.sin(theta)
-            polys[i,2*j]=x
-            polys[i,2*j+1]=y
-            # print(theta,x,y)
-    return polys
-    
-def generateTestData(size,poly_num,max_point_num):
-    x=[]
-    for i in range(size):
-        polys=generatePolygon(poly_num,max_point_num)
-        polys=polys.T
-        x.append(polys)
-    x=np.array(x)
-    np.save('test{}_{}_{}'.format(size,poly_num,max_point_num),x)
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
@@ -231,7 +199,7 @@ if __name__ == "__main__":
     input_dim = 10 
     reward_fn = reward  # 奖励函数
     training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],train=False,path=r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path=r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
     # print(val_dataset.input)
     args['load_path']='outputs/seq2000/032823/epoch-2.pt'
 
@@ -441,9 +409,9 @@ if __name__ == "__main__":
         print('Validation overall avg_reward: {}'.format(np.mean(avg_reward)))
         print('Validation overall reward var: {}'.format(np.var(avg_reward)))
         predict_sequence=np.array(predict_sequence)
-        np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence)
+        np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
         predict_height=np.array(predict_height)
-        np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height)
+        np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
 
         if args['is_train']:
             model.actor_net.decoder.decode_type = "stochastic"

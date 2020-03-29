@@ -18,12 +18,6 @@ import datetime
 import random
 import copy
 
-
-cores = multiprocessing.cpu_count()
-pool = multiprocessing.Pool(processes=cores)
-nfp_multi=True
-ga_multi=False
-
 class BottomLeftFill(object):
     def __init__(self,width,original_polygons,**kw):
         self.choose_nfp=False
