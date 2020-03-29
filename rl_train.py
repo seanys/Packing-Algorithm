@@ -29,7 +29,7 @@ class PolygonsDataset(Dataset):
         x=[]
         if train:
             for i in range(size):
-                polys=generatePolygon(9,max_point_num)
+                polys=generatePolygon(8,max_point_num)
                 polys=polys.T
                 x.append(polys)
             self.x=np.array(x)
@@ -120,10 +120,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='seq400', help='')
-    parser.add_argument('--batch_size', default=8, help='')
-    parser.add_argument('--train_size', default=1000000, help='')
-    parser.add_argument('--val_size', default=10000, help='')
+    parser.add_argument('--task', default='seq2000', help='')
+    parser.add_argument('--batch_size', default=32, help='')
+    parser.add_argument('--train_size', default=2000, help='')
+    parser.add_argument('--val_size', default=200, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=1000, help='Width of BottomLeftFill')
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
-    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
     parser.add_argument('--n_epochs', default=3, help='')
     parser.add_argument('--random_seed', default=24601, help='')
     parser.add_argument('--max_grad_norm', default=2.0, help='Gradient clipping')
@@ -158,9 +158,9 @@ if __name__ == "__main__":
     # Misc
     parser.add_argument('--log_step', default=1, help='Log info every log_step steps')
     parser.add_argument('--log_dir', type=str, default='logs')
-    parser.add_argument('--run_name', type=str, default='032820')
+    parser.add_argument('--run_name', type=str, default='032823')
     parser.add_argument('--output_dir', type=str, default='outputs')
-    parser.add_argument('--epoch_start', type=int, default=0, help='Restart at epoch #')
+    parser.add_argument('--epoch_start', type=int, default=3, help='Restart at epoch #')
     parser.add_argument('--load_path', type=str, default='')
     parser.add_argument('--disable_tensorboard', type=str2bool, default=False)
     parser.add_argument('--plot_attention', type=str2bool, default=False)
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     if not args['disable_tensorboard']:
         configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
-    size = 9 # 解码器长度（序列长度）
+    size = 8 # 解码器长度（序列长度）
 
     '''奖励函数'''
     def reward(sample_solution, USE_CUDA=False):
@@ -205,7 +205,7 @@ if __name__ == "__main__":
         for t in threads:
             t.join()
         for index in range(batch_size):
-            result[index]=-threads[index].getResult()
+            result[index]=-threads[index].getResult()+600
         return torch.Tensor(result)
 
     def plot_attention(in_seq, out_seq, attentions):
@@ -230,11 +230,10 @@ if __name__ == "__main__":
 
     input_dim = 10 
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(400,args['max_point_num'])
-    val_dataset = PolygonsDataset(100,args['max_point_num'],train=False,path=r'D:\\Tongji\\Nesting\\Data\\test100_9_5.npy')
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],train=False,path=r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
     # print(val_dataset.input)
-    args['load_path']='outputs/seq400/032813/epoch-2.pt'
-    args['is_train']=False
+    args['load_path']='outputs/seq2000/032823/epoch-2.pt'
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
@@ -377,8 +376,8 @@ if __name__ == "__main__":
                     log_value('nll', nll.mean().item(), step)
 
                 if step % int(args['log_step']) == 0:
-                    print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
-                        i, batch_id, R.mean().item()))
+                    # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
+                    #     i, batch_id, R.mean().item()))
                     example_output = []
                     example_input = []
                     for idx, action in enumerate(actions):
@@ -388,7 +387,7 @@ if __name__ == "__main__":
                         #     example_output.append(action[0].item())  # <-- ?? 
                         example_input.append(sample_batch[0, :, idx][0])
                     #print('Example train input: {}'.format(example_input))
-                    print('Example train output: {}'.format(example_output))
+                    #print('Example train output: {}'.format(example_output))
 
         # Use beam search decoding for validation
         model.actor_net.decoder.decode_type = "beam_search"

@@ -19,7 +19,7 @@ def BLFwithSequence(test_path,seq_path=None):
         if seq_path!=None:
             seq=seqs[i].split(' ')
         else:
-            seq=[0,1,2,3,4,5,6,7,8]
+            seq=[0,1,2,3,4,5,6,7]
             np.random.shuffle(seq)
         line=line.T
         for polys in line:
@@ -37,9 +37,10 @@ def BLFwithSequence(test_path,seq_path=None):
 
 
 if __name__ == "__main__":
-    random=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test100_9_5.npy')
-    predict=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test100_9_5.npy','outputs/seq400/032820/sequence-0.csv')
+    random=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
     random=np.array(random)
-    predict=np.array(predict)
     np.savetxt('randomSEQ.CSV',random)
+
+    predict=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy','outputs/seq2000/032823/sequence-3.csv')
+    predict=np.array(predict)
     np.savetxt('predictSEQ.CSV',predict)
