@@ -2,7 +2,8 @@
 2020年3月25日 Use Linear Programming Search New Position
 '''
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex
-from sequence import BottomLeftFill,PolyListProcessor,NFPAssistant
+from tools.packing import PolyListProcessor,NFPAssistant
+from tools.heuristic import BottomLeftFill
 from tools.lp import sovleLP
 import pandas as pd
 import json

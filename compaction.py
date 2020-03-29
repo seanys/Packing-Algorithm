@@ -3,7 +3,8 @@
 '''
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex
 from tools.lp import sovleLP,problem
-from sequence import BottomLeftFill,PolyListProcessor,NFPAssistant
+from tools.heuristic import BottomLeftFill
+from tools.packing import PolyListProcessor,NFPAssistant
 import pandas as pd
 import json
 from shapely.geometry import Polygon,Point,mapping,LineString

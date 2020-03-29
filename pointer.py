@@ -12,7 +12,7 @@ from keras.layers.recurrent import _time_distributed_dense
 from keras.models import Model
 from keras.utils.np_utils import to_categorical
 from keras.callbacks import LearningRateScheduler
-from seq_data import getTrainData
+from train_data import getTrainData
 import numpy as np
 
 import matplotlib.pyplot as plt
