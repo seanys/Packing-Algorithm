@@ -19,11 +19,12 @@ class LPSearch(object):
         self.getInitialResult()
         
         self.divideNFP(self.NFPAssistant.getDirectNFP(self.polys[2],self.polys[10]))
+        self.convertPolyToArea(self.NFPAssistant.getDirectNFP(self.polys[2],self.polys[10]))
         
     
     def getInitialResult(self):
         blf = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/blf.csv")
-        self.polys=blf["polys"][2]
+        self.polys=json.loads(blf["polys"][2])
         self.getLength()
     
     def shrink(self):
@@ -39,7 +40,13 @@ class LPSearch(object):
         self.length=_max
     
     def divideNFP(self,nfp):
+        PltFunc.addPolygon(nfp)
+        PltFunc.showPlt(width=2000,height=2000)
         print("获取nfp的拆分")
+        # PltFunc.addP
+    
+    def convertPolyToArea(self,poly):
+        pass
     
 
 if __name__=='__main__':
