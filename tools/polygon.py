@@ -126,6 +126,34 @@ class GeoFunc(object):
     def checkBound(poly):
         return GeoFunc.checkLeft(poly), GeoFunc.checkBottom(poly), GeoFunc.checkRight(poly), GeoFunc.checkTop(poly)
     
+    def checkBoundPt(poly):
+        '''获得边界的点'''
+        left,bottom,right,top=poly[0],poly[0],poly[0],poly[0]
+        for i,pt in enumerate(poly):
+            if pt[0]<left[0]:
+                left=pt
+            if pt[0]>right[0]:
+                right=pt
+            if pt[1]>top[1]:
+                top=pt
+            if pt[1]<bottom[1]:
+                bottom=pt
+        return left,bottom,right,top
+
+    def checkBoundValue(poly):
+        '''获得边界的值'''
+        left,bottom,right,top=poly[0][0],poly[0][1],poly[0][0],poly[0][1]
+        for i,pt in enumerate(poly):
+            if pt[0]<left:
+                left=pt[0]
+            if pt[0]>right:
+                right=pt[0]
+            if pt[1]>top:
+                top=pt[1]
+            if pt[1]<bottom:
+                bottom=pt[1]
+        return left,bottom,right,top
+
     def slideToPoint(poly,pt1,pt2):
         GeoFunc.slidePoly(poly,pt2[0]-pt1[0],pt2[1]-pt1[1])
 

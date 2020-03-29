@@ -46,9 +46,28 @@ class LPSearch(object):
         print("获取nfp的拆分")
         # PltFunc.addP
     
-    def convertPolyToArea(self,poly):
-        pass
+    def getAngularBisector(self,pt1,pt2,pt3):
+        '''
+        输入：pt1/pt3为左右两个点，pt2为中间的点
+        输出：对角线
+        '''
+        vec1=[pt1[0]-pt2[0],pt1[1]-pt2[1]]
+        vec2=[pt3[0]-pt2[0],pt3[1]-pt2[1]]
     
+    def convertPolyToArea(self,poly):
+        '''
+        将多边形区域转化为形状
+        '''
+        pass
+
+    def getOverlapPair(self):
+        '''
+        获得两两形状间的重叠情况
+        '''
+        self.overlap_pair=[]
+        for i in range(len(self.polys)-1):
+            for j in range(i+1,len(self.polys)):
+                pass
 
 if __name__=='__main__':
     # polys=getConvex(num=5)

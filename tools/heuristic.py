@@ -136,7 +136,8 @@ class BottomLeftFill(object):
 
 class TOPOS(object):
     '''
-    TOPOS启发式算法：将形状一个个放入，动态移动整体的位置
+    TOPOS启发式算法：将形状一个个放入，动态移动整体的位置，该算法参考Bennell的TOPOS Revised
+    待办：中间位置的情况
     '''
     def __init__(self,original_polys,width):
         self.polys=original_polys
@@ -147,30 +148,105 @@ class TOPOS(object):
         self.run()
 
     def run(self):
-        self.cur_polys.append(GeoFunc.getSlide(self.polys,1000,1000))
+        self.cur_polys.append(GeoFunc.getSlide(self.polys[0],1000,1000)) # 加入第一个形状
+        self.border_left,self.border_right,self.border_bottom,self.border_top=0,0,0,0 # 初始化包络长方形
         for i in range(1,len(self.polys)):
-            feasible_border=Polygon(self.cur_polys[0])
+            # 更新所有的边界情况
+            self.updateBound()
 
-            # 一个个计算重叠区域
+            # 计算NFP的合并情况
+            feasible_border=Polygon(self.cur_polys[0])
             for fixed_poly in self.cur_polys:
                 nfp=self.NFPAssistant.getDirectNFP(fixed_poly,self.polys[i])
                 feasible_border=feasible_border.union(Polygon(nfp))
             
-            # 将最终计算结果所有的顶点转化为向量
-            border=GeoFunc.polyToArr(feasible_border)
+            # 获得所有可行的点
+            feasible_point=self.chooseFeasiblePoint(feasible_border)
+            
+            # 获得形状的左右侧宽度
+            poly_left_pt,poly_bottom_pt,poly_right_pt,poly_top_pt=GeoFunc.checkBoundArray(self.polys[i])
+            poly_left_width,poly_right_width=poly_top_pt[0]-poly_left_pt[0],poly_right_pt[0]-poly_top_pt[0]
+
+            # 逐一遍历NFP上的点，选择可行且宽度变化最小的位置
+            min_change=999999999999
+            target_position=[]
+            for pt in feasible_point:
+                change=min_change
+                if pt[0]-poly_left_width>=self.border_left and pt[0]+poly_right_width=<self.border_right:
+                    # 形状没有超出边界，此时min_change为负
+                    change=min(self.border_left-pt[0],self.border_left-pt[0])
+                elif min_change>0:
+                    # 形状超出了左侧或右侧边界，若变化大于0，则需要选择左右侧变化更大的值
+                    change=max(self.border_left-pt[0]+poly_left_width,pt[0]+poly_right_width-self.border_right)
+                else:
+                    # 有超出且min_change<=0的时候不需要改变
+                    pass
+
+                if change<min_change:
+                    min_change=change
+                    target_position=pt
+            
+            # 平移到最终的位置
+            reference_point=self.polys[GeoFunc.checkTop(self.polys[i])]
+            self.cur_polys.append(GeoFunc.getSlide(self.polys[i],target_position[0]-reference_point[0],target_position[1]-reference_point[1]))
+
+        self.moveToBottomLeft()
+        self.showResult()
+
+    
+    def updateBound(self):
+        '''
+        更新包络长方形
+        '''
+        border_left,border_bottom,border_right,border_top=GeoFunc.checkBoundValue(self.cur_polys[-1])
+        if border_left<self.border_left:
+            self.border_left=border_left
+        if border_bottom<self.border_bottom:
+            self.border_bottom=border_bottom
+        if border_right>self.border_right:
+            self.border_right=border_right
+        if border_top>self.border_top:
+            self.border_top=border_top
+    
+    '''该部分还需要完成！！！！！'''
+    def chooseFeasiblePoint(self,border):
+        '''
+        1. 将Polygon对象转化为点
+        2. 超出Width范围的点排除
+        3. 直线与边界的交点选入
+        '''
+        res=mapping(border)
+        _arr=[]
+        if res["type"]=="MultiPolygon":
+            for poly in res["coordinates"]:
+                for point in poly[0]:
+                    _arr.append([point[0],point[1]])
+        else:
+            for point in res["coordinates"][0]:
+                _arr.append([point[0],point[1]])
         
-        
-    def show(self):
+        # (1) 超出了上侧&总宽度没有超过
+        # feasible1=pt[1]-border_top[1]>0 and pt[1]-border_top[1]+border_height<=self.width
+        # (2) 超过了下侧&总宽度没有超过
+        # feasible2=border_bottom[1]-pt[1]>0 and border_bottom[1]-pt[1]+height<=self.width
+        # (3) Top和bottom的内部
+        # feasible3=pt[1]<=border_bottom[1] and pt[1]>=bottom
+
+        return _arr
+
+    def slideToBottomLeft(self):
+        '''移到最左下角位置'''
+        for poly in self.cur_polys:
+            GeoFunc.slidePoly(poly,-self.border_left,-self.border_bottom)
+
+    def showResult(self):
+        '''显示排样结果'''
         for poly in self.cur_polys:
             PltFunc.addPolygon(poly)
         PltFunc.showPolys()
 
     
 if __name__=='__main__':
-    cores = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=cores)
-    nfp_multi=True
-    ga_multi=False
     starttime = datetime.datetime.now()
     # polys=getConvex(num=5)
     polys=getData()
