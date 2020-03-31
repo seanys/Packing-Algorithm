@@ -38,7 +38,6 @@ class MasterProblem(object):
 			self.PatternVars.append(var)
 		
 		
-		
 	def solve(self):
 		self.prob.writeLP('prob.lp')
 		self.prob.solve()  # start solve
@@ -46,7 +45,6 @@ class MasterProblem(object):
 		return [self.prob.constraints[i].pi for i in self.prob.constraints]
 		
 			
-		
 	def addPattern(self,pattern):  # add new pattern to existing model
 		
 		self.initialPatterns.append(pattern)

@@ -87,7 +87,7 @@ class Compaction(object):
                     a[row][i*2+1],a[row][i*2+2],a[row][j*2+1],a[row][j*2+2],b[row]=self.getOverlapConstrain(i,j)
         
         # 求解计算结果
-        result=sovleLP(a,b,c,_type="compaction")
+        result,_=sovleLP(a,b,c,_type="compaction")
 
         # 将其转化为坐标，Variable的输出顺序是[x1,..,xn,y1,..,yn,z]
         placement_points=[]
