@@ -93,8 +93,8 @@ if __name__ == "__main__":
     '''数据加载'''
     parser.add_argument('--task', default='0401', help='')
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--train_size', default=100, help='')
-    parser.add_argument('--val_size', default=100, help='')
+    parser.add_argument('--train_size', default=1000, help='')
+    parser.add_argument('--val_size', default=1000, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=1000, help='Width of BottomLeftFill')
