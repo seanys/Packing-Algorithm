@@ -1,5 +1,5 @@
+from tools.polygon import GeoFunc,NFP,Poly
 from shapely.geometry import Polygon,Point,mapping,LineString
-from tools.polygon import GeoFunc,NFP
 from shapely.ops import unary_union
 from shapely import affinity
 import pyclipper 
@@ -39,6 +39,7 @@ class NFPAssistant(object):
             self.first_vec_list.append([poly[1][0]-poly[0][0],poly[1][1]-poly[0][1]])
         self.nfp_list=[[0]*len(self.polys) for i in range(len(self.polys))]
         self.load_history=False
+        self.history_path=None
         self.history=None
         if 'load_history' in kw:
             if kw['load_history']==True:
@@ -48,7 +49,6 @@ class NFPAssistant(object):
                 self.load_history=True
                 self.loadHistory()
         
-        self.history_path=None
         if 'history_path' in kw:
             self.history_path=kw['history_path']
 

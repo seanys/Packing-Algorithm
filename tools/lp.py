@@ -39,7 +39,7 @@ def sovleLP(a,b,c,**kw):
         print(v.name, "=", v.varValue)
     print("目标函数最小值 = ", value(prob.objective))
     
-    return result
+    return result,value(prob.objective)
 
 def problem(a,b,c):
     print("目标问题")
@@ -56,3 +56,4 @@ if __name__=='__main__':
     a = [[1,1,-2,1],[-1,-1,2,-1],[-2,1,-4,0],[1,-2,4,0]]
     b = [10,-10,-8,-4]
     sovleLP(a,b,c)
+    

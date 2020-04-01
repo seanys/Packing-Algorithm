@@ -1,7 +1,7 @@
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 from tools.polygon import GeoFunc,NFP,PltFunc,RatotionPoly,getData,getConvex,Poly
 from tools.packing import PackingUtil,NFPAssistant,PolyListProcessor
-from tools.heuristic import TOPOS,BottomLeftFill
+from heuristic import TOPOS,BottomLeftFill
 import json
 from shapely.geometry import Polygon,mapping
 from shapely import affinity
@@ -258,3 +258,26 @@ class SA(object):
         plt.plot(list2)#每个温度下最好路径长度
         plt.grid()
         plt.show() 
+
+if __name__=='__main__':
+    starttime = datetime.datetime.now()
+    # polys=getConvex(num=5)
+    polys=getData()
+    poly_list=PolyListProcessor.getPolyObjectList(polys,[0])
+    # TOPOS(polys,1500)
+
+    # 计算NFP时间
+    # print(datetime.datetime.now(),"开始计算NFP")
+    # nfp_ass=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    # print(datetime.datetime.now(),"计算完成NFP")
+    # bfl=BottomLeftFill(1500,polys,vertical=True,NFPAssistant=nfp_ass)
+    
+    # print(datetime.datetime.now(),"计算完成BLF")
+
+    GA(poly_list)
+    # SA(poly_list)
+
+    # GetBestSeq(1000,getConvex(num=5),"decrease")
+    endtime = datetime.datetime.now()
+    print (endtime - starttime)
+    # bfl.showAll()
