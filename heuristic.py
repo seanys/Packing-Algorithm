@@ -28,8 +28,8 @@ class BottomLeftFill(object):
         if 'NFPAssistant' in kw:
             self.NFPAssistant=kw["NFPAssistant"]
         else:
-            self.NFPAssistant=None
-        
+            # 若未指定外部NFPasst则内部使用NFPasst开多进程
+            self.NFPAssistant=NFPAssistant(self.polygons,fast=True)
         self.vertical=False
         if 'vertical' in kw:
             self.vertical=True
@@ -43,7 +43,6 @@ class BottomLeftFill(object):
         for i in range(1,len(self.polygons)):
             # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
-        
         self.getLength()
 
     def placeFirstPoly(self):
@@ -63,9 +62,9 @@ class BottomLeftFill(object):
         for main_index in range(0,index):
             main=self.polygons[main_index]
             if self.NFPAssistant==None:
-                nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
+                nfp=NFP(main,adjoin).nfp
             else:
-                nfp=self.NFPAssistant.getDirectNFP(main,adjoin,rectangle=self.rectangle)
+                nfp=self.NFPAssistant.getDirectNFP(main,adjoin)
             differ_region=differ_region.difference(Polygon(nfp))
 
         differ=GeoFunc.polyToArr(differ_region)

@@ -2,7 +2,7 @@
 本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
-from tools.heuristic import BottomLeftFill
+from heuristic import BottomLeftFill
 from tools.packing import NFPAssistant
 max_point_num=5
 

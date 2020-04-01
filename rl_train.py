@@ -8,7 +8,6 @@ import torch.autograd as autograd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
-import threading
 import pandas as pd
 from tqdm import tqdm
 from torch.optim import lr_scheduler
@@ -16,7 +15,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
 from tensorboard_logger import configure, log_value
 from tools.rl import NeuralCombOptRL
-from tools.heuristic import BottomLeftFill,NFPAssistant
+from heuristic import BottomLeftFill,NFPAssistant
 from rl_test import generatePolygon,generateRectangle
 
 class PolygonsDataset(Dataset):
@@ -52,7 +51,9 @@ class PolygonsDataset(Dataset):
     def save_data(self,path):
         np.save(path,self.x)
 
-class BottomLeftFillThread (threading.Thread):
+
+"""class BottomLeftFillThread (threading.Thread):
+    # 多线程和多进程一起用会报错 已弃用
     def __init__(self, threadID, width, poly):
         threading.Thread.__init__(self)
         self.threadID = threadID
@@ -68,7 +69,7 @@ class BottomLeftFillThread (threading.Thread):
         try:
         #df = pd.read_csv('record/rec100_nfp.csv') # 把nfp history读入内存
         #nfp_asst=NFPAssistant(polys,load_history=True,history=df)
-            bfl=BottomLeftFill(width,polys,vertical=True,rectangle=True)
+            bfl=BottomLeftFill(width,polys,vertical=True)
             return bfl.getLength()
         except:
             return 9999
@@ -82,7 +83,7 @@ class BottomLeftFillThread (threading.Thread):
         try:
             return self.height
         except Exception:
-            return None
+            return None"""
 
 def str2bool(v):
       return v.lower() in ('true', '1')
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0330', help='')
+    parser.add_argument('--task', default='0401', help='')
     parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--train_size', default=1000, help='')
     parser.add_argument('--val_size', default=1000, help='')
@@ -163,20 +164,22 @@ if __name__ == "__main__":
             points.append(sample.numpy())
         points=np.array(points)
         result=np.zeros(batch_size)
-        threads=[] # 多线程计算BFL
+        # threads=[] # 多线程计算BFL
         for index in range(batch_size):
             poly=points[:,index,:]
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            thread = BottomLeftFillThread(index,args['width'],poly_new) 
-            threads.append(thread)
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        for index in range(batch_size):
-            result[index]=threads[index].getResult()
+            bfl=BottomLeftFill(args['width'],poly_new,vertical=True)
+            result[index]=bfl.getLength()
+            # thread = BottomLeftFillThread(index,args['width'],poly_new) 
+            # threads.append(thread)
+        # for t in threads:
+        #     t.start()
+        # for t in threads:
+        #     t.join()
+        # for index in range(batch_size):
+        #     result[index]=threads[index].getResult()
         return torch.Tensor(result)
 
     def plot_attention(in_seq, out_seq, attentions):

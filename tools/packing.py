@@ -2,6 +2,7 @@ from tools.polygon import GeoFunc,NFP,Poly
 from shapely.geometry import Polygon,Point,mapping,LineString
 from shapely.ops import unary_union
 from shapely import affinity
+from multiprocessing import Pool
 import pyclipper 
 import math
 import numpy as np
@@ -13,6 +14,15 @@ import time
 import logging
 import random
 import copy
+import os
+
+def getNFP(poly1,poly2): # 这个函数必须放在class外面否则多进程报错
+    # start = time.time()
+    nfp=NFP(poly1,poly2).nfp
+    # end = time.time()
+    # print('Task %s runs %0.2f seconds.' % (os.getpid(), (end - start)))
+    return nfp
+
 
 class PackingUtil(object):
     
@@ -64,10 +74,27 @@ class NFPAssistant(object):
         if 'get_all_nfp' in kw:
             if kw['get_all_nfp']==True and self.load_history==False:
                 self.getAllNFP()
-    
+        
+        if 'fast' in kw: # 为BLF进行多进程优化
+            if kw['fast']==True:
+                self.res=[[0]*len(self.polys) for i in range(len(self.polys))]
+                pool=Pool()
+                starttime = time.time()
+                for i in range(1,len(self.polys)):
+                    for j in range(0,i):
+                        # 计算nfp(j,i)
+                        self.res[j][i]=pool.apply_async(getNFP,args=(self.polys[j],self.polys[i]))
+                pool.close()
+                pool.join()
+                for i in range(1,len(self.polys)):
+                    for j in range(0,i):
+                        self.nfp_list[j][i]=GeoFunc.getSlide(self.res[j][i].get(),-self.centroid_list[j][0],-self.centroid_list[j][1])
+                endtime = time.time()
+                print (endtime - starttime)
+
     def loadHistory(self):
         if self.history.empty:
-            if history_path.empty:
+            if self.history_path.empty:
                 path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
             else:
                 path=self.history_path
@@ -124,17 +151,22 @@ class NFPAssistant(object):
             for i in range(len(self.polys)):
                 for j in range(len(self.polys)):
                     writer.writerows([[self.polys[i],self.polys[j],self.nfp_list[i][j]]])
-    
+
     # 输入形状获得NFP
-    def getDirectNFP(self,poly1,poly2):
-        # 首先获得poly1和poly2的ID
-        i=self.getPolyIndex(poly1)
-        j=self.getPolyIndex(poly2)
-        centroid=GeoFunc.getPt(Polygon(poly1).centroid)
+    def getDirectNFP(self,poly1,poly2,**kw):
+        if 'index' in kw:
+            i=kw['index'][0]
+            j=kw['index'][1]
+            centroid=GeoFunc.getPt(Polygon(self.polys[i]).centroid)
+        else:
+            # 首先获得poly1和poly2的ID
+            i=self.getPolyIndex(poly1)
+            j=self.getPolyIndex(poly2)
+            centroid=GeoFunc.getPt(Polygon(poly1).centroid)
         # 判断是否计算过并计算nfp
         if self.nfp_list[i][j]==0:
             nfp=NFP(poly1,poly2).nfp
-            self.nfp_list[i][j]=GeoFunc.getSlide(nfp,-centroid[0],-centroid[1])
+            #self.nfp_list[i][j]=GeoFunc.getSlide(nfp,-centroid[0],-centroid[1])
             if self.store_nfp==True:
                 with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
