@@ -32,7 +32,6 @@ class BottomLeftFill(object):
         
         self.vertical=False
         if 'vertical' in kw:
-<<<<<<< HEAD:tools/heuristic.py
             self.vertical=True
         else:
             self.vertical=False
@@ -40,11 +39,6 @@ class BottomLeftFill(object):
             self.rectangle=True
         else:
             self.rectangle=False
-=======
-            if kw['vertical']==True:
-                self.vertical=True
-
->>>>>>> 93bf66a518b19a6f8c78516a2950308064293f3c:heuristic.py
         # for i in range(1,3):
         for i in range(1,len(self.polygons)):
             # print("##############################放置第",i+1,"个形状#################################")
