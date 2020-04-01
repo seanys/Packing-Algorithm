@@ -28,18 +28,21 @@ class BottomLeftFill(object):
         if 'NFPAssistant' in kw:
             self.NFPAssistant=kw["NFPAssistant"]
         else:
-            self.NFPAssistant=None
-        
+            # 若未指定外部NFPasst则内部使用NFPasst开多进程
+            self.NFPAssistant=NFPAssistant(self.polygons,fast=True)
         self.vertical=False
         if 'vertical' in kw:
-            if kw['vertical']==True:
-                self.vertical=True
-
+            self.vertical=True
+        else:
+            self.vertical=False
+        if 'rectangle' in kw:
+            self.rectangle=True
+        else:
+            self.rectangle=False
         # for i in range(1,3):
         for i in range(1,len(self.polygons)):
             # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
-        
         self.getLength()
 
     def placeFirstPoly(self):

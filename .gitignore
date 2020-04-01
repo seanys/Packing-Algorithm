@@ -1,2 +1,6 @@
 .vscode/settings.json
+.vscode/launch.json
 euro_data/dighe1:2.png
+outputs*
+logs*
+**/*.pyc
