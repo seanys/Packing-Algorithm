@@ -38,7 +38,6 @@ class NFPAssistant(object):
             self.area_list.append(int(P.area))
             self.first_vec_list.append([poly[1][0]-poly[0][0],poly[1][1]-poly[0][1]])
         self.nfp_list=[[0]*len(self.polys) for i in range(len(self.polys))]
-        
         self.load_history=False
         self.history=None
         if 'load_history' in kw:
@@ -67,8 +66,8 @@ class NFPAssistant(object):
                 self.getAllNFP()
     
     def loadHistory(self):
-        if self.history==None:
-            if self.history_path==None:
+        if self.history.empty:
+            if history_path.empty:
                 path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
             else:
                 path=self.history_path
@@ -110,6 +109,7 @@ class NFPAssistant(object):
             for i,poly1 in enumerate(self.polys):
                 for j,poly2 in enumerate(self.polys):
                     nfp=NFP(poly1,poly2).nfp
+                    #NFP(poly1,poly2).showResult()
                     self.nfp_list[i][j]=GeoFunc.getSlide(nfp,-self.centroid_list[i][0],-self.centroid_list[i][1])
         if self.store_nfp==True:
             self.storeNFP()

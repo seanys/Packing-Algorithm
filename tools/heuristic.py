@@ -33,7 +33,10 @@ class BottomLeftFill(object):
             self.vertical=True
         else:
             self.vertical=False
-
+        if 'rectangle' in kw:
+            self.rectangle=True
+        else:
+            self.rectangle=False
         # for i in range(1,3):
         for i in range(1,len(self.polygons)):
             # print("##############################放置第",i+1,"个形状#################################")
@@ -58,9 +61,9 @@ class BottomLeftFill(object):
         for main_index in range(0,index):
             main=self.polygons[main_index]
             if self.NFPAssistant==None:
-                nfp=NFP(main,adjoin).nfp
+                nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
             else:
-                nfp=self.NFPAssistant.getDirectNFP(main,adjoin)
+                nfp=self.NFPAssistant.getDirectNFP(main,adjoin,rectangle=self.rectangle)
             differ_region=differ_region.difference(Polygon(nfp))
 
         differ=GeoFunc.polyToArr(differ_region)

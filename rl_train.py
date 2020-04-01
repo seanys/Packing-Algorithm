@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import argparse
 import os
 import pprint as pp
@@ -10,14 +9,15 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import threading
+import pandas as pd
 from tqdm import tqdm
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
 from tensorboard_logger import configure, log_value
-from rl import NeuralCombOptRL
-from rl_test import generatePolygon
-from tools.heuristic import BottomLeftFill
+from tools.rl import NeuralCombOptRL
+from tools.heuristic import BottomLeftFill,NFPAssistant
+from rl_test import generatePolygon,generateRectangle
 
 class PolygonsDataset(Dataset):
     def __init__(self,size,max_point_num,path=None):
@@ -29,7 +29,8 @@ class PolygonsDataset(Dataset):
         x=[]
         if not path:
             for i in range(size):
-                polys=generatePolygon(8,max_point_num)
+                #polys=generatePolygon(8,max_point_num)
+                polys=generateRectangle(10,500,500)
                 polys=polys.T
                 x.append(polys)
             self.x=np.array(x)
@@ -65,10 +66,12 @@ class BottomLeftFillThread (threading.Thread):
         利用BottomLeftFill计算Height
         '''
         try:
-            bfl=BottomLeftFill(width,polys,vertical=True)
+        #df = pd.read_csv('record/rec100_nfp.csv') # 把nfp history读入内存
+        #nfp_asst=NFPAssistant(polys,load_history=True,history=df)
+            bfl=BottomLeftFill(width,polys,vertical=True,rectangle=True)
             return bfl.getLength()
         except:
-            return -9999
+            return 9999
 
     def run(self):
         # print ("开启BLF线程：" + str(self.threadID))
@@ -88,14 +91,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='seq2000', help='')
+    parser.add_argument('--task', default='0330', help='')
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--train_size', default=2000, help='')
-    parser.add_argument('--val_size', default=200, help='')
+    parser.add_argument('--train_size', default=1000, help='')
+    parser.add_argument('--val_size', default=1000, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=1000, help='Width of BottomLeftFill')
-    parser.add_argument('--max_point_num', default=5, help='')
+    parser.add_argument('--max_point_num', default=4, help='')
 
     '''网络设计'''  
     parser.add_argument('--embedding_dim', default=128, help='Dimension of input embedding')
@@ -116,8 +119,8 @@ if __name__ == "__main__":
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
-    parser.add_argument('--is_train', type=str2bool, default=False, help='')
-    parser.add_argument('--n_epochs', default=3, help='')
+    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--n_epochs', default=500, help='')
     parser.add_argument('--random_seed', default=24601, help='')
     parser.add_argument('--max_grad_norm', default=2.0, help='Gradient clipping')
     parser.add_argument('--use_cuda', type=str2bool, default=False, help='') # 默认禁用CUDA
@@ -126,9 +129,9 @@ if __name__ == "__main__":
     # Misc
     parser.add_argument('--log_step', default=1, help='Log info every log_step steps')
     parser.add_argument('--log_dir', type=str, default='logs')
-    parser.add_argument('--run_name', type=str, default='032823')
+    parser.add_argument('--run_name', type=str, default='rec1000')
     parser.add_argument('--output_dir', type=str, default='outputs')
-    parser.add_argument('--epoch_start', type=int, default=3, help='Restart at epoch #')
+    parser.add_argument('--epoch_start', type=int, default=0, help='Restart at epoch #')
     parser.add_argument('--load_path', type=str, default='')
     parser.add_argument('--disable_tensorboard', type=str2bool, default=False)
     parser.add_argument('--plot_attention', type=str2bool, default=False)
@@ -146,7 +149,7 @@ if __name__ == "__main__":
     if not args['disable_tensorboard']:
         configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
-    size = 8 # 解码器长度（序列长度）
+    size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
     def reward(sample_solution, USE_CUDA=False):
@@ -173,7 +176,7 @@ if __name__ == "__main__":
         for t in threads:
             t.join()
         for index in range(batch_size):
-            result[index]=-threads[index].getResult()+600
+            result[index]=threads[index].getResult()
         return torch.Tensor(result)
 
     def plot_attention(in_seq, out_seq, attentions):
@@ -195,13 +198,11 @@ if __name__ == "__main__":
 
         plt.show()
 
-
-    input_dim = 10 
+    input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path=r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path=r'D:\\Tongji\\Nesting\\Data\\rec10000.npy')
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path=r'D:\\Tongji\\Nesting\\Data\\rec10000_val.npy')
     # print(val_dataset.input)
-    args['load_path']='outputs/seq2000/032823/epoch-2.pt'
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
@@ -273,22 +274,18 @@ if __name__ == "__main__":
         if args['is_train']:
             # put in train mode!
             model.train()
-
             # sample_batch is [batch_size x input_dim x sourceL]
             for batch_id, sample_batch in enumerate(tqdm(training_dataloader,
                     disable=args['disable_progress_bar'])):
-
                 bat = Variable(sample_batch)
                 if args['use_cuda']:
                     bat = bat.cuda()
-
                 R, probs, actions, actions_idxs = model(bat)
-            
+        
                 if batch_id == 0:
                     critic_exp_mvg_avg = R.mean()
                 else:
                     critic_exp_mvg_avg = (critic_exp_mvg_avg * beta) + ((1. - beta) * R.mean())
-
                 advantage = R - critic_exp_mvg_avg
                 
                 logprobs = 0
@@ -308,10 +305,8 @@ if __name__ == "__main__":
                 # multiply each time step by the advanrate
                 reinforce = advantage * logprobs
                 actor_loss = reinforce.mean()
-                
-                actor_optim.zero_grad()
-            
-                actor_loss.backward()
+                actor_optim.zero_grad() # 清空梯度
+                actor_loss.backward() # 反向传播
 
                 # clip gradient norms
                 torch.nn.utils.clip_grad_norm_(model.actor_net.parameters(),
@@ -408,6 +403,8 @@ if __name__ == "__main__":
                             example_output, probs.data.cpu().numpy())
         print('Validation overall avg_reward: {}'.format(np.mean(avg_reward)))
         print('Validation overall reward var: {}'.format(np.var(avg_reward)))
+        with open('rewards_val.csv',"a+") as csvfile:
+            csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')
         predict_sequence=np.array(predict_sequence)
         np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
         predict_height=np.array(predict_height)

@@ -3,6 +3,7 @@
 '''
 import numpy as np
 from tools.heuristic import BottomLeftFill
+from tools.packing import NFPAssistant
 max_point_num=5
 
 def BLFwithSequence(test_path,seq_path=None):
@@ -35,7 +36,7 @@ def BLFwithSequence(test_path,seq_path=None):
         height.append(blf.getLength())
     return height
 
-def benchmark():
+def getBenchmark():
     random=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
     random=np.array(random)
     np.savetxt('randomSEQ.CSV',random)
@@ -49,7 +50,7 @@ def generateRectangle(poly_num,max_width,max_height):
     for i in range(poly_num):
         x=np.random.randint(50,max_width)
         y=np.random.randint(50,max_height)
-        points=[0,0,x,0,0,y,x,y]
+        points=[0,0,x,0,x,y,0,y]
         polys[i]=points
     return polys
 
@@ -76,17 +77,45 @@ def generatePolygon(poly_num,max_point_num):
             # print(theta,x,y)
     return polys
     
-def generateTestData(size,poly_num,max_point_num):
+def generateTestData(size,poly_num=10,max_point_num=5,rectangle=False):
     x=[]
     for i in range(size):
-        polys=generatePolygon(poly_num,max_point_num)
+        if not rectangle:
+            polys=generatePolygon(poly_num,max_point_num)
+        else:
+            polys=generateRectangle(poly_num,500,500)
         polys=polys.T
         x.append(polys)
     x=np.array(x)
     np.save('test{}_{}_{}'.format(size,poly_num,max_point_num),x)
 
-def chooseRectangle(data_source,size):
+def chooseRectangle(data_source,size,is_train=True):
     data=np.loadtxt(data_source)
+    x=[]
+    for i in range(size):
+        if is_train:
+            index=np.random.choice(list(range(50)),10)
+        else:
+            index=np.random.choice(list(range(50,100)),10)
+        polys=[]
+        for j in range(len(index)):
+            polys.append(data[index[j]].tolist())
+        polys=np.array(polys)
+        polys=polys.T
+        x.append(polys)
+    x=np.array(x)
+    np.save('rec500_val',x)
+
+def getAllNFP(data_source,max_point_num):
+    data=np.loadtxt(data_source)
+    polys=[]
+    for line in data:
+        poly=line.reshape(max_point_num,2).tolist()
+        polys.append(poly)
+    nfp_asst=NFPAssistant(polys,get_all_nfp=True,store_nfp=True,store_path='record/rec100_nfp.csv')
 
 if __name__ == "__main__":
-
+    #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
+    #getAllNFP('data/rec100.csv',4)
+    generateTestData(10000,rectangle=True)
+    pass

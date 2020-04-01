@@ -540,6 +540,10 @@ class NFP(object):
         GeoFunc.slideToPoint(self.sliding,self.sliding[self.locus_index],self.start_point)
         self.start=True # 判断是否初始
         self.nfp=[]
+        self.rectangle=False
+        if 'rectangle' in kw:
+            if kw["rectangle"]==True:
+                self.rectangle=True
         self.error=1
         self.main()
         if 'show' in kw:
@@ -548,36 +552,44 @@ class NFP(object):
 
     def main(self):
         i=0
-        while self.judgeEnd()==False and i<75: # 大于等于75会自动退出的，一般情况是计算出错
-        # while i<7:
-            # print("########第",i,"轮##########")
-            touching_edges=self.detectTouching()
-            all_vectors=self.potentialVector(touching_edges)
-            if len(all_vectors)==0:
-                print("没有可行向量")
-                self.error=-2 # 没有可行向量
-                break
+        if self.rectangle: # 若矩形则直接快速运算 点的index为左下角开始逆时针旋转
+            width=self.sliding[1][0]-self.sliding[0][0]
+            height=self.sliding[3][1]-self.sliding[0][1]
+            self.nfp.append([self.stationary[0][0],self.stationary[0][1]])
+            self.nfp.append([self.stationary[1][0]+width,self.stationary[1][1]])
+            self.nfp.append([self.stationary[2][0]+width,self.stationary[2][1]+height])
+            self.nfp.append([self.stationary[3][0],self.stationary[3][1]+height])
+        else:
+            while self.judgeEnd()==False and i<75: # 大于等于75会自动退出的，一般情况是计算出错
+            # while i<7:
+                # print("########第",i,"轮##########")
+                touching_edges=self.detectTouching()
+                all_vectors=self.potentialVector(touching_edges)
+                if len(all_vectors)==0:
+                    print("没有可行向量")
+                    self.error=-2 # 没有可行向量
+                    break
 
-            vector=self.feasibleVector(all_vectors,touching_edges)
-            if vector==[]:
-                print("没有计算出可行向量")
-                self.error=-5 # 没有计算出可行向量
-                break
-            self.trimVector(vector)
-            if vector==[0,0]:
-                print("未进行移动")
-                self.error=-3 # 未进行移动
-                break
+                vector=self.feasibleVector(all_vectors,touching_edges)
+                if vector==[]:
+                    print("没有计算出可行向量")
+                    self.error=-5 # 没有计算出可行向量
+                    break
+                self.trimVector(vector)
+                if vector==[0,0]:
+                    print("未进行移动")
+                    self.error=-3 # 未进行移动
+                    break
 
-            GeoFunc.slidePoly(self.sliding,vector[0],vector[1])
-            self.nfp.append([self.sliding[self.locus_index][0],self.sliding[self.locus_index][1]])
-            i=i+1
-            
-            inter=Polygon(self.sliding).intersection(Polygon(self.stationary))
-            if GeoFunc.computeInterArea(inter)>1:
-                print("出现相交区域")
-                self.error=-4 # 出现相交区域
-                break                
+                GeoFunc.slidePoly(self.sliding,vector[0],vector[1])
+                self.nfp.append([self.sliding[self.locus_index][0],self.sliding[self.locus_index][1]])
+                i=i+1
+                
+                inter=Polygon(self.sliding).intersection(Polygon(self.stationary))
+                if GeoFunc.computeInterArea(inter)>1:
+                    print("出现相交区域")
+                    self.error=-4 # 出现相交区域
+                    break                
 
         if i==75:
             print("超出计算次数")
@@ -828,18 +840,19 @@ class NFP(object):
 # 计算NFP然后寻找最合适位置
 def tryNFP():
     # df = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/euro_data/blaz.csv")
-    df = pd.read_csv("/Users/sean/Documents/Projects/Data/Shapes/now_fail.csv")
+    # df = pd.read_csv("/Users/sean/Documents/Projects/Data/Shapes/now_fail.csv")
 
-    i=random.randint(0,80)
-    i=19
-    print(i)
-    poly1=json.loads(df['poly1'][i])
-    poly2=json.loads(df['poly2'][i])
+    # i=random.randint(0,80)
+    # i=19
+    # print(i)
+    # poly1=json.loads(df['poly1'][i])
+    # poly2=json.loads(df['poly2'][i])
     # GeoFunc.normData(poly1,50)
     # GeoFunc.normData(poly2,50)
     # GeoFunc.slidePoly(poly1,500,500)
-
-    nfp=NFP(poly1,poly2,show=True)
+    rect1=[[100,100], [150,100], [150,150], [100,150]]
+    rect2=[[100,100], [120,100], [120,160], [100,160]]
+    nfp=NFP(rect1,rect2,show=True,rectangle=True)
     print(nfp.nfp)
     # bfp=bestFitPosition(nfp,True)
     # print("Final fitness:",bfp.fitness)
@@ -895,5 +908,5 @@ def getConvex(**kw):
     return polygons
 
 if __name__ == '__main__':
-    # tryNFP()
-    polygonFuncCheck()
+    tryNFP()
+    # polygonFuncCheck()
