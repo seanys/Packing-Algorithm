@@ -77,13 +77,10 @@ def generatePolygon(poly_num,max_point_num):
             # print(theta,x,y)
     return polys
     
-def generateTestData(size,poly_num=10,max_point_num=5,rectangle=False):
+def generateTestData(size,poly_num=10,max_point_num=5):
     x=[]
     for i in range(size):
-        if not rectangle:
-            polys=generatePolygon(poly_num,max_point_num)
-        else:
-            polys=generateRectangle(poly_num,500,500)
+        polys=generateData_fu(10)
         polys=polys.T
         x.append(polys)
     x=np.array(x)
@@ -114,8 +111,37 @@ def getAllNFP(data_source,max_point_num):
         polys.append(poly)
     nfp_asst=NFPAssistant(polys,get_all_nfp=True,store_nfp=True,store_path='record/rec100_nfp.csv')
 
+def generateData_fu(poly_num):
+    polys=np.zeros((poly_num,8)) # 最多4个点 x 2个坐标
+    for i in range(poly_num):
+        shape=np.random.randint(0,8) # 矩形 直角三角形 等腰三角形 直角梯形
+        b=500
+        a=25
+        x=a+(b-a)*np.random.random()
+        y=a+(b-a)*np.random.random()
+        if shape==0 or shape==1:
+            points=[0,0,x,0,x,y,0,y]
+        elif shape==2:
+            points=[0,0,x,0,x,y,0,0]
+        elif shape==3:
+            points=[0,0,x,y,0,y,0,0]
+        elif shape==4:
+            points=[0,0,x,0,x/2,y,0,0]
+        elif shape==5:
+            points=[0,0,x,y/2,0,y,0,0]
+        elif shape==6:
+            x2=a+(b-a)*np.random.random()
+            points=[0,0,x2,0,x,y,0,y]
+        elif shape==7:
+            y2=a+(b-a)*np.random.random()
+            points=[0,0,x,0,x,y2,0,y]
+        polys[i]=points
+    return polys
+
 if __name__ == "__main__":
     #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
     #getAllNFP('data/rec100.csv',4)
-    generateTestData(10000,rectangle=True)
+    generateTestData(1000)
+    data=np.load('test1000_10_5.npy')
+    print(data.shape)
     pass

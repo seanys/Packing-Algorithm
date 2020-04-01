@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader,Dataset
 from tensorboard_logger import configure, log_value
 from tools.rl import NeuralCombOptRL
 from heuristic import BottomLeftFill,NFPAssistant
-from rl_test import generatePolygon,generateRectangle
+from rl_test import generateData_fu
 
 class PolygonsDataset(Dataset):
     def __init__(self,size,max_point_num,path=None):
@@ -28,8 +28,7 @@ class PolygonsDataset(Dataset):
         x=[]
         if not path:
             for i in range(size):
-                #polys=generatePolygon(8,max_point_num)
-                polys=generateRectangle(10,500,500)
+                polys=generateData_fu(10)
                 polys=polys.T
                 x.append(polys)
             self.x=np.array(x)
@@ -94,8 +93,8 @@ if __name__ == "__main__":
     '''数据加载'''
     parser.add_argument('--task', default='0401', help='')
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--train_size', default=1000, help='')
-    parser.add_argument('--val_size', default=1000, help='')
+    parser.add_argument('--train_size', default=100, help='')
+    parser.add_argument('--val_size', default=100, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=1000, help='Width of BottomLeftFill')
@@ -130,7 +129,7 @@ if __name__ == "__main__":
     # Misc
     parser.add_argument('--log_step', default=1, help='Log info every log_step steps')
     parser.add_argument('--log_dir', type=str, default='logs')
-    parser.add_argument('--run_name', type=str, default='rec1000')
+    parser.add_argument('--run_name', type=str, default='fu1000')
     parser.add_argument('--output_dir', type=str, default='outputs')
     parser.add_argument('--epoch_start', type=int, default=0, help='Restart at epoch #')
     parser.add_argument('--load_path', type=str, default='')
@@ -203,8 +202,8 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path=r'D:\\Tongji\\Nesting\\Data\\rec10000.npy')
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path=r'D:\\Tongji\\Nesting\\Data\\rec10000_val.npy')
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000_10_5.npy')
     # print(val_dataset.input)
 
     '''初始化网络/测试已有网络'''

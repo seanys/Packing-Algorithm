@@ -79,7 +79,7 @@ class NFPAssistant(object):
             if kw['fast']==True:
                 self.res=[[0]*len(self.polys) for i in range(len(self.polys))]
                 pool=Pool()
-                starttime = time.time()
+                # starttime = time.time()
                 for i in range(1,len(self.polys)):
                     for j in range(0,i):
                         # 计算nfp(j,i)
@@ -89,8 +89,8 @@ class NFPAssistant(object):
                 for i in range(1,len(self.polys)):
                     for j in range(0,i):
                         self.nfp_list[j][i]=GeoFunc.getSlide(self.res[j][i].get(),-self.centroid_list[j][0],-self.centroid_list[j][1])
-                endtime = time.time()
-                print (endtime - starttime)
+                # endtime = time.time()
+                # print (endtime - starttime)
 
     def loadHistory(self):
         if self.history.empty:
