@@ -104,12 +104,16 @@ def chooseRectangle(data_source,size,is_train=True):
     np.save('rec500_val',x)
 
 def getAllNFP(data_source,max_point_num):
-    data=np.loadtxt(data_source)
+    data=np.load(data_source)
     polys=[]
-    for line in data:
-        poly=line.reshape(max_point_num,2).tolist()
-        polys.append(poly)
-    nfp_asst=NFPAssistant(polys,get_all_nfp=True,store_nfp=True,store_path='record/rec100_nfp.csv')
+    for i in range(216,len(data)):
+        line=data[i]
+        poly_new=[]
+        line=line.T
+        for j in range(len(line)):
+            poly_new.append(line[j].reshape(max_point_num,2).tolist())
+        #print(poly_new)
+        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1000/{}.csv'.format(i))
 
 def generateData_fu(poly_num):
     polys=np.zeros((poly_num,8)) # 最多4个点 x 2个坐标
@@ -140,8 +144,8 @@ def generateData_fu(poly_num):
 
 if __name__ == "__main__":
     #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
-    #getAllNFP('data/rec100.csv',4)
-    generateTestData(1000)
-    data=np.load('test1000_10_5.npy')
-    print(data.shape)
+    getAllNFP('fu1000.npy',4)
+    # generateTestData(1000)
+    # data=np.load('test1000_10_5.npy')
+    # print(data.shape)
     pass

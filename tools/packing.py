@@ -2,7 +2,7 @@ from tools.polygon import GeoFunc,NFP,Poly
 from shapely.geometry import Polygon,Point,mapping,LineString
 from shapely.ops import unary_union
 from shapely import affinity
-from multiprocessing import Pool
+#from multiprocessing import Pool
 import pyclipper 
 import math
 import numpy as np
@@ -51,6 +51,9 @@ class NFPAssistant(object):
         self.load_history=False
         self.history_path=None
         self.history=None
+        if 'history_path' in kw:
+            self.history_path=kw['history_path']
+
         if 'load_history' in kw:
             if kw['load_history']==True:
                 # 从内存中加载history 直接传递pandas的df对象 缩短I/O时间
@@ -59,9 +62,6 @@ class NFPAssistant(object):
                 self.load_history=True
                 self.loadHistory()
         
-        if 'history_path' in kw:
-            self.history_path=kw['history_path']
-
         self.store_nfp=False
         if 'store_nfp' in kw:
             if kw['store_nfp']==True:
@@ -78,17 +78,18 @@ class NFPAssistant(object):
         if 'fast' in kw: # 为BLF进行多进程优化
             if kw['fast']==True:
                 self.res=[[0]*len(self.polys) for i in range(len(self.polys))]
-                pool=Pool()
+                #pool=Pool()
                 # starttime = time.time()
                 for i in range(1,len(self.polys)):
                     for j in range(0,i):
                         # 计算nfp(j,i)
-                        self.res[j][i]=pool.apply_async(getNFP,args=(self.polys[j],self.polys[i]))
-                pool.close()
-                pool.join()
-                for i in range(1,len(self.polys)):
-                    for j in range(0,i):
-                        self.nfp_list[j][i]=GeoFunc.getSlide(self.res[j][i].get(),-self.centroid_list[j][0],-self.centroid_list[j][1])
+                        #self.res[j][i]=pool.apply_async(getNFP,args=(self.polys[j],self.polys[i]))
+                        self.nfp_list[j][i]=GeoFunc.getSlide(getNFP(self.polys[j],self.polys[i]),-self.centroid_list[j][0],-self.centroid_list[j][1])
+                # pool.close()
+                # pool.join()
+                # for i in range(1,len(self.polys)):
+                #     for j in range(0,i):
+                #         self.nfp_list[j][i]=GeoFunc.getSlide(self.res[j][i].get(),-self.centroid_list[j][0],-self.centroid_list[j][1])
                 # endtime = time.time()
                 # print (endtime - starttime)
 
@@ -98,14 +99,14 @@ class NFPAssistant(object):
                 path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
             else:
                 path=self.history_path
-            df = pd.read_csv(path)
+            df = pd.read_csv(path,header=None)
         else:
             df = self.history
         for index in range(df.shape[0]):
-            i=self.getPolyIndex(json.loads(df["poly1"][index]))
-            j=self.getPolyIndex(json.loads(df["poly2"][index]))
+            i=self.getPolyIndex(json.loads(df[0][index]))
+            j=self.getPolyIndex(json.loads(df[1][index]))
             if i>=0 and j>=0:
-                self.nfp_list[i][j]=json.loads(df["nfp"][index])
+                self.nfp_list[i][j]=json.loads(df[2][index])
         # print(self.nfp_list)
         
     # 获得一个形状的index

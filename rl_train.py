@@ -87,11 +87,11 @@ class PolygonsDataset(Dataset):
 def str2bool(v):
       return v.lower() in ('true', '1')
 
-if __name__ == "__main__":    
+if __name__ == "__main__":   
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0401', help='')
+    parser.add_argument('--task', default='0402', help='')
     parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--train_size', default=1000, help='')
     parser.add_argument('--val_size', default=1000, help='')
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
-    def reward(sample_solution, USE_CUDA=False):
+    def reward(sample_solution, USE_CUDA=False, is_train=True):
         # sample_solution shape: [sourceL, batch_size, input_dim]
         batch_size = sample_solution[0].size(0)
         n = len(sample_solution)
@@ -160,17 +160,22 @@ if __name__ == "__main__":
         points=[]
         for i in range(n):
             sample=sample_solution[i]
-            points.append(sample.numpy())
+            points.append(sample.cpu().numpy())
         points=np.array(points)
         result=np.zeros(batch_size)
-        # threads=[] # 多线程计算BFL
+        # threads=[] # 多线程计算BLF
         for index in range(batch_size):
             poly=points[:,index,:]
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            bfl=BottomLeftFill(args['width'],poly_new,vertical=True)
-            result[index]=bfl.getLength()
+            if is_train:
+                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
+            else:
+                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(index+cur_batch*batch_size))
+            blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+            print(index+cur_batch*batch_size)
+            result[index]=blf.getLength()
             # thread = BottomLeftFillThread(index,args['width'],poly_new) 
             # threads.append(thread)
         # for t in threads:
@@ -202,8 +207,8 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000_10_5.npy')
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1000.npy')
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000_val.npy')
     # print(val_dataset.input)
 
     '''初始化网络/测试已有网络'''
@@ -276,6 +281,7 @@ if __name__ == "__main__":
         if args['is_train']:
             # put in train mode!
             model.train()
+            cur_batch=0
             # sample_batch is [batch_size x input_dim x sourceL]
             for batch_id, sample_batch in enumerate(tqdm(training_dataloader,
                     disable=args['disable_progress_bar'])):
@@ -283,7 +289,7 @@ if __name__ == "__main__":
                 if args['use_cuda']:
                     bat = bat.cuda()
                 R, probs, actions, actions_idxs = model(bat)
-        
+                cur_batch=cur_batch+1
                 if batch_id == 0:
                     critic_exp_mvg_avg = R.mean()
                 else:
@@ -305,7 +311,10 @@ if __name__ == "__main__":
                 logprobs[(logprobs < -1000).detach()] = 0.
 
                 # multiply each time step by the advanrate
-                reinforce = advantage * logprobs
+                if args['use_cuda']:
+                    reinforce = advantage.cuda() * logprobs
+                else:
+                    reinforce = advantage * logprobs
                 actor_loss = reinforce.mean()
                 actor_optim.zero_grad() # 清空梯度
                 actor_loss.backward() # 反向传播
@@ -367,6 +376,7 @@ if __name__ == "__main__":
 
         # put in test mode!
         model.eval()
+        cur_batch=0
 
         for batch_id, val_batch in enumerate(tqdm(validation_dataloader,
                 disable=args['disable_progress_bar'])):
@@ -376,7 +386,7 @@ if __name__ == "__main__":
                 bat = bat.cuda()
 
             R, probs, actions, action_idxs = model(bat)
-            
+            cur_batch=cur_batch+1
             avg_reward.append(R[0].item())
             val_step += 1.
 
@@ -391,7 +401,7 @@ if __name__ == "__main__":
                     example_output.append(action_idxs[idx][0].item())
                     # else:
                     # example_output.append(action[0].numpy())
-                    example_input.append(bat[0, :, idx].numpy()) # 尝试item改numpy
+                    example_input.append(bat[0, :, idx].cpu().numpy()) # 尝试item改numpy
                 # print('Step: {}'.format(batch_id))
                 # #print('Example test input: {}'.format(example_input))
                 # print('Example test output: {}'.format(example_output))
