@@ -267,14 +267,14 @@ if __name__=='__main__':
     # TOPOS(polys,1500)
 
     # 计算NFP时间
-    # print(datetime.datetime.now(),"开始计算NFP")
-    # nfp_ass=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
-    # print(datetime.datetime.now(),"计算完成NFP")
-    # bfl=BottomLeftFill(1500,polys,vertical=True,NFPAssistant=nfp_ass)
+    print(datetime.datetime.now(),"开始计算NFP")
+    nfp_ass=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True,history_path='record/nfp.csv')
+    print(datetime.datetime.now(),"计算完成NFP")
+    bfl=BottomLeftFill(1500,polys,vertical=True,NFPAssistant=nfp_ass)
     
-    # print(datetime.datetime.now(),"计算完成BLF")
+    print(datetime.datetime.now(),"计算完成BLF")
 
-    GA(poly_list)
+    #GA(poly_list)
     # SA(poly_list)
 
     # GetBestSeq(1000,getConvex(num=5),"decrease")

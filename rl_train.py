@@ -9,11 +9,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
+import multiprocessing
+import datetime
 from tqdm import tqdm
+from multiprocessing import Pool
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
-from tensorboard_logger import configure, log_value
+from torch.utils.tensorboard import SummaryWriter
 from tools.rl import NeuralCombOptRL
 from heuristic import BottomLeftFill,NFPAssistant
 from rl_test import generateData_fu
@@ -87,7 +90,14 @@ class PolygonsDataset(Dataset):
 def str2bool(v):
       return v.lower() in ('true', '1')
 
-if __name__ == "__main__":   
+def getBLF(width,poly,nfp_asst):
+
+    blf=BottomLeftFill(width,poly,vertical=True,NFPAssistant=nfp_asst)
+
+    return blf.getLength()
+
+if __name__ == "__main__":  
+    multiprocessing.set_start_method('spawn',True) 
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
@@ -146,13 +156,18 @@ if __name__ == "__main__":
     torch.manual_seed(int(args['random_seed']))
 
     # Optionally configure tensorboard
-    if not args['disable_tensorboard']:
-        configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
+    # if not args['disable_tensorboard']:
+    #     configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
+    # 改用torch集成的tensorboard
+    writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
+
 
     size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
     def reward(sample_solution, USE_CUDA=False, is_train=True):
+        # start=datetime.datetime.now()
+        # print(start,"开始reward")
         # sample_solution shape: [sourceL, batch_size, input_dim]
         batch_size = sample_solution[0].size(0)
         n = len(sample_solution)
@@ -164,6 +179,8 @@ if __name__ == "__main__":
         points=np.array(points)
         result=np.zeros(batch_size)
         # threads=[] # 多线程计算BLF
+        p=Pool() # 多进程计算BLF
+        res=[]
         for index in range(batch_size):
             poly=points[:,index,:]
             poly_new=[]
@@ -173,11 +190,21 @@ if __name__ == "__main__":
                 nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
             else:
                 nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(index+cur_batch*batch_size))
-            blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
-            print(index+cur_batch*batch_size)
-            result[index]=blf.getLength()
+            # blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+            kw=dict()
+            kw['vertical']=True
+            kw['NFPAssistant']=nfp_asst
+            res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
+            # result[index]=blf.getLength()
             # thread = BottomLeftFillThread(index,args['width'],poly_new) 
             # threads.append(thread)
+        p.close()
+        p.join()
+        # end=datetime.datetime.now()
+        # print(end,"结束reward")
+        # print(end-start)
+        for index in range(batch_size):
+            result[index]=res[index].get()
         # for t in threads:
         #     t.start()
         # for t in threads:
@@ -256,9 +283,9 @@ if __name__ == "__main__":
             range(int(args['actor_lr_decay_step']), int(args['actor_lr_decay_step']) * 1000,
                 int(args['actor_lr_decay_step'])), gamma=float(args['actor_lr_decay_rate']))
 
-    training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=True, num_workers=4)
+    training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
 
-    validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=1)
+    validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=1)
 
     critic_exp_mvg_avg = torch.zeros(1)
     beta = args['critic_beta']
@@ -342,12 +369,16 @@ if __name__ == "__main__":
                 
                 step += 1
                 
-                if not args['disable_tensorboard']:
-                    log_value('avg_reward', R.mean().item(), step)
-                    log_value('actor_loss', actor_loss.item(), step)
-                    #log_value('critic_loss', critic_loss.item(), step)
-                    log_value('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
-                    log_value('nll', nll.mean().item(), step)
+                # if not args['disable_tensorboard']:
+                    # log_value('avg_reward', R.mean().item(), step)
+                    # log_value('actor_loss', actor_loss.item(), step)
+                    # #log_value('critic_loss', critic_loss.item(), step)
+                    # log_value('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
+                    # log_value('nll', nll.mean().item(), step)
+                writer.add_scalar('avg_reward', R.mean().item(), step)
+                writer.add_scalar('actor_loss', actor_loss.item(), step)
+                writer.add_scalar('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
+                writer.add_scalar('nll', nll.mean().item(), step)
 
                 if step % int(args['log_step']) == 0:
                     # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
@@ -390,8 +421,10 @@ if __name__ == "__main__":
             avg_reward.append(R[0].item())
             val_step += 1.
 
-            if not args['disable_tensorboard']:
-                log_value('val_avg_reward', R[0].item(), int(val_step))
+            # if not args['disable_tensorboard']:
+            #     log_value('val_avg_reward', R[0].item(), int(val_step))
+
+            writer.add_scalar('val_avg_reward', R[0].item(), int(val_step))
 
             if val_step % int(args['log_step']) == 0:
                 example_output = []

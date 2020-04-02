@@ -113,7 +113,7 @@ def getAllNFP(data_source,max_point_num):
         for j in range(len(line)):
             poly_new.append(line[j].reshape(max_point_num,2).tolist())
         #print(poly_new)
-        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1000/{}.csv'.format(i))
+        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1000_val/{}.csv'.format(i))
 
 def generateData_fu(poly_num):
     polys=np.zeros((poly_num,8)) # 最多4个点 x 2个坐标
@@ -144,7 +144,7 @@ def generateData_fu(poly_num):
 
 if __name__ == "__main__":
     #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
-    getAllNFP('fu1000.npy',4)
+    getAllNFP('fu1000_val.npy',4)
     # generateTestData(1000)
     # data=np.load('test1000_10_5.npy')
     # print(data.shape)
