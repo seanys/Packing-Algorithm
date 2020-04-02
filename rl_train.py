@@ -169,8 +169,11 @@ if __name__ == "__main__":
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            bfl=BottomLeftFill(args['width'],poly_new,vertical=True)
-            result[index]=bfl.getLength()
+            try:
+                bfl=BottomLeftFill(args['width'],poly_new,vertical=True)
+                result[index]=bfl.getLength()
+            except:
+                result[index]=9999
             # thread = BottomLeftFillThread(index,args['width'],poly_new) 
             # threads.append(thread)
         # for t in threads:
