@@ -77,9 +77,10 @@ class GeoFunc(object):
         inter=mapping(orginal_inter)
         # 一个多边形
         if inter["type"]=="Polygon":
-            print(inter)
-            poly=inter["coordinates"][0]
-            return Polygon(poly).area
+            if len(inter["coordinates"])>0:
+                poly=inter["coordinates"][0]
+                return Polygon(poly).area
+            else: return 0
         if inter["type"]=="MultiPolygon":
             area=0
             for _arr in inter["coordinates"]:
@@ -631,9 +632,9 @@ class NFP(object):
                 i=i+1
                 
                 inter=Polygon(self.sliding).intersection(Polygon(self.stationary))
-                print(inter)
-                print(Polygon(self.sliding))
-                print(Polygon(self.stationary))
+                # print(inter)
+                # print(Polygon(self.sliding))
+                # print(Polygon(self.stationary))
                 if GeoFunc.computeInterArea(inter)>1:
                     print("出现相交区域")
                     self.error=-4 # 出现相交区域

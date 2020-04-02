@@ -106,7 +106,7 @@ def chooseRectangle(data_source,size,is_train=True):
 def getAllNFP(data_source,max_point_num):
     data=np.load(data_source)
     polys=[]
-    for i in range(214,len(data)):
+    for i in range(216,len(data)):
         line=data[i]
         poly_new=[]
         line=line.T
