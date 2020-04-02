@@ -93,8 +93,8 @@ class NFPAssistant(object):
                 # print (endtime - starttime)
 
     def loadHistory(self):
-        if self.history.empty:
-            if self.history_path.empty:
+        if self.history==None:
+            if self.history_path==None:
                 path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
             else:
                 path=self.history_path

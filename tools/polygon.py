@@ -175,7 +175,7 @@ class GeoFunc(object):
     def polyToArr(inter):
         res=mapping(inter)
         _arr=[]
-        if res["type"]=="MultiPolygon":
+        if res["type"]=="MultiPolygon" or res["type"]=="GeometryCollection":
             for poly in res["coordinates"]:
                 for point in poly[0]:
                     _arr.append([point[0],point[1]])
@@ -183,7 +183,18 @@ class GeoFunc(object):
             for point in res["coordinates"][0]:
                 _arr.append([point[0],point[1]])
         return _arr
-    
+
+    def collectionToArr(inter):
+        '''用于LP Search中出现Collection的情况'''
+        res=mapping(inter)
+        _arr=[]
+        for item in res["geometries"]:
+            if item["type"]!="LineString" and item["type"]!="Point":
+                poly=item["coordinates"][0]
+                for point in poly:
+                    _arr.append([point[0],point[1]])
+        return _arr
+
     def normData(poly,num):
         for ver in poly:
             ver[0]=ver[0]*num
