@@ -36,19 +36,16 @@ class LPSearch(object):
         self.shrink()
         self.updateOverlap() # 更新所有重叠情况
 
-        choose_index=3 # 获得当前最大的Overlap的形状
+        choose_index=11 # 获得当前最大的Overlap的形状
         self.getPrerequisite(choose_index) # 首先获得全部NFP的拆分
                 
-        self.getConstrain() # 获得全部的限制函数
+        self.getProblemLP() # 获得全部的限制函数
 
-        return 
-
-        # 解决最优问题
-        best_position,min_depth=[0,0],999999999
-        for problem in self.all_problems:
-            res,_min=sovleLP(problem[0],problem[1],problem[2])
-            if _min<=min_depth:
-                best_position=re
+        best_position=self.searchBestPosition() # 获得最优位置
+        top_point=self.polys[choose_index][GeoFunc.checkTop(self.polys[choose_index])]
+        new_polygon=GeoFunc.getSlide(self.polys[choose_index],best_position[0]-top_point[0],best_position[1]-top_point[1])
+        PltFunc.addPolygonColor(new_polygon)
+        self.showPolys()
 
     def updateOverlap(self):
         '''获得的重叠面积（未调整）'''
@@ -74,10 +71,11 @@ class LPSearch(object):
     # 获得全部的NFP及其拆分结果，获得IFR和限制
     def getPrerequisite(self,index):
         # 首先获得NFP的情况
-        self.all_nfps,self.all_divided_nfp,self.max_divided_len=[],[],0
+        self.all_nfps,self.all_divided_nfp,self.all_target_func,self.max_divided_len=[],[],[],0
         for i in range(len(self.polys)):
             if i==index:
                 self.all_nfps.append([])
+                self.all_target_func.append([])
                 self.all_divided_nfp.append([])
                 continue
 
@@ -91,24 +89,29 @@ class LPSearch(object):
                 all_bisectior.append([nfp[i+1],[nfp[i+1][0]+vec[0]*1000,nfp[i+1][1]+vec[1]*1000]])
 
             # 计算全部的三角形区域和附带边
-            divided_nfp=[]
+            divided_nfp,target_func=[],[]
             for i in range(-1,len(all_bisectior)-1):
                 line1,line2=all_bisectior[i],all_bisectior[i+1]
                 inter=self.lineIntersection(line1,line2)
                 divided_nfp.append([nfp[i-1],nfp[i],inter]) # [边界点1,边界点2,交点]
+                target_func.append(self.getTargetFunction([nfp[i-1],nfp[i]]))
             
             self.all_divided_nfp.append(divided_nfp)
+            self.all_target_func.append(target_func)
 
             if len(divided_nfp)>self.max_divided_len:
                 self.max_divided_len=len(divided_nfp)
-                
-        for item in self.all_divided_nfp:
-            print(item)
 
         # 获得IFR/ifr及其边界情况
         self.ifr=PackingUtil.getInnerFitRectangle(self.polys[index],self.cur_length,self.width)
         self.IFR=Polygon(self.ifr)
-
+    
+    def showPolys(self):
+        for poly in self.polys:
+            PltFunc.addPolygon(poly)
+        PltFunc.addPolygonColor([[0,0],[self.cur_length,0],[self.cur_length,self.width],[0,self.width]])
+        PltFunc.showPlt(width=1500,height=1500)
+    
     # 获得角平分线
     def getAngularBisector(self,pt1,pt2,pt3):
         '''
@@ -135,9 +138,10 @@ class LPSearch(object):
         pass
 
     # 基于NFP获得全部的约束
-    def getConstrain(self):
+    def getProblemLP(self):
         self.updateNFPOverlap() # 更新NFP的重叠情况
-        self.target_areas=[[],[],[],[],[],[],[],[]] # 用于存储目标区域，最高允许6个形状重叠
+        self.target_areas=[[],[],[],[],[],[],[],[]] # 用于存储目标区域，最高允许8个形状重叠
+        self.target_function=[[],[],[],[],[],[],[],[]] # 用于计算目标函数，分别为xy的参数
 
 
         '''首先获得全部的一对对的NFP的结果，以及目标函数'''
@@ -153,7 +157,11 @@ class LPSearch(object):
                             self.pair_nfps[i][m].append([j,n])
                         # 重叠且j>i则存储重叠情况，避免重复
                         if overlap==True and j>i:
+                            # 目标区域增加
                             self.target_areas[1].append([overlap_poly,[i,m],[j,n]])
+                            # 获得目标参数
+                            [a1,b1,c1],[a2,b2,c2]=self.all_target_func[i][m],self.all_target_func[j][n]
+                            self.target_function[1].append([a1+a2,b1+b2,c1+c2])
         
         '''然后获得删除重叠区域以及IFR范围的区间'''
         for i,nfp_divided in enumerate(self.all_divided_nfp):
@@ -169,10 +177,10 @@ class LPSearch(object):
                         self.target_areas[0].append([GeoFunc.collectionToArr(new_region),[i,j]]) # 删除直线/顶点情况
                     else:
                         self.target_areas[0].append([GeoFunc.polyToArr(new_region),[i,j]]) # 最终结果只和顶点相关
-
+                    self.target_function[0].append(self.all_target_func[i][j])
 
         '''多个形状的计算'''
-        for i in range(2,5):
+        for i in range(2,len(self.target_areas)):
             # for i in range(1,len(self.target_areas)-1):
             for j,target_area in enumerate(self.target_areas[i-1]):
                 # 获得当前目标可行解
@@ -199,8 +207,12 @@ class LPSearch(object):
                     inter=P1.intersection(P2)
                     # 添加目标区域/删除上一阶段的结果
                     if inter.area>bias:
+                        # 上一阶段区域
                         self.target_areas[i].append([GeoFunc.polyToArr(inter)]+[item for item in target_area[1:]]+[possible_target])
                         new_region.difference(inter)
+                        # 目标函数修正
+                        [a1,b1,c1],[a2,b2,c2]=self.target_function[i-1][j],self.all_target_func[possible_target[0]][possible_target[1]]
+                        self.target_function[i].append([a1+a2,b1+b2,c1+c2])
 
                 # 如果全部删除掉了，就直接清空，否则更新微信的区域
                 if new_region.empty==True or new_region.geom_type=="Point" or new_region.geom_type=="LineString":
@@ -210,9 +222,21 @@ class LPSearch(object):
 
             # 如果该轮没有计算出重叠则停止
             if self.target_areas[i]==[]:
-                print("至多",i,"个形状重叠")
+                print("至多",i,"个形状重叠，计算完成")
                 break
 
+    def searchBestPosition(self):
+        '''基于上述获得的区域与目标函数检索最优位置'''
+        min_depth,best_position=9999999999,[]
+        for i,item in enumerate(self.target_areas):
+            for j,area_item in enumerate(item):
+                a,b,c=self.target_function[i][j]
+                for pt in area_item[0]:
+                    value=a*pt[0]+b*pt[1]+c
+                    if value<min_depth:
+                        min_depth=value
+                        best_position=pt
+        return best_position
     
     def polysOverlapIFR(self,poly1,poly2):
         '''判断两个形状之间是否重叠、重叠区域面积、重叠区域是否与IFR有重叠'''
@@ -276,6 +300,16 @@ class LPSearch(object):
         _len=math.sqrt(vec[0]*vec[0]+vec[1]*vec[1])
         return [vec[0]/_len,vec[1]/_len]
 
+    @staticmethod
+    def getTargetFunction(edge):
+        '''处理NFP拆分的结果，第一条边为边界，只与距离的绝对值有关'''
+        A=edge[0][1]-edge[1][1]
+        B=edge[1][0]-edge[0][0]
+        C=edge[0][0]*edge[1][1]-edge[1][0]*edge[0][1]
+        D=math.pow(A*A+B*B,0.5)
+        a,b,c=A/D,B/D,C/D
+        return [a,b,c]
+
     # 收缩边界
     def shrink(self):
         self.cur_length=self.length*0.95
@@ -295,25 +329,9 @@ class LPSearch(object):
     # 获得初始解
     def getInitialResult(self):
         blf = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/blf.csv")
-        self.polys=json.loads(blf["polys"][3])
+        self.polys=json.loads(blf["polys"][2])
         print("一共",len(self.polys),"个形状")
         self.getLength()
-
-    # 多边形转化为限制
-    def convertPolyToConstrain(self,poly):
-        '''将多边形转化为区域（凸多边形）'''
-        edges=GeoFunc.getPolyEdges(polys)
-        constrain=[]
-        for i in range(-1,len(poly)-1):
-            # 初始化计算
-            x1,y2,x2,y2=poly[i][0],poly[i][1],poly[i+1][0],poly[i+1][1]
-            A,B,C=y2-y1,x1-x2,x2*y1-x1*y2
-            # 向量为1/4象限大于0，2/3为小于0，需要取负
-            if x2-x1>0:
-                constrain.append([A,B,C])
-            else:
-                constrain.append([-A,-B,-C])
-        return constrain
 
 if __name__=='__main__':
     # polys=getConvex(num=5)
