@@ -123,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_epochs', default=500, help='')
     parser.add_argument('--random_seed', default=24601, help='')
     parser.add_argument('--max_grad_norm', default=2.0, help='Gradient clipping')
-    parser.add_argument('--use_cuda', type=str2bool, default=False, help='') # 默认禁用CUDA
+    parser.add_argument('--use_cuda', type=str2bool, default=True, help='') # 默认禁用CUDA
     parser.add_argument('--critic_beta', type=float, default=0.9, help='Exp mvg average decay')
 
     # Misc

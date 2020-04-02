@@ -75,7 +75,6 @@ class GeoFunc(object):
         计算相交区域的面积
         '''
         inter=mapping(orginal_inter)
-        print('area',inter)
         # 一个多边形
         if inter["type"]=="Polygon":
             poly=inter["coordinates"][0]
