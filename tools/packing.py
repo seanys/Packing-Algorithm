@@ -51,6 +51,9 @@ class NFPAssistant(object):
         self.load_history=False
         self.history_path=None
         self.history=None
+        if 'history_path' in kw:
+            self.history_path=kw['history_path']
+
         if 'load_history' in kw:
             if kw['load_history']==True:
                 # 从内存中加载history 直接传递pandas的df对象 缩短I/O时间
@@ -59,9 +62,6 @@ class NFPAssistant(object):
                 self.load_history=True
                 self.loadHistory()
         
-        if 'history_path' in kw:
-            self.history_path=kw['history_path']
-
         self.store_nfp=False
         if 'store_nfp' in kw:
             if kw['store_nfp']==True:
@@ -94,19 +94,19 @@ class NFPAssistant(object):
                 # print (endtime - starttime)
 
     def loadHistory(self):
-        if self.history.empty:
-            if self.history_path.empty:
+        if not self.history:
+            if not self.history_path:
                 path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
             else:
                 path=self.history_path
-            df = pd.read_csv(path)
+            df = pd.read_csv(path,header=None)
         else:
             df = self.history
         for index in range(df.shape[0]):
-            i=self.getPolyIndex(json.loads(df["poly1"][index]))
-            j=self.getPolyIndex(json.loads(df["poly2"][index]))
+            i=self.getPolyIndex(json.loads(df[0][index]))
+            j=self.getPolyIndex(json.loads(df[1][index]))
             if i>=0 and j>=0:
-                self.nfp_list[i][j]=json.loads(df["nfp"][index])
+                self.nfp_list[i][j]=json.loads(df[2][index])
         # print(self.nfp_list)
         
     # 获得一个形状的index

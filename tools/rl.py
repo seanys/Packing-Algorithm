@@ -642,7 +642,7 @@ class NeuralCombOptRL(nn.Module):
     
         # [batch_size]
         # if self.is_train:
-        R = self.objective_fn(actions, self.use_cuda)
+        R = self.objective_fn(actions, self.use_cuda, self.is_train)
         # else:
         #     R=torch.zeros(1)
 
