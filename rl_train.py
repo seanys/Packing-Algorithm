@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     '''数据加载'''
     parser.add_argument('--task', default='0401', help='')
-    parser.add_argument('--batch_size', default=32, help='')
+    parser.add_argument('--batch_size', default=8, help='')
     parser.add_argument('--train_size', default=1000, help='')
     parser.add_argument('--val_size', default=1000, help='')
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
         points=[]
         for i in range(n):
             sample=sample_solution[i]
-            points.append(sample.numpy())
+            points.append(sample.cpu().numpy())
         points=np.array(points)
         result=np.zeros(batch_size)
         # threads=[] # 多线程计算BFL
