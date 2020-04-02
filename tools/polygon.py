@@ -77,6 +77,7 @@ class GeoFunc(object):
         inter=mapping(orginal_inter)
         # 一个多边形
         if inter["type"]=="Polygon":
+            print(inter)
             poly=inter["coordinates"][0]
             return Polygon(poly).area
         if inter["type"]=="MultiPolygon":
