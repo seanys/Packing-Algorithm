@@ -101,10 +101,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0402', help='')
+    parser.add_argument('--task', default='0403', help='')
     parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--train_size', default=1000, help='')
-    parser.add_argument('--val_size', default=1000, help='')
+    parser.add_argument('--val_size', default=200, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=1000, help='Width of BottomLeftFill')
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_dir', type=str, default='logs')
     parser.add_argument('--run_name', type=str, default='fu1000')
     parser.add_argument('--output_dir', type=str, default='outputs')
-    parser.add_argument('--epoch_start', type=int, default=0, help='Restart at epoch #')
+    parser.add_argument('--epoch_start', type=int, default=157, help='Restart at epoch #')
     parser.add_argument('--load_path', type=str, default='')
     parser.add_argument('--disable_tensorboard', type=str2bool, default=False)
     parser.add_argument('--plot_attention', type=str2bool, default=False)
@@ -158,6 +158,7 @@ if __name__ == "__main__":
     # Optionally configure tensorboard
     # if not args['disable_tensorboard']:
     #     configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
+
     # 改用torch集成的tensorboard
     writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
@@ -165,7 +166,7 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
-    def reward(sample_solution, USE_CUDA=False, is_train=True):
+    def reward(sample_solution, USE_CUDA=False):
         # start=datetime.datetime.now()
         # print(start,"开始reward")
         # sample_solution shape: [sourceL, batch_size, input_dim]
@@ -179,32 +180,35 @@ if __name__ == "__main__":
         points=np.array(points)
         result=np.zeros(batch_size)
         # threads=[] # 多线程计算BLF
-        p=Pool() # 多进程计算BLF
-        res=[]
-        for index in range(batch_size):
-            poly=points[:,index,:]
+        if trainning:
+            p=Pool() # 多进程计算BLF
+            res=[]
+            for index in range(batch_size):
+                poly=points[:,index,:]
+                poly_new=[]
+                for i in range(len(poly)):
+                    poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
+                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
+                # blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+                res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
+                # result[index]=blf.getLength()
+                # thread = BottomLeftFillThread(index,args['width'],poly_new) 
+                # threads.append(thread)
+            p.close()
+            p.join()
+            # end=datetime.datetime.now()
+            # print(end,"结束reward")
+            # print(end-start)
+            for index in range(batch_size):
+                result[index]=res[index].get()
+        else: # 验证时不开多进程
+            poly=points[:,0,:]
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            if is_train:
-                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
-            else:
-                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(index+cur_batch*batch_size))
-            # blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
-            kw=dict()
-            kw['vertical']=True
-            kw['NFPAssistant']=nfp_asst
-            res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
-            # result[index]=blf.getLength()
-            # thread = BottomLeftFillThread(index,args['width'],poly_new) 
-            # threads.append(thread)
-        p.close()
-        p.join()
-        # end=datetime.datetime.now()
-        # print(end,"结束reward")
-        # print(end-start)
-        for index in range(batch_size):
-            result[index]=res[index].get()
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(cur_batch))
+            blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+            result[0]=blf.getLength()
         # for t in threads:
         #     t.start()
         # for t in threads:
@@ -236,7 +240,7 @@ if __name__ == "__main__":
     reward_fn = reward  # 奖励函数
     training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1000.npy')
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000_val.npy')
-    # print(val_dataset.input)
+    args['load_path']='outputs/0402/fu1000/epoch-156.pt'
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
@@ -285,7 +289,7 @@ if __name__ == "__main__":
 
     training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
 
-    validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=1)
+    validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=4)
 
     critic_exp_mvg_avg = torch.zeros(1)
     beta = args['critic_beta']
@@ -308,6 +312,7 @@ if __name__ == "__main__":
         if args['is_train']:
             # put in train mode!
             model.train()
+            trainning=True
             cur_batch=0
             # sample_batch is [batch_size x input_dim x sourceL]
             for batch_id, sample_batch in enumerate(tqdm(training_dataloader,
@@ -407,6 +412,7 @@ if __name__ == "__main__":
 
         # put in test mode!
         model.eval()
+        trainning=False
         cur_batch=0
 
         for batch_id, val_batch in enumerate(tqdm(validation_dataloader,
