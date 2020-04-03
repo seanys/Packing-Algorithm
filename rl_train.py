@@ -310,6 +310,7 @@ if __name__ == "__main__":
             model.train()
             trainning=True
             cur_batch=0
+            avg_reward = []
             # sample_batch is [batch_size x input_dim x sourceL]
             for batch_id, sample_batch in enumerate(tqdm(training_dataloader,
                     disable=args['disable_progress_bar'])):
@@ -367,28 +368,28 @@ if __name__ == "__main__":
                 #critic_optim.step()
                 
                 step += 1
-                
                 # if not args['disable_tensorboard']:
                     # log_value('critic_loss', critic_loss.item(), step)
-                writer.add_scalar('avg_reward', R.mean().item(), step)
+                writer.add_scalar('reward', R.mean().item(), step)
+                avg_reward.append(R.mean().item())
                 writer.add_scalar('actor_loss', actor_loss.item(), step)
                 writer.add_scalar('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
                 writer.add_scalar('nll', nll.mean().item(), step)
+                # if step % int(args['log_step']) == 0:
+                #     # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
+                #     #     i, batch_id, R.mean().item()))
+                #     example_output = []
+                #     example_input = []
+                #     for idx, action in enumerate(actions):
+                #         # if task[0] == 'tsp':
+                #         example_output.append(actions_idxs[idx][0].item())
+                #         # else:
+                #         #     example_output.append(action[0].item())  # <-- ?? 
+                #         example_input.append(sample_batch[0, :, idx][0])
+                #     #print('Example train input: {}'.format(example_input))
+                #     #print('Example train output: {}'.format(example_output))
 
-                if step % int(args['log_step']) == 0:
-                    # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
-                    #     i, batch_id, R.mean().item()))
-                    example_output = []
-                    example_input = []
-                    for idx, action in enumerate(actions):
-                        # if task[0] == 'tsp':
-                        example_output.append(actions_idxs[idx][0].item())
-                        # else:
-                        #     example_output.append(action[0].item())  # <-- ?? 
-                        example_input.append(sample_batch[0, :, idx][0])
-                    #print('Example train input: {}'.format(example_input))
-                    #print('Example train output: {}'.format(example_output))
-
+        writer.add_scalar('avg_reward', np.mean(avg_reward), epoch)
         # Use beam search decoding for validation
         model.actor_net.decoder.decode_type = "beam_search"
         
