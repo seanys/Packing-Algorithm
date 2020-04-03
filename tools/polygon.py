@@ -632,6 +632,7 @@ class NFP(object):
                     print("没有计算出可行向量")
                     self.error=-5 # 没有计算出可行向量
                     break
+                
                 self.trimVector(vector)
                 if vector==[0,0]:
                     print("未进行移动")
