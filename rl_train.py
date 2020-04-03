@@ -9,11 +9,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
+import multiprocessing
+import datetime
 from tqdm import tqdm
+from multiprocessing import Pool
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
-from tensorboard_logger import configure, log_value
+from torch.utils.tensorboard import SummaryWriter
 from tools.rl import NeuralCombOptRL
 from heuristic import BottomLeftFill,NFPAssistant
 from rl_test import generateData_fu
@@ -49,7 +52,6 @@ class PolygonsDataset(Dataset):
 
     def save_data(self,path):
         np.save(path,self.x)
-
 
 """class BottomLeftFillThread (threading.Thread):
     # 多线程和多进程一起用会报错 已弃用
@@ -87,11 +89,16 @@ class PolygonsDataset(Dataset):
 def str2bool(v):
       return v.lower() in ('true', '1')
 
-if __name__ == "__main__":   
+def getBLF(width,poly,nfp_asst):
+    blf=BottomLeftFill(width,poly,vertical=True,NFPAssistant=nfp_asst)
+    return blf.getLength()
+
+if __name__ == "__main__":  
+    multiprocessing.set_start_method('spawn',True) 
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0402', help='')
+    parser.add_argument('--task', default='0403', help='')
     parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--train_size', default=1000, help='')
     parser.add_argument('--val_size', default=1000, help='')
@@ -146,13 +153,19 @@ if __name__ == "__main__":
     torch.manual_seed(int(args['random_seed']))
 
     # Optionally configure tensorboard
-    if not args['disable_tensorboard']:
-        configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
+    # if not args['disable_tensorboard']:
+    #     configure(os.path.join(args['log_dir'], args['task'], args['run_name']))
+
+    # 改用torch集成的tensorboard
+    writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
+
 
     size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
-    def reward(sample_solution, USE_CUDA=False, is_train=True):
+    def reward(sample_solution, USE_CUDA=False):
+        # start=datetime.datetime.now()
+        # print(start,"开始reward")
         # sample_solution shape: [sourceL, batch_size, input_dim]
         batch_size = sample_solution[0].size(0)
         n = len(sample_solution)
@@ -164,20 +177,35 @@ if __name__ == "__main__":
         points=np.array(points)
         result=np.zeros(batch_size)
         # threads=[] # 多线程计算BLF
-        for index in range(batch_size):
-            poly=points[:,index,:]
+        if trainning:
+            p=Pool() # 多进程计算BLF
+            res=[]
+            for index in range(batch_size):
+                poly=points[:,index,:]
+                poly_new=[]
+                for i in range(len(poly)):
+                    poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
+                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
+                # blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+                res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
+                # result[index]=blf.getLength()
+                # thread = BottomLeftFillThread(index,args['width'],poly_new) 
+                # threads.append(thread)
+            p.close()
+            p.join()
+            # end=datetime.datetime.now()
+            # print(end,"结束reward")
+            # print(end-start)
+            for index in range(batch_size):
+                result[index]=res[index].get()
+        else: # 验证时不开多进程
+            poly=points[:,0,:]
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            if is_train:
-                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
-            else:
-                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(index+cur_batch*batch_size))
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(cur_batch))
             blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
-            print(index+cur_batch*batch_size)
-            result[index]=blf.getLength()
-            # thread = BottomLeftFillThread(index,args['width'],poly_new) 
-            # threads.append(thread)
+            result[0]=blf.getLength()
         # for t in threads:
         #     t.start()
         # for t in threads:
@@ -209,7 +237,7 @@ if __name__ == "__main__":
     reward_fn = reward  # 奖励函数
     training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1000.npy')
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000_val.npy')
-    # print(val_dataset.input)
+    args['load_path']='outputs/0402/fu1000/epoch-156.pt'
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
@@ -256,9 +284,9 @@ if __name__ == "__main__":
             range(int(args['actor_lr_decay_step']), int(args['actor_lr_decay_step']) * 1000,
                 int(args['actor_lr_decay_step'])), gamma=float(args['actor_lr_decay_rate']))
 
-    training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=True, num_workers=4)
+    training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
 
-    validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=1)
+    validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=1)
 
     critic_exp_mvg_avg = torch.zeros(1)
     beta = args['critic_beta']
@@ -274,14 +302,15 @@ if __name__ == "__main__":
     if not args['is_train']:
         args['n_epochs'] = '1'
     
-
     epoch = int(args['epoch_start'])
     for i in range(epoch, epoch + int(args['n_epochs'])):
         
         if args['is_train']:
             # put in train mode!
             model.train()
+            trainning=True
             cur_batch=0
+            avg_reward = []
             # sample_batch is [batch_size x input_dim x sourceL]
             for batch_id, sample_batch in enumerate(tqdm(training_dataloader,
                     disable=args['disable_progress_bar'])):
@@ -329,7 +358,6 @@ if __name__ == "__main__":
                 critic_exp_mvg_avg = critic_exp_mvg_avg.detach()
 
                 #critic_scheduler.step()
-
                 #R = R.detach()
                 #critic_loss = critic_mse(v.squeeze(1), R)
                 #critic_optim.zero_grad()
@@ -337,32 +365,31 @@ if __name__ == "__main__":
                 
                 #torch.nn.utils.clip_grad_norm_(model.critic_net.parameters(),
                 #        float(args['max_grad_norm']), norm_type=2)
-
                 #critic_optim.step()
                 
                 step += 1
-                
-                if not args['disable_tensorboard']:
-                    log_value('avg_reward', R.mean().item(), step)
-                    log_value('actor_loss', actor_loss.item(), step)
-                    #log_value('critic_loss', critic_loss.item(), step)
-                    log_value('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
-                    log_value('nll', nll.mean().item(), step)
+                # if not args['disable_tensorboard']:
+                    # log_value('critic_loss', critic_loss.item(), step)
+                writer.add_scalar('reward', R.mean().item(), step)
+                avg_reward.append(R.mean().item())
+                writer.add_scalar('actor_loss', actor_loss.item(), step)
+                writer.add_scalar('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
+                writer.add_scalar('nll', nll.mean().item(), step)
+                # if step % int(args['log_step']) == 0:
+                #     # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
+                #     #     i, batch_id, R.mean().item()))
+                #     example_output = []
+                #     example_input = []
+                #     for idx, action in enumerate(actions):
+                #         # if task[0] == 'tsp':
+                #         example_output.append(actions_idxs[idx][0].item())
+                #         # else:
+                #         #     example_output.append(action[0].item())  # <-- ?? 
+                #         example_input.append(sample_batch[0, :, idx][0])
+                #     #print('Example train input: {}'.format(example_input))
+                #     #print('Example train output: {}'.format(example_output))
 
-                if step % int(args['log_step']) == 0:
-                    # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
-                    #     i, batch_id, R.mean().item()))
-                    example_output = []
-                    example_input = []
-                    for idx, action in enumerate(actions):
-                        # if task[0] == 'tsp':
-                        example_output.append(actions_idxs[idx][0].item())
-                        # else:
-                        #     example_output.append(action[0].item())  # <-- ?? 
-                        example_input.append(sample_batch[0, :, idx][0])
-                    #print('Example train input: {}'.format(example_input))
-                    #print('Example train output: {}'.format(example_output))
-
+        writer.add_scalar('avg_reward', np.mean(avg_reward), epoch)
         # Use beam search decoding for validation
         model.actor_net.decoder.decode_type = "beam_search"
         
@@ -376,6 +403,7 @@ if __name__ == "__main__":
 
         # put in test mode!
         model.eval()
+        trainning=False
         cur_batch=0
 
         for batch_id, val_batch in enumerate(tqdm(validation_dataloader,
@@ -389,9 +417,7 @@ if __name__ == "__main__":
             cur_batch=cur_batch+1
             avg_reward.append(R[0].item())
             val_step += 1.
-
-            if not args['disable_tensorboard']:
-                log_value('val_avg_reward', R[0].item(), int(val_step))
+            writer.add_scalar('val_reward', R[0].item(), int(val_step))
 
             if val_step % int(args['log_step']) == 0:
                 example_output = []
@@ -408,25 +434,24 @@ if __name__ == "__main__":
                 # print('Example test reward: {}'.format(R[0].item()))
                 predict_sequence.append(example_output)
                 predict_height.append(R[0].item())
-            
                 if args['plot_attention']:
                     probs = torch.cat(probs, 0)
                     plot_attention(example_input,
                             example_output, probs.data.cpu().numpy())
+
         print('Validation overall avg_reward: {}'.format(np.mean(avg_reward)))
         print('Validation overall reward var: {}'.format(np.var(avg_reward)))
-        with open('rewards_val.csv',"a+") as csvfile:
-            csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')
-        predict_sequence=np.array(predict_sequence)
-        np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
-        predict_height=np.array(predict_height)
-        np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
+        writer.add_scalar('val_avg_reward', np.mean(avg_reward).item(), epoch)
 
+        # with open('rewards_val.csv',"a+") as csvfile:
+        #     csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')
+        # predict_sequence=np.array(predict_sequence)
+        # np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
+        # predict_height=np.array(predict_height)
+        # np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
         if args['is_train']:
             model.actor_net.decoder.decode_type = "stochastic"
-            
             print('Saving model...')
-        
             torch.save(model, os.path.join(save_dir, 'epoch-{}.pt'.format(i)))
 
             # If the task requires generating new data after each epoch, do that here!

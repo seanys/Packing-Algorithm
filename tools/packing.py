@@ -94,9 +94,9 @@ class NFPAssistant(object):
                 # print (endtime - starttime)
 
     def loadHistory(self):
-        if self.history==None:
-            if self.history_path==None:
-                path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
+        if not self.history:
+            if not self.history_path:
+                path="/Users/sean/Documents/Projects/Packing-Algorithm/record/nfp.csv"
             else:
                 path=self.history_path
             df = pd.read_csv(path,header=None)
@@ -144,7 +144,7 @@ class NFPAssistant(object):
     
     def storeNFP(self):
         if self.store_path==None:
-            path="/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv"
+            path="/Users/sean/Documents/Projects/Packing-Algorithm/record/nfp.csv"
         else:
             path=self.store_path
         with open(path,"a+") as csvfile:
@@ -169,7 +169,7 @@ class NFPAssistant(object):
             nfp=NFP(poly1,poly2).nfp
             #self.nfp_list[i][j]=GeoFunc.getSlide(nfp,-centroid[0],-centroid[1])
             if self.store_nfp==True:
-                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/npf.csv","a+") as csvfile:
+                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/nfp.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[poly1,poly2,nfp]])
             return nfp
