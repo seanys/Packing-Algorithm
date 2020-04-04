@@ -98,7 +98,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0403', help='')
+    parser.add_argument('--task', default='0404', help='')
     parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--train_size', default=1000, help='')
     parser.add_argument('--val_size', default=1000, help='')
@@ -126,12 +126,12 @@ if __name__ == "__main__":
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
-    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
     parser.add_argument('--n_epochs', default=500, help='')
     parser.add_argument('--random_seed', default=24601, help='')
     parser.add_argument('--max_grad_norm', default=2.0, help='Gradient clipping')
     parser.add_argument('--use_cuda', type=str2bool, default=False, help='') # 默认禁用CUDA
-    parser.add_argument('--critic_beta', type=float, default=0.9, help='Exp mvg average decay')
+    parser.add_argument('--critic_beta', type=float, default=0.7, help='Exp mvg average decay')
 
     # Misc
     parser.add_argument('--log_step', default=1, help='Log info every log_step steps')
@@ -158,7 +158,6 @@ if __name__ == "__main__":
 
     # 改用torch集成的tensorboard
     writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
-
 
     size = 10 # 解码器长度（序列长度）
 
@@ -203,7 +202,7 @@ if __name__ == "__main__":
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000_val/{}.csv'.format(cur_batch))
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(cur_batch))
             blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
             result[0]=blf.getLength()
         # for t in threads:
@@ -236,8 +235,8 @@ if __name__ == "__main__":
     input_dim = 8
     reward_fn = reward  # 奖励函数
     training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1000.npy')
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000_val.npy')
-    args['load_path']='outputs/0402/fu1000/epoch-156.pt'
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000.npy')
+    args['load_path']='outputs/0403/fu1000/epoch-198.pt'
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
@@ -374,7 +373,7 @@ if __name__ == "__main__":
                 avg_reward.append(R.mean().item())
                 writer.add_scalar('actor_loss', actor_loss.item(), step)
                 writer.add_scalar('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
-                writer.add_scalar('nll', nll.mean().item(), step)
+                # writer.add_scalar('nll', nll.mean().item(), step)
                 # if step % int(args['log_step']) == 0:
                 #     # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
                 #     #     i, batch_id, R.mean().item()))
@@ -388,8 +387,8 @@ if __name__ == "__main__":
                 #         example_input.append(sample_batch[0, :, idx][0])
                 #     #print('Example train input: {}'.format(example_input))
                 #     #print('Example train output: {}'.format(example_output))
+            writer.add_scalar('avg_reward', np.mean(avg_reward), i)
 
-        writer.add_scalar('avg_reward', np.mean(avg_reward), epoch)
         # Use beam search decoding for validation
         model.actor_net.decoder.decode_type = "beam_search"
         
@@ -441,14 +440,14 @@ if __name__ == "__main__":
 
         print('Validation overall avg_reward: {}'.format(np.mean(avg_reward)))
         print('Validation overall reward var: {}'.format(np.var(avg_reward)))
-        writer.add_scalar('val_avg_reward', np.mean(avg_reward).item(), epoch)
+        writer.add_scalar('val_avg_reward', np.mean(avg_reward), i)
 
         # with open('rewards_val.csv',"a+") as csvfile:
         #     csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')
-        # predict_sequence=np.array(predict_sequence)
-        # np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
-        # predict_height=np.array(predict_height)
-        # np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
+        predict_sequence=np.array(predict_sequence)
+        np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
+        predict_height=np.array(predict_height)
+        np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
         if args['is_train']:
             model.actor_net.decoder.decode_type = "stochastic"
             print('Saving model...')

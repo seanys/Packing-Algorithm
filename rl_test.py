@@ -2,25 +2,27 @@
 本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
+from tqdm import tqdm
 from heuristic import BottomLeftFill
+from sequence import GA
 from tools.packing import NFPAssistant
-max_point_num=5
+from train_data import GetBestSeq
+max_point_num=4
 
-def BLFwithSequence(test_path,seq_path=None):
+def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
     data=np.load(test_path)
     size=data.shape[0]
     height=[]
-    for i in range(size):
+    for i,line in enumerate(tqdm(data)):
         polys_new=[]
         polys_final=[]
-        line=data[i]
-        if seq_path!=None:
+        if seq_path!=None: # 指定序列
             seq=seqs[i].split(' ')
-        else:
-            seq=[0,1,2,3,4,5,6,7]
+        else: # 随机序列
+            seq=[0,1,2,3,4,5,6,7,8,9]
             np.random.shuffle(seq)
         line=line.T
         for polys in line:
@@ -32,18 +34,37 @@ def BLFwithSequence(test_path,seq_path=None):
             else:
                 index=seq[j]
             polys_final.append(polys_new[index])
-        blf=BottomLeftFill(1000,polys_final,vertical=True)
-        height.append(blf.getLength())
+        if decrease==True: # 面积降序
+            polys_final=GetBestSeq(width,polys_final).getDrease()            
+        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000/{}.csv'.format(i))
+        if GA_algo==True: # 遗传算法
+            ga=GA(polys_final,nfp_asst)
+            height.append(ga.global_lowest_length)
+        else:
+            blf=BottomLeftFill(width,polys_final,vertical=True,NFPAssistant=nfp_asst)
+            height.append(blf.getLength())
     return height
 
 def getBenchmark():
-    random=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy')
-    random=np.array(random)
-    np.savetxt('randomSEQ.CSV',random)
+    # random=BLFwithSequence('fu1000.npy')
+    # random=np.array(random)
+    # np.savetxt('random.CSV',random)
+    # print('random...OK')
 
-    predict=BLFwithSequence(r'D:\\Tongji\\Nesting\\Data\\test200_8_5.npy','outputs/seq2000/032823/sequence-3.csv')
-    predict=np.array(predict)
-    np.savetxt('predictSEQ.CSV',predict)
+    # predict=BLFwithSequence('fu1000.npy',seq_path='outputs/0404/fu1000/sequence-0.csv')
+    # predict=np.array(predict)
+    # np.savetxt('predict.CSV',predict)
+    # print('predict...OK')
+
+    # decrease=BLFwithSequence('fu1000.npy',decrease=True)
+    # decrease=np.array(decrease)
+    # np.savetxt('decrease.CSV',decrease)
+    # print('decrease...OK')
+
+    ga=BLFwithSequence('fu1000.npy',GA_algo=True)
+    ga=np.array(ga)
+    np.savetxt('GA.CSV',ga)
+    print('GA...OK')
 
 def generateRectangle(poly_num,max_width,max_height):
     polys=np.zeros((poly_num,8)) # 4个点 x 2个坐标
@@ -144,8 +165,7 @@ def generateData_fu(poly_num):
 
 if __name__ == "__main__":
     #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
-    getAllNFP('fu1000_val.npy',4)
+    getBenchmark()
     # generateTestData(1000)
     # data=np.load('test1000_10_5.npy')
     # print(data.shape)
-    pass

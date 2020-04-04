@@ -3,6 +3,7 @@ from shapely.geometry import Polygon,Point,mapping,LineString
 from shapely.ops import unary_union
 from shapely import affinity
 #from multiprocessing import Pool
+import heuristic
 import pyclipper 
 import math
 import numpy as np
@@ -10,17 +11,13 @@ import pandas as pd
 import json
 import matplotlib.pyplot as plt
 import csv
-import time
 import logging
 import random
 import copy
 import os
 
 def getNFP(poly1,poly2): # 这个函数必须放在class外面否则多进程报错
-    # start = time.time()
     nfp=NFP(poly1,poly2).nfp
-    # end = time.time()
-    # print('Task %s runs %0.2f seconds.' % (os.getpid(), (end - start)))
     return nfp
 
 
@@ -79,7 +76,6 @@ class NFPAssistant(object):
             if kw['fast']==True:
                 self.res=[[0]*len(self.polys) for i in range(len(self.polys))]
                 #pool=Pool()
-                # starttime = time.time()
                 for i in range(1,len(self.polys)):
                     for j in range(0,i):
                         # 计算nfp(j,i)
@@ -90,8 +86,6 @@ class NFPAssistant(object):
                 # for i in range(1,len(self.polys)):
                 #     for j in range(0,i):
                 #         self.nfp_list[j][i]=GeoFunc.getSlide(self.res[j][i].get(),-self.centroid_list[j][0],-self.centroid_list[j][1])
-                # endtime = time.time()
-                # print (endtime - starttime)
 
     def loadHistory(self):
         if not self.history:
@@ -235,9 +229,9 @@ class PolyListProcessor(object):
             length=history_length_list[check_index]
         else:
             if 'NFPAssistant' in kw:
-                length=BottomLeftFill(width,polys,NFPAssistant=kw['NFPAssistant']).contain_length
+                length=heuristic.BottomLeftFill(width,polys,NFPAssistant=kw['NFPAssistant']).contain_length
             else:
-                length=BottomLeftFill(width,polys).contain_length
+                length=heuristic.BottomLeftFill(width,polys).contain_length
             history_index_list.append(index_list)
             history_length_list.append(length)
         return length
@@ -260,12 +254,12 @@ class PolyListProcessor(object):
         new_poly_list=copy.deepcopy(poly_list)
 
         index = random.randint(0,len(new_poly_list)-1)
-        RatotionPoly(min_angle).rotation(new_poly_list[index].poly)
+        heuristic.RatotionPoly(min_angle).rotation(new_poly_list[index].poly)
         return new_poly_list
 
     @staticmethod
     def showPolyList(width,poly_list):
-        blf=BottomLeftFill(width,PolyListProcessor.getPolysVertices(poly_list))
+        blf=heuristic.BottomLeftFill(width,PolyListProcessor.getPolysVertices(poly_list))
         blf.showAll()
 
     @staticmethod

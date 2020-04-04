@@ -46,14 +46,13 @@ class GetBestSeq(object):
     # 获得面积降序排列的形状结果
     def getDrease(self):
         poly_list=[]
-        for poly in polys:
+        for poly in self.polys:
             poly_list.append([poly,Polygon(poly).area])
-        poly_list=sorted(poly_list, key = operator.itemgetter(1), reverse = True) # 排序，包含index
+        poly_list=sorted(poly_list, key = lambda item:item[1], reverse = True) # 排序，包含index
         dec_polys=[]
         for item in poly_list:
             dec_polys.append(item[0])
-        blf=BottomLeftFill(width,dec_polys)
-        return blf.polygons
+        return dec_polys
     
     # 从所有的排列中选择出最合适的
     def chooseFromAll(self):

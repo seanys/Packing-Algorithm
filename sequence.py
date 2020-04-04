@@ -16,10 +16,14 @@ class GA(object):
     '''
     参考文献：A 2-exchange heuristic for nesting problems 2002
     '''
-    def __init__(self,poly_list):
+    def __init__(self,poly_list,nfp_asst=None):
         self.width=1500 
         self.minimal_rotation=360 # 最小的旋转角度
         self.poly_list=poly_list
+
+        self.ga_multi=False # 开了多进程反而更慢
+        if self.ga_multi:
+            multiprocessing.set_start_method('spawn',True) 
 
         self.elite_size=10 # 每一代选择个数
         self.mutate_rate=0.1 # 变异概率
@@ -28,8 +32,11 @@ class GA(object):
 
         self.history_index_list=[]
         self.history_length_list=[]
-
-        self.NFPAssistant=NFPAssistant(PolyListProcessor.getPolysVertices(poly_list),get_all_nfp=True)
+        
+        if nfp_asst:
+            self.NFPAssistant=nfp_asst
+        else:
+            self.NFPAssistant=NFPAssistant(PolyListProcessor.getPolysVertices(poly_list),get_all_nfp=True)
 
         self.geneticAlgorithm()
     
@@ -40,7 +47,7 @@ class GA(object):
         self.lowest_length_record = [] # 记录全局高度
         self.global_best_sequence = [] # 全局最优序列
         self.global_lowest_length = 9999999999 # 全局最低高度
-
+        
         # 初步的随机数组
         for i in range(0, self.pop_size):
             _list=copy.deepcopy(self.poly_list)
@@ -76,8 +83,9 @@ class GA(object):
         length_results = []
         self.fitness_sum = 0
         
-        if ga_multi==True:
+        if self.ga_multi==True:
             tasks=[[pop] for pop in self.pop]
+            pool=multiprocessing.Pool()
             results=pool.starmap(self.getLength,tasks)
             for i in range(0,len(self.pop)):
                 # print("length:",results[i])
@@ -267,15 +275,7 @@ if __name__=='__main__':
     poly_list=PolyListProcessor.getPolyObjectList(polys+polys+polys,[0])
     # TOPOS(polys,1500)
 
-    # 计算NFP时间
-    print(datetime.datetime.now(),"开始计算NFP")
-    nfp_ass=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True,history_path='record/nfp.csv')
-    print(datetime.datetime.now(),"计算完成NFP")
-    bfl=BottomLeftFill(1500,polys,vertical=True,NFPAssistant=nfp_ass)
-    
-    print(datetime.datetime.now(),"计算完成BLF")
-
-    #GA(poly_list)
+    GA(poly_list)
     # SA(poly_list)
 
     # GetBestSeq(1000,getConvex(num=5),"decrease")

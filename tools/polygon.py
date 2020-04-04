@@ -926,7 +926,8 @@ def getData():
     '''暂时没有考虑宽度，全部缩放来表示'''
     scale=[100,0.5,100,100,20,20,20,10,20,20,0.5,20,50,1,1,1,1,1,3,1,1,1,1,1]
     print("缩放",scale[index],"倍")
-    if os.getlogin()=='Prinway':
+    user_name=os.getlogin()
+    if user_name=='Prinway' or user_name=='mac':
         df = pd.read_csv("data/"+name[index]+".csv")
     else:
         df = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/"+name[index]+".csv")
