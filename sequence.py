@@ -271,7 +271,8 @@ if __name__=='__main__':
     starttime = datetime.datetime.now()
     # polys=getConvex(num=5)
     polys=getData()
-    poly_list=PolyListProcessor.getPolyObjectList(polys,[0])
+    print(len(polys))
+    poly_list=PolyListProcessor.getPolyObjectList(polys+polys+polys,[0])
     # TOPOS(polys,1500)
 
     GA(poly_list)
@@ -280,4 +281,4 @@ if __name__=='__main__':
     # GetBestSeq(1000,getConvex(num=5),"decrease")
     endtime = datetime.datetime.now()
     print (endtime - starttime)
-    # bfl.showAll()
+    bfl.showAll()
