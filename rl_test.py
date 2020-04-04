@@ -2,10 +2,12 @@
 本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
+import multiprocessing
+from multiprocessing import Pool
 from tqdm import tqdm
 from heuristic import BottomLeftFill
 from sequence import GA
-from tools.packing import NFPAssistant
+from tools.packing import NFPAssistant,PolyListProcessor
 from train_data import GetBestSeq
 max_point_num=4
 
@@ -16,6 +18,8 @@ def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=Fa
     data=np.load(test_path)
     size=data.shape[0]
     height=[]
+    if GA_algo: p=Pool()
+    multi_res=[]
     for i,line in enumerate(tqdm(data)):
         polys_new=[]
         polys_final=[]
@@ -38,11 +42,16 @@ def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=Fa
             polys_final=GetBestSeq(width,polys_final).getDrease()            
         nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000/{}.csv'.format(i))
         if GA_algo==True: # 遗传算法
-            ga=GA(polys_final,nfp_asst)
-            height.append(ga.global_lowest_length)
+            polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
+            multi_res.append(p.apply_async(GA,args=(polys_GA,nfp_asst)))
         else:
             blf=BottomLeftFill(width,polys_final,vertical=True,NFPAssistant=nfp_asst)
             height.append(blf.getLength())
+    if GA_algo:
+        p.close()
+        p.join()
+        for i in range(size):
+            height.append(multi_res[i].get().global_lowest_length)
     return height
 
 def getBenchmark():
@@ -164,6 +173,7 @@ def generateData_fu(poly_num):
     return polys
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn',True) 
     #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
     getBenchmark()
     # generateTestData(1000)

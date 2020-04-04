@@ -56,7 +56,7 @@ class GA(object):
 
         # 持续获得下一代
         for i in range(0, self.generations):
-            print("############################计算第",i+1,"代#######################################")
+            # print("############################计算第",i+1,"代#######################################")
             self.getLengthRanked() # 高度排列
             self.getNextGeneration() # 获得下一代
 
@@ -67,7 +67,7 @@ class GA(object):
                 self.global_best_sequence=self.pop[self.fitness_ranked[0][0]]
             self.lowest_length_record.append(self.global_lowest_length)
 
-        print("Final length: " + str(self.global_lowest_length))
+        # print("Final length: " + str(self.global_lowest_length))
 
         # PolyListProcessor.showPolyList(self.width,self.global_best_sequence)
         # self.plotRecord()
