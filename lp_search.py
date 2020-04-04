@@ -70,7 +70,8 @@ class LPSearch(object):
                 inter=P1.intersection(P2) # 获得重叠区域
                 if inter.area>bias:
                     self.nfp_overlap_pair[i].append(j)
-                    self.nfp_overlap_pair[j].append(i)
+                    '''4.4修正 重复计算问题'''
+                    # self.nfp_overlap_pair[j].append(i)
     
     # 获得全部的NFP及其拆分结果，获得IFR和限制
     def getPrerequisite(self,index):
@@ -159,15 +160,16 @@ class LPSearch(object):
                         overlap,overlap_poly=self.polysOverlapIFR(divided_nfp_i,divided_nfp_j)
                         # 重叠则记录对应的细分重叠
                         if overlap==True:
-                            # 记录重叠情况
+                            # 记录重叠情况，只记录正序
                             self.pair_nfps[i][m].append([j,n])
-                            self.pair_nfps[j][n].append([i,m])
+                            '''4.4修正 重复计算问题'''
+                            # self.pair_nfps[j][n].append([i,m]) 
+
                             # 目标区域增加
                             self.target_areas[1].append([overlap_poly,[i,m],[j,n]])
                             # 获得目标参数
                             [a1,b1,c1],[a2,b2,c2]=self.all_target_func[i][m],self.all_target_func[j][n]
                             self.target_function[1].append([a1+a2,b1+b2,c1+c2])
-
 
         '''然后获得删除重叠区域以及IFR范围的区间'''
         for i,nfp_divided in enumerate(self.all_divided_nfp):
@@ -177,22 +179,18 @@ class LPSearch(object):
                 # 删除与其他NFP拆分的重叠
                 for pair in self.pair_nfps[i][j]:
                     new_region=new_region.difference(Polygon(self.all_divided_nfp[pair[0]][pair[1]]))
-                # 在目标区域增加情况
-                if new_region.is_empty!=True and new_region.geom_type!="Point" and new_region.geom_type!="LineString":
-                    if new_region.geom_type=="GeometryCollection":
-                        self.target_areas[0].append([GeoFunc.collectionToArr(new_region),[i,j]]) # 删除直线/顶点情况
-                    else:
-                        self.target_areas[0].append([GeoFunc.polyToArr(new_region),[i,j]]) # 最终结果只和顶点相关
+                if i==7 and j==1:
+                    print(new_region)
+                    print(new_region.area)
+                # 在目标区域增加情况，首先排除点和直线，以及面积过小
+                if new_region.is_empty!=True and new_region.geom_type!="Point" and new_region.geom_type!="LineString" and new_region.area>bias:
+                    '''4.4修正 面积计算错误'''
+                    self.target_areas[0].append([self.processRegion(new_region),[i,j]]) # 删除直线/顶点情况
                     self.target_function[0].append(self.all_target_func[i][j])
-
-        PltFunc.addPolygon(self.all_divided_nfp[1][3])
-        PltFunc.addPolygon(self.all_divided_nfp[4][2])
-        PltFunc.addPolygonColor([[255.89339391944443, 462.7381487357385], [340.0, 440.0], [228.0, 248.0], [215.55555555555554, 240.0], [202.401557038374, 240.0], [255.89339391944443, 462.7381487357385]])
-        PltFunc.showPlt()
-        return
+        
         '''多个形状的计算'''
-        for i in range(2,len(self.target_areas)):
-        # for i in range(2,3):
+        # for i in range(2,len(self.target_areas)):
+        for i in range(2,3):
             for j,target_area in enumerate(self.target_areas[i-1]):
                 # 获得当前目标可行解
                 area,P1=target_area[0],Polygon(target_area[0])
@@ -209,7 +207,8 @@ class LPSearch(object):
             
                 # 删除重复情况/删除指定的情况
                 all_possible_target=PolyListProcessor.deleteRedundancy(all_possible_target)
-                all_possible_target=self.deleteTarget(all_possible_target,[item[0] for item in target_area[1:]])
+                '''4.4修正 重复计算问题'''
+                all_possible_target=self.deleteTarget(all_possible_target,[i for i in range(0,max(item[0] for item in target_area[1:])+1)])
 
                 # 获得判断这些形状是否会重叠，若有则添加并求解目标区域
                 new_region=copy.deepcopy(P1)
@@ -219,24 +218,38 @@ class LPSearch(object):
                     # 添加目标区域/删除上一阶段的结果
                     if inter.area>bias:
                         # 上一阶段区域
-                        self.target_areas[i].append([GeoFunc.polyToArr(inter)]+[item for item in target_area[1:]]+[possible_target])
-                        new_region.difference(inter)
+                        self.target_areas[i].append([self.processRegion(inter)]+[item for item in target_area[1:]]+[possible_target])
+                        '''4.4 修正错误 Difference结果忘记赋值了'''
+                        new_region=new_region.difference(inter)
                         # 目标函数修正
                         [a1,b1,c1],[a2,b2,c2]=self.target_function[i-1][j],self.all_target_func[possible_target[0]][possible_target[1]]
                         self.target_function[i].append([a1+a2,b1+b2,c1+c2])
 
-                # 如果全部删除掉了，就直接清空，否则更新微信的区域
-                if new_region.empty==True or new_region.geom_type=="Point" or new_region.geom_type=="LineString":
-                    self.target_areas[i-1][j]=[]
+                # 如果没有删除掉了，则更新微信的区域，否则直接清空
+                '''4.4 修正 面积计算错误'''
+                if new_region.is_empty!=True and new_region.geom_type!="Point" and new_region.geom_type!="LineString" and new_region.area>bias:
+                    target_area[0]=self.processRegion(new_region)
                 else:
-                    target_area[0]=GeoFunc.polyToArr(new_region)
+                    self.target_areas[i-1][j]=[]
 
             # 如果该轮没有计算出重叠则停止
             if self.target_areas[i]==[]:
                 print("至多",i,"个形状重叠，计算完成")
                 break
         
-    
+        # PltFunc.addPolygon([[712.2483833409344, 336.1456285583982], [706.9892056992138, 326.9892056992137], [672.6315789473684, 292.6315789473683], [551.6666666666666, 500.0], [640.0, 500.0], [640.0, 459.99999999999994]])
+        # PltFunc.showPlt()
+        
+    def processRegion(self,region):
+        area=[]
+        if region.geom_type=="Polygon":
+            area=GeoFunc.polyToArr(region)  # 最终结果只和顶点相关
+        else:
+            for shapely_item in list(region):
+                if shapely_item.area>bias:
+                    area=area+GeoFunc.polyToArr(shapely_item)
+        return area
+
     def testModel(self):
         for nfp in self.all_nfps[2:5]:
             PltFunc.addPolygonColor(nfp)
@@ -245,7 +258,7 @@ class LPSearch(object):
             if Polygon(item[0]).contains(Point([228.0,248.0]))==True:
                 # print(item[1:])
                 [a,b,c]=self.target_function[2][i]
-                # print(a,b,c)
+                print("a,b,c:",a,b,c)
                 # print("综合计算:",a*228+b*248+c)
                 value=0
                 for target_item in item[1:]:
@@ -261,17 +274,20 @@ class LPSearch(object):
         n=0
         for i,item in enumerate(self.target_areas):
             for j,area_item in enumerate(item):
+                '''4.4 修正 全部重叠'''
+                if len(area_item)==0:
+                    continue
                 a,b,c=self.target_function[i][j]
                 for pt in area_item[0]:
                     n=n+1
                     value=a*pt[0]+b*pt[1]+c
-                    if pt[0]==228.0 and pt[1]==248.0:
-                    #     print("a,b,c:",a,b,c)
-                    #     print(value)
-                        print(area_item[1:])
+                    # if value<min_depth:
                     if value<min_depth and value>bias:
                         min_depth=value
                         best_position=[pt[0],pt[1]]
+                    if pt[0]==551.6666666666666 and pt[1]==500.0 and value<bias:
+                        print(area_item[0])
+                        print(area_item[1:])
         print("共检索",n,"个位置")
         print("最佳位置：",best_position)
         print("最小重叠：",min_depth)
@@ -287,7 +303,7 @@ class LPSearch(object):
             if new_inter.area>bias:
                 overlap,overlap_poly=True,GeoFunc.polyToArr(new_inter) # 相交区域肯定是凸多边形
         return overlap,overlap_poly
-    
+
     def deleteTarget(self,_list,target):
         new_list=[]
         for item in _list:

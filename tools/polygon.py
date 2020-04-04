@@ -182,18 +182,11 @@ class GeoFunc(object):
                 for point in poly[0]:
                     _arr.append([point[0],point[1]])
         else:
-            for point in res["coordinates"][0]:
-                _arr.append([point[0],point[1]])
-        return _arr
-
-    def collectionToArr(inter):
-        '''用于LP Search中出现Collection的情况'''
-        res=mapping(inter)
-        _arr=[]
-        for item in res["geometries"]:
-            if item["type"]!="LineString" and item["type"]!="Point":
-                poly=item["coordinates"][0]
-                for point in poly:
+            if res["coordinates"][0][0]==res["coordinates"][0][-1]:
+                for point in res["coordinates"][0][0:-1]:
+                    _arr.append([point[0],point[1]])
+            else:
+                for point in res["coordinates"][0]:
                     _arr.append([point[0],point[1]])
         return _arr
 
