@@ -5,12 +5,12 @@ Created on Wed Dec 11, 2019
 @author: seanys,prinway
 -----------------------------------
 """
-import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
-from tools.polygon import GeoFunc,NFP,PltFunc,RatotionPoly,getData,getConvex,Poly
-from tools.packing import PackingUtil,NFPAssistant,PolyListProcessor
-import json
 from shapely.geometry import Polygon,mapping
 from shapely import affinity
+import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
+from tools.polygon import GeoFunc,NFP,PltFunc,RatotionPoly,getData,getConvex,Poly
+import tools.packing as packing
+import json
 import csv
 import time
 import multiprocessing
@@ -29,7 +29,7 @@ class BottomLeftFill(object):
             self.NFPAssistant=kw["NFPAssistant"]
         else:
             # 若未指定外部NFPasst则内部使用NFPasst开多进程
-            self.NFPAssistant=NFPAssistant(self.polygons,fast=True)
+            self.NFPAssistant=packing.NFPAssistant(self.polygons,fast=True)
         self.vertical=False
         if 'vertical' in kw:
             self.vertical=True
@@ -54,9 +54,9 @@ class BottomLeftFill(object):
         adjoin=self.polygons[index]
         # 是否垂直
         if self.vertical==True:
-            ifr=PackingUtil.getInnerFitRectangle(self.polygons[index],self.width,self.length)
+            ifr=packing.PackingUtil.getInnerFitRectangle(self.polygons[index],self.width,self.length)
         else:
-            ifr=PackingUtil.getInnerFitRectangle(self.polygons[index],self.length,self.width)            
+            ifr=packing.PackingUtil.getInnerFitRectangle(self.polygons[index],self.length,self.width)            
         differ_region=Polygon(ifr)
         
         for main_index in range(0,index):
@@ -141,7 +141,7 @@ class TOPOS(object):
         self.polys=original_polys
         self.cur_polys=[]
         self.width=width
-        self.NFPAssistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
+        self.NFPAssistant=packing.NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
         
         self.run()
 
@@ -260,7 +260,7 @@ if __name__=='__main__':
 
     # 计算NFP时间
     # print(datetime.datetime.now(),"开始计算NFP")
-    nfp_ass=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    nfp_ass=packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
     # print(datetime.datetime.now(),"计算完成NFP")
     bfl=BottomLeftFill(1500,polys,vertical=False,NFPAssistant=nfp_ass)
     

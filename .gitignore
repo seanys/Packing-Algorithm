@@ -6,3 +6,4 @@ logs*
 **/*.pyc
 record*
 *.npy
+*.csv
