@@ -44,12 +44,12 @@ class LPSearch(object):
         self.getProblemLP() # 获得全部的限制函数
 
         best_position=self.searchBestPosition() # 获得最优位置
-        top_point=self.polys[choose_index][GeoFunc.checkTop(self.polys[choose_index])]
-        new_polygon=GeoFunc.getSlide(self.polys[choose_index],best_position[0]-top_point[0],best_position[1]-top_point[1])
+        # top_point=self.polys[choose_index][GeoFunc.checkTop(self.polys[choose_index])]
+        # new_polygon=GeoFunc.getSlide(self.polys[choose_index],best_position[0]-top_point[0],best_position[1]-top_point[1])
 
-        PltFunc.addPolygonColor(new_polygon)
-        PltFunc.addPolygonColor(self.ifr)
-        self.showPolys()
+        # PltFunc.addPolygonColor(new_polygon)
+        # PltFunc.addPolygonColor(self.ifr)
+        # self.showPolys()
 
     def updateOverlap(self):
         '''获得的重叠面积（未调整）'''
@@ -70,8 +70,7 @@ class LPSearch(object):
                 inter=P1.intersection(P2) # 获得重叠区域
                 if inter.area>bias:
                     self.nfp_overlap_pair[i].append(j)
-                    '''4.4修正 重复计算问题'''
-                    # self.nfp_overlap_pair[j].append(i)
+                    self.nfp_overlap_pair[j].append(i)
     
     # 获得全部的NFP及其拆分结果，获得IFR和限制
     def getPrerequisite(self,index):
@@ -162,15 +161,14 @@ class LPSearch(object):
                         if overlap==True:
                             # 记录重叠情况，只记录正序
                             self.pair_nfps[i][m].append([j,n])
-                            '''4.4修正 重复计算问题'''
-                            # self.pair_nfps[j][n].append([i,m]) 
+                            self.pair_nfps[j][n].append([i,m]) 
 
                             # 目标区域增加
                             self.target_areas[1].append([overlap_poly,[i,m],[j,n]])
                             # 获得目标参数
                             [a1,b1,c1],[a2,b2,c2]=self.all_target_func[i][m],self.all_target_func[j][n]
                             self.target_function[1].append([a1+a2,b1+b2,c1+c2])
-
+        
         '''然后获得删除重叠区域以及IFR范围的区间'''
         for i,nfp_divided in enumerate(self.all_divided_nfp):
             for j,item in enumerate(nfp_divided):
@@ -179,18 +177,17 @@ class LPSearch(object):
                 # 删除与其他NFP拆分的重叠
                 for pair in self.pair_nfps[i][j]:
                     new_region=new_region.difference(Polygon(self.all_divided_nfp[pair[0]][pair[1]]))
-                if i==7 and j==1:
-                    print(new_region)
-                    print(new_region.area)
                 # 在目标区域增加情况，首先排除点和直线，以及面积过小
                 if new_region.is_empty!=True and new_region.geom_type!="Point" and new_region.geom_type!="LineString" and new_region.area>bias:
                     '''4.4修正 面积计算错误'''
                     self.target_areas[0].append([self.processRegion(new_region),[i,j]]) # 删除直线/顶点情况
                     self.target_function[0].append(self.all_target_func[i][j])
-        
+
+
         '''多个形状的计算'''
-        # for i in range(2,len(self.target_areas)):
-        for i in range(2,3):
+        for i in range(2,len(self.target_areas)):
+        # for i in range(2,3):
+            # 遍历上一阶段计算的结果
             for j,target_area in enumerate(self.target_areas[i-1]):
                 # 获得当前目标可行解
                 area,P1=target_area[0],Polygon(target_area[0])
@@ -205,28 +202,30 @@ class LPSearch(object):
                     for item in target_area[1:]:
                         all_possible_target=all_possible_target+self.pair_nfps[item[0]][item[1]]
             
-                # 删除重复情况/删除指定的情况
+                # 删除重复情况
                 all_possible_target=PolyListProcessor.deleteRedundancy(all_possible_target)
-                '''4.4修正 重复计算问题'''
-                all_possible_target=self.deleteTarget(all_possible_target,[i for i in range(0,max(item[0] for item in target_area[1:])+1)])
 
-                # 获得判断这些形状是否会重叠，若有则添加并求解目标区域
-                new_region=copy.deepcopy(P1)
-                for possible_target in all_possible_target:
+                # 删除所有更小的，保证正序，获得判断这些形状是否会重叠，若有则添加并求解目标区域
+                all_possible_target_larger=self.deleteTarget(all_possible_target,[i for i in range(0,max(item[0] for item in target_area[1:])+1)])
+                for possible_target in all_possible_target_larger:
                     P2=Polygon(self.all_divided_nfp[possible_target[0]][possible_target[1]])
                     inter=P1.intersection(P2)
                     # 添加目标区域/删除上一阶段的结果
                     if inter.area>bias:
                         # 上一阶段区域
                         self.target_areas[i].append([self.processRegion(inter)]+[item for item in target_area[1:]]+[possible_target])
-                        '''4.4 修正错误 Difference结果忘记赋值了'''
-                        new_region=new_region.difference(inter)
                         # 目标函数修正
                         [a1,b1,c1],[a2,b2,c2]=self.target_function[i-1][j],self.all_target_func[possible_target[0]][possible_target[1]]
                         self.target_function[i].append([a1+a2,b1+b2,c1+c2])
+                
+                # 删除已经有的，遍历计算重叠
+                new_region=copy.deepcopy(P1)
+                all_possible_target_difference=self.deleteTarget(all_possible_target,[item[0] for item in target_area[1:]])
+                for difference_target in all_possible_target_difference:
+                    if new_region.intersects(Polygon(self.all_divided_nfp[difference_target[0]][difference_target[1]])):
+                        inter=new_region.intersection(Polygon(self.all_divided_nfp[difference_target[0]][difference_target[1]]))
+                        new_region=new_region.difference(inter)
 
-                # 如果没有删除掉了，则更新微信的区域，否则直接清空
-                '''4.4 修正 面积计算错误'''
                 if new_region.is_empty!=True and new_region.geom_type!="Point" and new_region.geom_type!="LineString" and new_region.area>bias:
                     target_area[0]=self.processRegion(new_region)
                 else:
@@ -237,19 +236,8 @@ class LPSearch(object):
                 print("至多",i,"个形状重叠，计算完成")
                 break
         
-        # PltFunc.addPolygon([[712.2483833409344, 336.1456285583982], [706.9892056992138, 326.9892056992137], [672.6315789473684, 292.6315789473683], [551.6666666666666, 500.0], [640.0, 500.0], [640.0, 459.99999999999994]])
-        # PltFunc.showPlt()
-        
-    def processRegion(self,region):
-        area=[]
-        if region.geom_type=="Polygon":
-            area=GeoFunc.polyToArr(region)  # 最终结果只和顶点相关
-        else:
-            for shapely_item in list(region):
-                if shapely_item.area>bias:
-                    area=area+GeoFunc.polyToArr(shapely_item)
-        return area
 
+        
     def testModel(self):
         for nfp in self.all_nfps[2:5]:
             PltFunc.addPolygonColor(nfp)
@@ -281,13 +269,12 @@ class LPSearch(object):
                 for pt in area_item[0]:
                     n=n+1
                     value=a*pt[0]+b*pt[1]+c
-                    # if value<min_depth:
-                    if value<min_depth and value>bias:
+                    if value<min_depth:
+                    # if value<min_depth and value>bias:
                         min_depth=value
                         best_position=[pt[0],pt[1]]
-                    if pt[0]==551.6666666666666 and pt[1]==500.0 and value<bias:
-                        print(area_item[0])
-                        print(area_item[1:])
+                    if pt[0]==228.0 and pt[1]==248.0:
+                        print(i,j,area_item[1:])
         print("共检索",n,"个位置")
         print("最佳位置：",best_position)
         print("最小重叠：",min_depth)
@@ -387,6 +374,16 @@ class LPSearch(object):
         self.polys=json.loads(blf["polys"][2])
         print("一共",len(self.polys),"个形状")
         self.getLength()
+
+    def processRegion(self,region):
+        area=[]
+        if region.geom_type=="Polygon":
+            area=GeoFunc.polyToArr(region)  # 最终结果只和顶点相关
+        else:
+            for shapely_item in list(region):
+                if shapely_item.area>bias:
+                    area=area+GeoFunc.polyToArr(shapely_item)
+        return area
 
 if __name__=='__main__':
     starttime = time.time()
