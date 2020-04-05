@@ -23,7 +23,7 @@ class BottomLeftFill(object):
         self.choose_nfp=False
         self.width=width
         self.length=150000 # 代表长度
-        self.polygons=copy.deepcopy(original_polygons)
+        self.polygons=original_polygons
         self.placeFirstPoly()
         if 'NFPAssistant' in kw:
             self.NFPAssistant=kw["NFPAssistant"]
@@ -32,9 +32,7 @@ class BottomLeftFill(object):
             self.NFPAssistant=packing.NFPAssistant(self.polygons,fast=True)
         self.vertical=False
         if 'vertical' in kw:
-            self.vertical=True
-        else:
-            self.vertical=False
+                self.vertical=kw['vertical']
         if 'rectangle' in kw:
             self.rectangle=True
         else:
@@ -44,6 +42,7 @@ class BottomLeftFill(object):
             # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
         self.getLength()
+        # self.showAll()
 
     def placeFirstPoly(self):
         poly=self.polygons[0]

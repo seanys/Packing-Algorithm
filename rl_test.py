@@ -2,20 +2,43 @@
 本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
+import multiprocessing
+import time
+from multiprocessing import Pool
 from tqdm import tqdm
 from heuristic import BottomLeftFill
 from sequence import GA
-from tools.packing import NFPAssistant
+from tools.packing import NFPAssistant,PolyListProcessor
+from tools.polygon import getData
 from train_data import GetBestSeq
 max_point_num=4
 
-def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=False):
+def drop0(polys):
+    '''
+    网络输出的polys传入其他函数之前[必须完成]
+    把所有多边形末尾的补零去掉
+    '''
+    polys_new=[]
+    for poly in polys:
+        for i in range(len(poly)):
+            point_index=len(poly)-1-i
+            if poly[point_index]==[0,0]:
+                continue
+            else:
+                break
+        poly=poly[0:point_index+1]
+        polys_new.append(poly)
+    return polys_new
+
+def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
     data=np.load(test_path)
     size=data.shape[0]
     height=[]
+    if GA_algo: p=Pool()
+    multi_res=[]
     for i,line in enumerate(tqdm(data)):
         polys_new=[]
         polys_final=[]
@@ -34,37 +57,43 @@ def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=Fa
             else:
                 index=seq[j]
             polys_final.append(polys_new[index])
+        polys_final=drop0(polys_final)
         if decrease==True: # 面积降序
             polys_final=GetBestSeq(width,polys_final).getDrease()            
         nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000/{}.csv'.format(i))
         if GA_algo==True: # 遗传算法
-            ga=GA(polys_final,nfp_asst)
-            height.append(ga.global_lowest_length)
+            polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
+            multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
         else:
-            blf=BottomLeftFill(width,polys_final,vertical=True,NFPAssistant=nfp_asst)
+            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
             height.append(blf.getLength())
+    if GA_algo:
+        p.close()
+        p.join()
+        for i in range(size):
+            height.append(multi_res[i].get().global_lowest_length)
     return height
 
-def getBenchmark():
-    # random=BLFwithSequence('fu1000.npy')
+def getBenchmark(source):
+    # random=BLFwithSequence(source)
     # random=np.array(random)
     # np.savetxt('random.CSV',random)
     # print('random...OK')
 
-    # predict=BLFwithSequence('fu1000.npy',seq_path='outputs/0404/fu1000/sequence-0.csv')
+    # predict=BLFwithSequence(source,seq_path='outputs/0404/fu1000/sequence-0.csv')
     # predict=np.array(predict)
     # np.savetxt('predict.CSV',predict)
     # print('predict...OK')
 
-    # decrease=BLFwithSequence('fu1000.npy',decrease=True)
-    # decrease=np.array(decrease)
-    # np.savetxt('decrease.CSV',decrease)
-    # print('decrease...OK')
+    decrease=BLFwithSequence(source,decrease=True)
+    decrease=np.array(decrease)
+    np.savetxt('decrease.CSV',decrease)
+    print('decrease...OK')
 
-    ga=BLFwithSequence('fu1000.npy',GA_algo=True)
-    ga=np.array(ga)
-    np.savetxt('GA.CSV',ga)
-    print('GA...OK')
+    # ga=BLFwithSequence(source,decrease=True,GA_algo=True)
+    # ga=np.array(ga)
+    # np.savetxt('GA.CSV',ga)
+    # print('GA...OK')
 
 def generateRectangle(poly_num,max_width,max_height):
     polys=np.zeros((poly_num,8)) # 4个点 x 2个坐标
@@ -82,15 +111,15 @@ def generatePolygon(poly_num,max_point_num):
     max_point_num: 最大点的个数
     '''
     polys=np.zeros((poly_num,max_point_num*2))
-    center=[250,250] # 中心坐标
+    center=[200,200] # 中心坐标
     for i in range(poly_num):
-        point_num=np.random.randint(5,max_point_num+1)
+        point_num=np.random.randint(3,max_point_num+1)
         angle=360/point_num # 根据边数划分角度区域
+        theta_start=np.random.randint(0,angle)
         for j in range(point_num):
-            theta=np.random.randint(angle*j,angle*(j+1))*np.pi/180 # 在每个区域中取随机角度并转为弧度
+            theta=(theta_start+angle*j)*np.pi/180 # 在每个区域中取角度并转为弧度
             #max_r=min(np.math.fabs(500/np.math.cos(theta)),np.math.fabs(500/np.math.sin(theta)))
-            #r=np.random.randint(0,max_r) # 取随机长度
-            r=np.random.randint(25,250) # 降低难度
+            r=100+(160-100)*np.random.random()
             x=center[0]+r*np.math.cos(theta)
             y=center[1]+r*np.math.sin(theta)
             polys[i,2*j]=x
@@ -98,43 +127,28 @@ def generatePolygon(poly_num,max_point_num):
             # print(theta,x,y)
     return polys
     
-def generateTestData(size,poly_num=10,max_point_num=5):
+def generateTestData(size,poly_num=10,max_point_num=4):
     x=[]
     for i in range(size):
-        polys=generateData_fu(10)
+        # data=getData()
+        # polys=polys2data(data)
+        polys=generatePolygon(poly_num,max_point_num)
         polys=polys.T
         x.append(polys)
     x=np.array(x)
     np.save('test{}_{}_{}'.format(size,poly_num,max_point_num),x)
 
-def chooseRectangle(data_source,size,is_train=True):
-    data=np.loadtxt(data_source)
-    x=[]
-    for i in range(size):
-        if is_train:
-            index=np.random.choice(list(range(50)),10)
-        else:
-            index=np.random.choice(list(range(50,100)),10)
-        polys=[]
-        for j in range(len(index)):
-            polys.append(data[index[j]].tolist())
-        polys=np.array(polys)
-        polys=polys.T
-        x.append(polys)
-    x=np.array(x)
-    np.save('rec500_val',x)
-
 def getAllNFP(data_source,max_point_num):
     data=np.load(data_source)
     polys=[]
-    for i in range(216,len(data)):
+    for i in range(0,len(data)):
         line=data[i]
         poly_new=[]
         line=line.T
         for j in range(len(line)):
             poly_new.append(line[j].reshape(max_point_num,2).tolist())
-        #print(poly_new)
-        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1000_val/{}.csv'.format(i))
+        poly_new=drop0(poly_new)
+        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1500_val/{}.csv'.format(i))
 
 def generateData_fu(poly_num):
     polys=np.zeros((poly_num,8)) # 最多4个点 x 2个坐标
@@ -161,11 +175,39 @@ def generateData_fu(poly_num):
             y2=a+(b-a)*np.random.random()
             points=[0,0,x,0,x,y2,0,y]
         polys[i]=points
-    return polys
+    return polys # [ poly_num x (max_point_num * 2) ]  
+
+def polys2data(polys):
+    '''
+    将poly进行reshape满足网络输入格式
+    '''
+    max_point_num=0
+    size=len(polys)
+    for poly in polys:
+        point_num=len(poly)
+        if point_num>max_point_num:
+            max_point_num=point_num
+    polys_new=np.zeros((size,max_point_num*2))
+    for i in range(size):
+        poly=polys[i]
+        point_num=len(poly)
+        poly=np.array(poly)
+        poly=poly.reshape(1,point_num*2)
+        poly=poly[0]
+        for index,point in enumerate(poly):
+            polys_new[i][index]=point
+    return polys_new
+
 
 if __name__ == "__main__":
-    #np.savetxt('data/rec100.csv',generateRectangle(100,500,500),fmt='%.2f')
-    getBenchmark()
-    # generateTestData(1000)
-    # data=np.load('test1000_10_5.npy')
+    multiprocessing.set_start_method('spawn',True) 
+    start=time.time()
+    getAllNFP('fu1500_val.npy',4)
+    # generateTestData(1500)
+    # data=np.load('fu.npy',allow_pickle=True)
     # print(data.shape)
+
+    #getBenchmark('fu1500.npy')
+
+    end=time.time()
+    print(end-start)

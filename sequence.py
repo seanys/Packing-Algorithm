@@ -16,8 +16,8 @@ class GA(object):
     '''
     参考文献：A 2-exchange heuristic for nesting problems 2002
     '''
-    def __init__(self,poly_list,nfp_asst=None):
-        self.width=1500 
+    def __init__(self,width,poly_list,nfp_asst=None):
+        self.width=width
         self.minimal_rotation=360 # 最小的旋转角度
         self.poly_list=poly_list
 
@@ -67,7 +67,7 @@ class GA(object):
                 self.global_best_sequence=self.pop[self.fitness_ranked[0][0]]
             self.lowest_length_record.append(self.global_lowest_length)
 
-        print("Final length: " + str(self.global_lowest_length))
+        # print("Final length: " + str(self.global_lowest_length))
 
         # PolyListProcessor.showPolyList(self.width,self.global_best_sequence)
         # self.plotRecord()
