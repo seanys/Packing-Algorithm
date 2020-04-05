@@ -30,7 +30,7 @@ def drop0(polys):
         polys_new.append(poly)
     return polys_new
 
-def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=False):
+def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
@@ -45,7 +45,7 @@ def BLFwithSequence(test_path,width=1000,seq_path=None,decrease=False,GA_algo=Fa
         if seq_path!=None: # 指定序列
             seq=seqs[i].split(' ')
         else: # 随机序列
-            seq=[0,1,2,3,4,5,6,7,8,9,10,11]
+            seq=[0,1,2,3,4,5,6,7,8,9]
             np.random.shuffle(seq)
         line=line.T
         for polys in line:
@@ -111,15 +111,15 @@ def generatePolygon(poly_num,max_point_num):
     max_point_num: 最大点的个数
     '''
     polys=np.zeros((poly_num,max_point_num*2))
-    center=[250,250] # 中心坐标
+    center=[200,200] # 中心坐标
     for i in range(poly_num):
-        point_num=np.random.randint(5,max_point_num+1)
+        point_num=np.random.randint(3,max_point_num+1)
         angle=360/point_num # 根据边数划分角度区域
+        theta_start=np.random.randint(0,angle)
         for j in range(point_num):
-            theta=np.random.randint(angle*j,angle*(j+1))*np.pi/180 # 在每个区域中取随机角度并转为弧度
+            theta=(theta_start+angle*j)*np.pi/180 # 在每个区域中取角度并转为弧度
             #max_r=min(np.math.fabs(500/np.math.cos(theta)),np.math.fabs(500/np.math.sin(theta)))
-            #r=np.random.randint(0,max_r) # 取随机长度
-            r=np.random.randint(25,250) # 降低难度
+            r=100+(160-100)*np.random.random()
             x=center[0]+r*np.math.cos(theta)
             y=center[1]+r*np.math.sin(theta)
             polys[i,2*j]=x
@@ -127,11 +127,12 @@ def generatePolygon(poly_num,max_point_num):
             # print(theta,x,y)
     return polys
     
-def generateTestData(size,poly_num=10,max_point_num=5):
+def generateTestData(size,poly_num=10,max_point_num=4):
     x=[]
     for i in range(size):
-        data=getData()
-        polys=polys2data(data)
+        # data=getData()
+        # polys=polys2data(data)
+        polys=generatePolygon(poly_num,max_point_num)
         polys=polys.T
         x.append(polys)
     x=np.array(x)
@@ -140,14 +141,14 @@ def generateTestData(size,poly_num=10,max_point_num=5):
 def getAllNFP(data_source,max_point_num):
     data=np.load(data_source)
     polys=[]
-    for i in range(216,len(data)):
+    for i in range(0,len(data)):
         line=data[i]
         poly_new=[]
         line=line.T
         for j in range(len(line)):
             poly_new.append(line[j].reshape(max_point_num,2).tolist())
-        #print(poly_new)
-        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1000_val/{}.csv'.format(i))
+        poly_new=drop0(poly_new)
+        nfp_asst=NFPAssistant(poly_new,get_all_nfp=True,store_nfp=True,store_path='record/fu1500_val/{}.csv'.format(i))
 
 def generateData_fu(poly_num):
     polys=np.zeros((poly_num,8)) # 最多4个点 x 2个坐标
@@ -201,12 +202,12 @@ def polys2data(polys):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-
-    # generateTestData(1)
+    getAllNFP('fu1500_val.npy',4)
+    # generateTestData(1500)
     # data=np.load('fu.npy',allow_pickle=True)
     # print(data.shape)
 
-    getBenchmark('fu.npy')
+    #getBenchmark('fu1500.npy')
 
     end=time.time()
     print(end-start)

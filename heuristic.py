@@ -42,6 +42,7 @@ class BottomLeftFill(object):
             # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
         self.getLength()
+        # self.showAll()
 
     def placeFirstPoly(self):
         poly=self.polygons[0]
