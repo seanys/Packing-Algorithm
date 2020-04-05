@@ -18,7 +18,8 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader,Dataset
 from torch.utils.tensorboard import SummaryWriter
 from tools.rl import NeuralCombOptRL
-from heuristic import BottomLeftFill,NFPAssistant
+from tools.packing import NFPAssistant
+from heuristic import BottomLeftFill
 from rl_test import generateData_fu
 
 class PolygonsDataset(Dataset):
@@ -37,7 +38,7 @@ class PolygonsDataset(Dataset):
             self.x=np.array(x)
             self.input=torch.from_numpy(self.x)
         else:
-            data=np.load(path)
+            data=np.load(path,allow_pickle=True)
             for i in range(size):
                 x.append(data[i])
             self.x=np.array(x)
@@ -70,7 +71,7 @@ class PolygonsDataset(Dataset):
         try:
         #df = pd.read_csv('record/rec100_nfp.csv') # 把nfp history读入内存
         #nfp_asst=NFPAssistant(polys,load_history=True,history=df)
-            bfl=BottomLeftFill(width,polys,vertical=True)
+            bfl=BottomLeftFill(width,polys)
             return bfl.getLength()
         except:
             return 9999
@@ -90,7 +91,7 @@ def str2bool(v):
       return v.lower() in ('true', '1')
 
 def getBLF(width,poly,nfp_asst):
-    blf=BottomLeftFill(width,poly,vertical=True,NFPAssistant=nfp_asst)
+    blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
     return blf.getLength()
 
 if __name__ == "__main__":  
@@ -99,9 +100,9 @@ if __name__ == "__main__":
 
     '''数据加载'''
     parser.add_argument('--task', default='0404', help='')
-    parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--train_size', default=1000, help='')
-    parser.add_argument('--val_size', default=1000, help='')
+    parser.add_argument('--val_size', default=1, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=1000, help='Width of BottomLeftFill')
@@ -119,6 +120,7 @@ if __name__ == "__main__":
     parser.add_argument('--beam_size', default=1, help='Beam width for beam search')
 
     '''训练设置'''
+    parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
     parser.add_argument('--critic_net_lr', default=1e-4, help="Set the learning rate for the critic network")
     parser.add_argument('--actor_lr_decay_step', default=5000, help='')
@@ -126,7 +128,6 @@ if __name__ == "__main__":
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
-    parser.add_argument('--is_train', type=str2bool, default=False, help='')
     parser.add_argument('--n_epochs', default=500, help='')
     parser.add_argument('--random_seed', default=24601, help='')
     parser.add_argument('--max_grad_norm', default=2.0, help='Gradient clipping')
@@ -159,7 +160,7 @@ if __name__ == "__main__":
     # 改用torch集成的tensorboard
     writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
-    size = 10 # 解码器长度（序列长度）
+    size = 12 # 解码器长度（序列长度）
 
     '''奖励函数'''
     def reward(sample_solution, USE_CUDA=False):
@@ -185,7 +186,7 @@ if __name__ == "__main__":
                 for i in range(len(poly)):
                     poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
                 nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(index+cur_batch*batch_size))
-                # blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+                # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
                 res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
                 # result[index]=blf.getLength()
                 # thread = BottomLeftFillThread(index,args['width'],poly_new) 
@@ -203,7 +204,8 @@ if __name__ == "__main__":
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
             nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/fu1000/{}.csv'.format(cur_batch))
-            blf=BottomLeftFill(args['width'],poly_new,vertical=True,NFPAssistant=nfp_asst)
+            nfp_asst=None
+            blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
             result[0]=blf.getLength()
         # for t in threads:
         #     t.start()
@@ -235,7 +237,7 @@ if __name__ == "__main__":
     input_dim = 8
     reward_fn = reward  # 奖励函数
     training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1000.npy')
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1000.npy')
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu.npy')
     args['load_path']='outputs/0403/fu1000/epoch-198.pt'
 
     '''初始化网络/测试已有网络'''

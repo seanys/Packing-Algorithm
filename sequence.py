@@ -16,8 +16,8 @@ class GA(object):
     '''
     参考文献：A 2-exchange heuristic for nesting problems 2002
     '''
-    def __init__(self,poly_list,nfp_asst=None):
-        self.width=1500 
+    def __init__(self,width,poly_list,nfp_asst=None):
+        self.width=width
         self.minimal_rotation=360 # 最小的旋转角度
         self.poly_list=poly_list
 
@@ -56,7 +56,7 @@ class GA(object):
 
         # 持续获得下一代
         for i in range(0, self.generations):
-            # print("############################计算第",i+1,"代#######################################")
+            print("############################计算第",i+1,"代#######################################")
             self.getLengthRanked() # 高度排列
             self.getNextGeneration() # 获得下一代
 

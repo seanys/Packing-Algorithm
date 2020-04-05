@@ -566,22 +566,6 @@ class NFP(object):
     def __init__(self,poly1,poly2,**kw):
         self.stationary=copy.deepcopy(poly1)
         self.sliding=copy.deepcopy(poly2)
-        # 把末尾的补零去掉
-        for i in range(len(self.stationary)):
-            point_index=len(self.stationary)-1-i
-            if self.stationary[point_index]==[0,0]:
-                continue
-            else:
-                break
-        self.stationary=self.stationary[0:point_index+1]
-        for i in range(len(self.sliding)):
-            point_index=len(self.sliding)-1-i
-            if self.sliding[point_index]==[0,0]:
-                continue
-            else:
-                break
-        self.sliding=self.sliding[0:point_index+1]
-
         start_point_index=GeoFunc.checkBottom(self.stationary)
         self.start_point=[poly1[start_point_index][0],poly1[start_point_index][1]]
         self.locus_index=GeoFunc.checkTop(self.sliding)
@@ -635,11 +619,7 @@ class NFP(object):
                 GeoFunc.slidePoly(self.sliding,vector[0],vector[1])
                 self.nfp.append([self.sliding[self.locus_index][0],self.sliding[self.locus_index][1]])
                 i=i+1
-                
                 inter=Polygon(self.sliding).intersection(Polygon(self.stationary))
-                # print(inter)
-                # print(Polygon(self.sliding))
-                # print(Polygon(self.stationary))
                 if GeoFunc.computeInterArea(inter)>1:
                     print("出现相交区域")
                     self.error=-4 # 出现相交区域
