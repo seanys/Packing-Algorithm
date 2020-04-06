@@ -66,6 +66,7 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=Fal
             multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
         else:
             blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
+            blf.showAll()
             height.append(blf.getLength())
     if GA_algo:
         p.close()
@@ -80,15 +81,15 @@ def getBenchmark(source):
     # np.savetxt('random.CSV',random)
     # print('random...OK')
 
-    # predict=BLFwithSequence(source,seq_path='outputs/0404/fu1000/sequence-0.csv')
-    # predict=np.array(predict)
-    # np.savetxt('predict.CSV',predict)
-    # print('predict...OK')
-
     # decrease=BLFwithSequence(source,decrease=True)
     # decrease=np.array(decrease)
     # np.savetxt('decrease.CSV',decrease)
     # print('decrease...OK')
+
+    predict=BLFwithSequence(source,seq_path='outputs/0406/fu1500/sequence-0.csv')
+    predict=np.array(predict)
+    np.savetxt('predict.CSV',predict)
+    print('predict...OK')
 
     ga=BLFwithSequence(source,decrease=True,GA_algo=True)
     ga=np.array(ga)

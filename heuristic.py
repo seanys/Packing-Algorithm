@@ -122,9 +122,10 @@ class BottomLeftFill(object):
         for i in range(0,len(self.polygons)):
             if self.vertical==True:
                 extreme_index=GeoFunc.checkTop(self.polygons[i])
+                extreme=self.polygons[i][extreme_index][1]
             else:
                 extreme_index=GeoFunc.checkRight(self.polygons[i])
-            extreme=self.polygons[i][extreme_index][1]
+                extreme=self.polygons[i][extreme_index][0]
             if extreme>_max:
                 _max=extreme
         self.contain_length=_max
