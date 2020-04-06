@@ -60,7 +60,7 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=Fal
         polys_final=drop0(polys_final)
         if decrease==True: # 面积降序
             polys_final=GetBestSeq(width,polys_final).getDrease()            
-        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000/{}.csv'.format(i))
+        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1500_val/{}.csv'.format(i))
         if GA_algo==True: # 遗传算法
             polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
             multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
@@ -75,10 +75,10 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=Fal
     return height
 
 def getBenchmark(source):
-    # random=BLFwithSequence(source)
-    # random=np.array(random)
-    # np.savetxt('random.CSV',random)
-    # print('random...OK')
+    random=BLFwithSequence(source)
+    random=np.array(random)
+    np.savetxt('random.CSV',random)
+    print('random...OK')
 
     # predict=BLFwithSequence(source,seq_path='outputs/0404/fu1000/sequence-0.csv')
     # predict=np.array(predict)
@@ -128,12 +128,12 @@ def generatePolygon(poly_num,max_point_num):
     return polys
     
 def generateTestData(size,poly_num=10,max_point_num=4):
+    data=np.load('fu1500_val.npy')
     x=[]
     for i in range(size):
-        # data=getData()
-        # polys=polys2data(data)
-        polys=generatePolygon(poly_num,max_point_num)
-        polys=polys.T
+        polys=data[i]
+        # polys=generatePolygon(poly_num,max_point_num)
+        # polys=polys.T
         x.append(polys)
     x=np.array(x)
     np.save('test{}_{}_{}'.format(size,poly_num,max_point_num),x)
@@ -202,12 +202,10 @@ def polys2data(polys):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-    getAllNFP('fu1500_val.npy',4)
-    # generateTestData(1500)
+    # getAllNFP('fu1500_val.npy',4)
+    #generateTestData(900)
     # data=np.load('fu.npy',allow_pickle=True)
     # print(data.shape)
-
-    #getBenchmark('fu1500.npy')
-
+    getBenchmark('test900.npy')
     end=time.time()
     print(end-start)

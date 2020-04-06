@@ -103,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument('--task', default='0405', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
     parser.add_argument('--train_size', default=1500, help='')
-    parser.add_argument('--val_size', default=1, help='')
+    parser.add_argument('--val_size', default=900, help='')
     parser.add_argument('--is_train', type=str2bool, default=True, help='')
 
     '''多边形参数'''
@@ -123,8 +123,8 @@ if __name__ == "__main__":
 
     '''训练设置'''
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
-    parser.add_argument('--critic_net_lr', default=1e-4, help="Set the learning rate for the critic network")
+    parser.add_argument('--actor_net_lr', default=1e-3, help="Set the learning rate for the actor network")
+    parser.add_argument('--critic_net_lr', default=1e-2, help="Set the learning rate for the critic network")
     parser.add_argument('--actor_lr_decay_step', default=5000, help='')
     parser.add_argument('--critic_lr_decay_step', default=5000, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     parser.add_argument('--random_seed', default=24601, help='')
     parser.add_argument('--max_grad_norm', default=2.0, help='Gradient clipping')
     parser.add_argument('--use_cuda', type=str2bool, default=False, help='') # 默认禁用CUDA
-    parser.add_argument('--critic_beta', type=float, default=0.7, help='Exp mvg average decay')
+    parser.add_argument('--critic_beta', type=float, default=0.9, help='Exp mvg average decay')
 
     # Misc
     parser.add_argument('--log_step', default=1, help='Log info every log_step steps')
@@ -204,7 +204,7 @@ if __name__ == "__main__":
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],cur_batch))
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['run_name'],cur_batch))
             result[0]=getBLF(args['width'],poly_new,nfp_asst)
         # for t in threads:
         #     t.start()
@@ -235,8 +235,8 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1500.npy')
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1500_val.npy')
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['run_name']))
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
@@ -444,10 +444,10 @@ if __name__ == "__main__":
 
         # with open('rewards_val.csv',"a+") as csvfile:
         #     csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')
-        predict_sequence=np.array(predict_sequence)
-        np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
-        predict_height=np.array(predict_height)
-        np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
+        # predict_sequence=np.array(predict_sequence)
+        # np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
+        # predict_height=np.array(predict_height)
+        # np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
         if args['is_train']:
             model.actor_net.decoder.decode_type = "stochastic"
             print('Saving model...')
