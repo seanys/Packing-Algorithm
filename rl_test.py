@@ -91,10 +91,10 @@ def getBenchmark(source):
     np.savetxt('predict.CSV',predict)
     print('predict...OK')
 
-    # ga=BLFwithSequence(source,decrease=True,GA_algo=True)
-    # ga=np.array(ga)
-    # np.savetxt('GA.CSV',ga)
-    # print('GA...OK')
+    ga=BLFwithSequence(source,decrease=True,GA_algo=True)
+    ga=np.array(ga)
+    np.savetxt('GA.CSV',ga)
+    print('GA...OK')
 
 def generateRectangle(poly_num,max_width,max_height):
     polys=np.zeros((poly_num,8)) # 4个点 x 2个坐标
