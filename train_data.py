@@ -1,3 +1,10 @@
+from tools.polygon import PltFunc,GeoFunc,NFP,getConvex,getData
+from shapely.geometry import Polygon,mapping
+from tools.vectorization import vectorFunc
+from shapely import affinity
+from lp_search import LPSearch
+from sequence import BottomLeftFill,NFPAssistant
+import itertools
 import pandas as pd # 读csv
 import csv # 写csv
 import numpy as np # 数据处理
@@ -7,11 +14,6 @@ import json
 import time
 import random
 import math
-from tools.polygon import PltFunc,GeoFunc,NFP,getConvex,getData
-from shapely.geometry import Polygon,mapping
-from tools.vectorization import vectorFunc
-from sequence import BottomLeftFill,NFPAssistant
-import itertools
 
 def getTrainData(point_num):
     """
@@ -78,7 +80,7 @@ class GetBestSeq(object):
             seq_polys.append(self.polys[i])
         return seq_polys
 
-class getShape(object):
+class GetShape(object):
     def getConvexRandom():
         polygon=[]
         num=10
@@ -94,7 +96,7 @@ class getShape(object):
         pltFunc.showPlt()
 
 # Preprocess train data
-class trainDataProcess(object):
+class TrainDataProcess(object):
     def __init__(self):
         self.getBLFTrain()
     
@@ -237,6 +239,79 @@ class trainDataProcess(object):
                 writer = csv.writer(csvfile)
                 writer.writerows([[time.asctime(time.localtime(time.time())),poly_index,width,num,min_height,use_ratio,[i for i in best_order],polys]])
 
+class PreProccess(object):
+    '''
+    预处理NFP以及NFP divided函数
+    '''
+    def __init__(self):
+        # self.main()
+        self.orientation()
+    
+    def orientation(self):
+        fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
+        _len= fu.shape[0]
+        min_angle=90
+        rotation_range=[0,1,2,3]
+        with open("/Users/sean/Documents/Projects/Data/blaz_orientation.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            for i in range(_len):
+                Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
+                all_poly=[]
+                for oi in rotation_range:
+                    all_poly.append(self.rotation(Poly_i,oi,min_angle))
+                writer.writerows([all_poly])
+
+
+    def main(self):
+        fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
+        _len= fu.shape[0]
+        rotation_range=[0,1,2,3]
+        min_angle=math.pi/2
+        with open("/Users/sean/Documents/Projects/Data/blaz.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            for i in range(_len):
+                Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
+                for j in range(_len):
+                    Poly_j=Polygon(self.normData(json.loads(fu["polygon"][j])))
+                    for oi in rotation_range:
+                        new_poly_i=self.rotation(Poly_i,oi,min_angle)
+                        self.slideToOrigin(new_poly_i)
+                        for oj in rotation_range:
+                            print(i,j,oi,oj)
+                            new_poly_j=self.rotation(Poly_j,oj,min_angle)
+                            nfp=NFP(new_poly_i,new_poly_j)
+                            new_nfp=LPSearch.deleteOnline(nfp.nfp)
+                            print(new_nfp)
+                            all_bisectior,divided_nfp,target_func=LPSearch.getDividedNfp(new_nfp)
+                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,divided_nfp,target_func]])
+
+    def slideToOrigin(self,poly):
+        bottom_pt,min_y=[],999999999
+        for pt in poly:
+            if pt[1]<min_y:
+                bottom_pt=[pt[0],pt[1]]
+        GeoFunc.slidePoly(poly,-bottom_pt[0],-bottom_pt[1])
+
+    def normData(self,poly):
+        new_poly,num=[],20
+        for pt in poly:
+            new_poly.append([pt[0]*num,pt[1]*num])
+        return new_poly
+
+    def rotation(self,Poly,orientation,min_angle):
+        if orientation==0:
+            return self.getPoint(Poly)
+        new_Poly=affinity.rotate(Poly,orientation*min_angle*orientation)
+        return self.getPoint(new_Poly)
+    
+    def getPoint(self,shapely_object):
+        mapping_res=mapping(shapely_object)
+        coordinates=mapping_res["coordinates"][0]
+        new_poly=[]
+        for pt in coordinates:
+            new_poly.append([pt[0],pt[1]])
+        return new_poly
+    
 
 if __name__ == '__main__':
-    trainDataProcess()
+    PreProccess()
