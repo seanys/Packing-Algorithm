@@ -427,7 +427,7 @@ if __name__ == "__main__":
                     plot_attention(example_input,
                             example_output, probs.data.cpu().numpy())
         
-        if args['is_train']:
+        if not args['is_train']:
             predict_sequence=np.array(predict_sequence)
             np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
             np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),avg_reward,fmt='%.05f')
