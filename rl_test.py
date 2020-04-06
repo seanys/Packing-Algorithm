@@ -75,25 +75,25 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=Fal
     return height
 
 def getBenchmark(source):
-    random=BLFwithSequence(source)
-    random=np.array(random)
-    np.savetxt('random.CSV',random)
-    print('random...OK')
+    # random=BLFwithSequence(source)
+    # random=np.array(random)
+    # np.savetxt('random.CSV',random)
+    # print('random...OK')
 
     # predict=BLFwithSequence(source,seq_path='outputs/0404/fu1000/sequence-0.csv')
     # predict=np.array(predict)
     # np.savetxt('predict.CSV',predict)
     # print('predict...OK')
 
-    decrease=BLFwithSequence(source,decrease=True)
-    decrease=np.array(decrease)
-    np.savetxt('decrease.CSV',decrease)
-    print('decrease...OK')
+    # decrease=BLFwithSequence(source,decrease=True)
+    # decrease=np.array(decrease)
+    # np.savetxt('decrease.CSV',decrease)
+    # print('decrease...OK')
 
-    # ga=BLFwithSequence(source,decrease=True,GA_algo=True)
-    # ga=np.array(ga)
-    # np.savetxt('GA.CSV',ga)
-    # print('GA...OK')
+    ga=BLFwithSequence(source,decrease=True,GA_algo=True)
+    ga=np.array(ga)
+    np.savetxt('GA.CSV',ga)
+    print('GA...OK')
 
 def generateRectangle(poly_num,max_width,max_height):
     polys=np.zeros((poly_num,8)) # 4个点 x 2个坐标
