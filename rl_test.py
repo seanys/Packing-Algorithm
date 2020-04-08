@@ -79,7 +79,7 @@ def drop0(polys):
         polys_new.append(poly)
     return polys_new
 
-def BLFwithSequence(test_path,width=800,seq_path=None,decrease=None,GA_algo=False):
+def BLFwithSequence(test_path,width=2000,seq_path=None,decrease=None,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
@@ -94,7 +94,7 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=None,GA_algo=Fals
         if seq_path!=None: # 指定序列
             seq=seqs[i].split(' ')
         else: # 随机序列
-            seq=[0,1,2,3,4,5,6,7,8,9,10,11]
+            seq=[0,1,2,3,4,5,6,7,8,9]
             np.random.shuffle(seq)
         line=line.T
         for polys in line:
@@ -109,12 +109,13 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=None,GA_algo=Fals
         polys_final=drop0(polys_final)
         if decrease!=None: # 降序
             polys_final=GetBestSeq(width,polys_final,criteria=decrease).getDrease()            
-        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1500_val/{}.csv'.format(i))
+        #nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1500_val/{}.csv'.format(i))
+        nfp_asst=None
         if GA_algo==True: # 遗传算法
             polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
             multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
         else:
-            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
+            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst,rectangle=True)
             height.append(blf.getLength())
     if GA_algo:
         p.close()
@@ -124,12 +125,12 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=None,GA_algo=Fals
     return height
 
 def getBenchmark(source,single=False):
-    # random=BLFwithSequence(source)
-    # if single:  print('random',random)
-    # else:
-    #     random=np.array(random)
-    #     np.savetxt('random.CSV',random)
-    #     print('random...OK')
+    random=BLFwithSequence(source)
+    if single:  print('random',random)
+    else:
+        random=np.array(random)
+        np.savetxt('random.CSV',random)
+        print('random...OK')
 
     for criteria in ['area','length','height']:
         decrease=BLFwithSequence(source,decrease=criteria)
@@ -150,7 +151,6 @@ def getBenchmark(source,single=False):
     #     ga=np.array(ga)
     #     np.savetxt('GA.CSV',ga)
     #     print('GA...OK')
-
 
 def generateRectangle(poly_num,max_width,max_height):
     polys=np.zeros((poly_num,8)) # 4个点 x 2个坐标
@@ -187,7 +187,7 @@ def generatePolygon(poly_num,max_point_num):
 def generateTestData(size,poly_num=10,max_point_num=4):
     x=[]
     for i in range(size):
-        polys=polys2data(getData())
+        polys=polys2data(getData(index=5))
         # polys=generatePolygon(poly_num,max_point_num)
         polys=polys.T
         x.append(polys)
@@ -254,7 +254,6 @@ def polys2data(polys):
             polys_new[i][index]=point
     return polys_new
 
-
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
@@ -263,6 +262,6 @@ if __name__ == "__main__":
     #generateTestData(900)
     # data=np.load('fu.npy',allow_pickle=True)
     # print(data.shape)
-    getBenchmark('fu.npy',single=True)
+    getBenchmark('dighe2.npy',single=True)
     end=time.time()
     print(end-start)

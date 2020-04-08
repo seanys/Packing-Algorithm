@@ -25,11 +25,12 @@ class BottomLeftFill(object):
         self.length=150000 # 代表长度
         self.polygons=original_polygons
         self.placeFirstPoly()
+        self.NFPAssistant=None
         if 'NFPAssistant' in kw:
             self.NFPAssistant=kw["NFPAssistant"]
-        else:
-            # 若未指定外部NFPasst则内部使用NFPasst开多进程
-            self.NFPAssistant=packing.NFPAssistant(self.polygons,fast=True)
+        # else:
+        #     # 若未指定外部NFPasst则内部使用NFPasst开多进程
+        #     self.NFPAssistant=packing.NFPAssistant(self.polygons,fast=True)
         self.vertical=False
         if 'vertical' in kw:
                 self.vertical=kw['vertical']
@@ -61,7 +62,7 @@ class BottomLeftFill(object):
         for main_index in range(0,index):
             main=self.polygons[main_index]
             if self.NFPAssistant==None:
-                nfp=NFP(main,adjoin).nfp
+                nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
             else:
                 nfp=self.NFPAssistant.getDirectNFP(main,adjoin)
             differ_region=differ_region.difference(Polygon(nfp))
