@@ -39,47 +39,6 @@ def getTrainData(point_num):
     return np.array(X),np.array(Y),np.array(x_test),np.array(y_test)
 
 
-class GetBestSeq(object):
-    def __init__(self,width,polys):
-        self.polys=polys
-        self.width=width
-        self.NFPAssistant=NFPAssistant(polys)
-    
-    # 获得面积降序排列的形状结果
-    def getDrease(self):
-        poly_list=[]
-        for poly in self.polys:
-            poly_list.append([poly,Polygon(poly).area])
-        poly_list=sorted(poly_list, key = lambda item:item[1], reverse = True) # 排序，包含index
-        print(poly_list)
-        dec_polys=[]
-        for item in poly_list:
-            dec_polys.append(item[0])
-        return dec_polys
-    
-    # 从所有的排列中选择出最合适的
-    def chooseFromAll(self):
-        all_com=list(itertools.permutations([(i) for i in range(len(self.polys))]))
-        min_height=999999999
-        best_order=[]
-        for item in all_com:
-            seq=self.getPolys(item)
-            height=BottomLeftFill(self.width,seq,NFPAssistant=self.NFPAssistant).contain_height
-            if height<min_height:
-                best_order=item
-                min_height=height
-        area=0
-        for poly in self.polys:
-            area=area+Polygon(poly).area
-        use_ratio=area/(self.width*min_height)
-        return best_order,min_height,use_ratio
-    
-    def getPolys(self,seq):
-        seq_polys=[]
-        for i in seq:
-            seq_polys.append(self.polys[i])
-        return seq_polys
-
 class GetShape(object):
     def getConvexRandom():
         polygon=[]

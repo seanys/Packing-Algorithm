@@ -2,16 +2,65 @@
 本文件包括与DRL训练和测试的相关辅助函数
 '''
 import numpy as np
-import multiprocessing
 import time
+import multiprocessing
 from multiprocessing import Pool
 from tqdm import tqdm
 from heuristic import BottomLeftFill
 from sequence import GA
+from shapely.geometry import Polygon
 from tools.packing import NFPAssistant,PolyListProcessor
-from tools.polygon import getData
-from train_data import GetBestSeq
+from tools.polygon import getData,GeoFunc
 max_point_num=4
+
+class GetBestSeq(object):
+    def __init__(self,width,polys,criteria='area'):
+        self.polys=polys
+        self.width=width
+        self.criteria=criteria
+        
+    # 获得面积/长度/高度降序排列的形状结果
+    def getDrease(self):
+        poly_list=[]
+        for poly in self.polys:
+            if self.criteria=='length':
+                left,bottom,right,top=GeoFunc.checkBoundValue(poly)          
+                poly_list.append([poly,right-left])
+            elif self.criteria=='height':
+                left,bottom,right,top=GeoFunc.checkBoundValue(poly)    
+                poly_list.append([poly,top-bottom])
+            else:
+                poly_list.append([poly,Polygon(poly).area])
+        poly_list=sorted(poly_list, key = lambda item:item[1], reverse = True) # 排序，包含index
+        # print(poly_list)
+        dec_polys=[]
+        for item in poly_list:
+            dec_polys.append(item[0])
+        return dec_polys
+
+    # 从所有的排列中选择出最合适的
+    def chooseFromAll(self):
+        self.NFPAssistant=NFPAssistant(self.polys)
+        all_com=list(itertools.permutations([(i) for i in range(len(self.polys))]))
+        min_height=999999999
+        best_order=[]
+        for item in all_com:
+            seq=self.getPolys(item)
+            height=BottomLeftFill(self.width,seq,NFPAssistant=self.NFPAssistant).contain_height
+            if height<min_height:
+                best_order=item
+                min_height=height
+        area=0
+        for poly in self.polys:
+            area=area+Polygon(poly).area
+        use_ratio=area/(self.width*min_height)
+        return best_order,min_height,use_ratio
+    
+    def getPolys(self,seq):
+        seq_polys=[]
+        for i in seq:
+            seq_polys.append(self.polys[i])
+        return seq_polys
 
 def drop0(polys):
     '''
@@ -30,7 +79,7 @@ def drop0(polys):
         polys_new.append(poly)
     return polys_new
 
-def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=False):
+def BLFwithSequence(test_path,width=2000,seq_path=None,decrease=None,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
@@ -58,15 +107,15 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=Fal
                 index=seq[j]
             polys_final.append(polys_new[index])
         polys_final=drop0(polys_final)
-        if decrease==True: # 面积降序
-            polys_final=GetBestSeq(width,polys_final).getDrease()            
-        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1500_val/{}.csv'.format(i))
+        if decrease!=None: # 降序
+            polys_final=GetBestSeq(width,polys_final,criteria=decrease).getDrease()            
+        #nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1500_val/{}.csv'.format(i))
+        nfp_asst=None
         if GA_algo==True: # 遗传算法
             polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
             multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
         else:
-            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
-            blf.showAll()
+            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst,rectangle=True)
             height.append(blf.getLength())
     if GA_algo:
         p.close()
@@ -75,26 +124,33 @@ def BLFwithSequence(test_path,width=800,seq_path=None,decrease=False,GA_algo=Fal
             height.append(multi_res[i].get().global_lowest_length)
     return height
 
-def getBenchmark(source):
-    # random=BLFwithSequence(source)
-    # random=np.array(random)
-    # np.savetxt('random.CSV',random)
-    # print('random...OK')
+def getBenchmark(source,single=False):
+    random=BLFwithSequence(source)
+    if single:  print('random',random)
+    else:
+        random=np.array(random)
+        np.savetxt('random.CSV',random)
+        print('random...OK')
 
-    # decrease=BLFwithSequence(source,decrease=True)
-    # decrease=np.array(decrease)
-    # np.savetxt('decrease.CSV',decrease)
-    # print('decrease...OK')
+    for criteria in ['area','length','height']:
+        decrease=BLFwithSequence(source,decrease=criteria)
+        if single:  print(criteria,decrease)
+        else:
+            decrease=np.array(decrease)
+            np.savetxt('{}.CSV'.format(criteria),decrease)
+            print('{}...OK'.format(criteria))
 
-    predict=BLFwithSequence(source,seq_path='outputs/0406/fu1500/sequence-0.csv')
-    predict=np.array(predict)
-    np.savetxt('predict.CSV',predict)
-    print('predict...OK')
+    # predict=BLFwithSequence(source,seq_path='outputs/0406/fu1500/sequence-0.csv')
+    # predict=np.array(predict)
+    # np.savetxt('predict.CSV',predict)
+    # print('predict...OK')
 
-    ga=BLFwithSequence(source,decrease=True,GA_algo=True)
-    ga=np.array(ga)
-    np.savetxt('GA.CSV',ga)
-    print('GA...OK')
+    # ga=BLFwithSequence(source,decrease='length',GA_algo=True)
+    # if single:  print('GA',ga)
+    # else:
+    #     ga=np.array(ga)
+    #     np.savetxt('GA.CSV',ga)
+    #     print('GA...OK')
 
 def generateRectangle(poly_num,max_width,max_height):
     polys=np.zeros((poly_num,8)) # 4个点 x 2个坐标
@@ -129,12 +185,11 @@ def generatePolygon(poly_num,max_point_num):
     return polys
     
 def generateTestData(size,poly_num=10,max_point_num=4):
-    data=np.load('fu1500_val.npy')
     x=[]
     for i in range(size):
-        polys=data[i]
+        polys=polys2data(getData(index=5))
         # polys=generatePolygon(poly_num,max_point_num)
-        # polys=polys.T
+        polys=polys.T
         x.append(polys)
     x=np.array(x)
     np.save('test{}_{}_{}'.format(size,poly_num,max_point_num),x)
@@ -199,14 +254,14 @@ def polys2data(polys):
             polys_new[i][index]=point
     return polys_new
 
-
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
+    #generateTestData(1)
     # getAllNFP('fu1500_val.npy',4)
     #generateTestData(900)
     # data=np.load('fu.npy',allow_pickle=True)
     # print(data.shape)
-    getBenchmark('test900.npy')
+    getBenchmark('dighe2.npy',single=True)
     end=time.time()
     print(end-start)

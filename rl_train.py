@@ -92,6 +92,7 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
+    blf.showAll()
     return blf.getLength()
 
 if __name__ == "__main__":  
@@ -101,9 +102,9 @@ if __name__ == "__main__":
     '''数据加载'''
     parser.add_argument('--task', default='0407', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
-    parser.add_argument('--train_size', default=1500, help='')
-    parser.add_argument('--val_size', default=900, help='')
-    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--train_size', default=1, help='')
+    parser.add_argument('--val_size', default=1, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=800, help='Width of BottomLeftFill')
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     # 改用torch集成的tensorboard
     writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
-    size = 10 # 解码器长度（序列长度）
+    size = 12 # 解码器长度（序列长度）
 
     '''奖励函数'''
     def reward(sample_solution, USE_CUDA=False):
@@ -236,9 +237,9 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu900_val.npy')
-
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu.npy')
+    args['load_path']='epoch-22.pt'
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
         model = NeuralCombOptRL(

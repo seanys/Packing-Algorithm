@@ -8,3 +8,5 @@ record*
 *.npy
 *.csv
 .DS_Store
+.VSCodeCounter*
+*.pt
