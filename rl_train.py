@@ -99,7 +99,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0406', help='')
+    parser.add_argument('--task', default='0407', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
     parser.add_argument('--train_size', default=1500, help='')
     parser.add_argument('--val_size', default=900, help='')
@@ -122,10 +122,10 @@ if __name__ == "__main__":
 
     '''训练设置'''
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--actor_net_lr', default=1e-3, help="Set the learning rate for the actor network")
-    parser.add_argument('--critic_net_lr', default=1e-2, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=5000, help='')
-    parser.add_argument('--critic_lr_decay_step', default=5000, help='')
+    parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
+    parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
+    parser.add_argument('--actor_lr_decay_step', default=500, help='')
+    parser.add_argument('--critic_lr_decay_step', default=500, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
