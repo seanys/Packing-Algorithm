@@ -109,7 +109,6 @@ class vectorFunc(object):
             else:
                 self.vector=merge_vector[0]+merge_vector[1]+merge_vector[2]+merge_vector[3]
 
-        return self.vector
         #print('vector:',self.vector)
 
 
@@ -416,6 +415,6 @@ if __name__ == '__main__':
 
     poly=low
     
-    pp=vectorFunc(poly,cut_nums=16)
+    pp=vectorFunc(poly,cut_nums=128)
     rebuildEvalute(pp.vector,pp)
     
