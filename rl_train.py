@@ -92,7 +92,6 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
-    blf.showAll()
     return blf.getLength()
 
 if __name__ == "__main__":  
@@ -100,10 +99,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0407', help='')
+    parser.add_argument('--task', default='0408', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
-    parser.add_argument('--train_size', default=1, help='')
-    parser.add_argument('--val_size', default=1, help='')
+    parser.add_argument('--val_name', type=str, default='fu1500')
+    parser.add_argument('--train_size', default=1500, help='')
+    parser.add_argument('--val_size', default=900, help='')
     parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
     '''多边形参数'''
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     # 改用torch集成的tensorboard
     writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
-    size = 12 # 解码器长度（序列长度）
+    size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
     def reward(sample_solution, USE_CUDA=False):
@@ -206,7 +206,7 @@ if __name__ == "__main__":
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
             poly_new=drop0(poly_new)
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['run_name'],cur_batch))
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
             result[0]=getBLF(args['width'],poly_new,nfp_asst)
         # for t in threads:
         #     t.start()
@@ -237,9 +237,9 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu.npy'.format(args['run_name']))
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu.npy')
-    args['load_path']='epoch-22.pt'
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
+    args['load_path']='outputs/0407/fu1500/epoch-198.pt'
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
         model = NeuralCombOptRL(
@@ -446,17 +446,3 @@ if __name__ == "__main__":
             torch.save(model, os.path.join(save_dir, 'epoch-{}.pt'.format(i)))
 
             # If the task requires generating new data after each epoch, do that here!
-    '''        if COP == 'tsp':
-                training_dataset = tsp_task.TSPDataset(train=True, size=size,
-                    num_samples=int(args['train_size']))
-                training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),
-                    shuffle=True, num_workers=1)
-            if COP == 'sort':
-                train_fname, _ = sorting_task.create_dataset(
-                    int(args['train_size']),
-                    int(args['val_size']),
-                    data_dir,
-                    data_len=size)
-                training_dataset = sorting_task.SortingDataset(train_fname)
-                training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),
-                        shuffle=True, num_workers=1)'''
