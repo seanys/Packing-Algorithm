@@ -620,11 +620,13 @@ class NeuralCombOptRL(nn.Module):
         # logits
         # should be size [batch_size x 
         actions = []
+        actions_index = []
         # inputs is [batch_size, input_dim, sourceL]
         inputs_ = inputs.transpose(1, 2)
         # inputs_ is [batch_size, sourceL, input_dim]
         for action_id in action_idxs:
             actions.append(inputs_[[x for x in range(batch_size)], action_id.data, :])
+            actions_index.append(torch.tensor(action_id.data))
 
         if self.is_train:
             # probs_ is a list of len sourceL of [batch_size x sourceL]
@@ -640,7 +642,7 @@ class NeuralCombOptRL(nn.Module):
         #v = self.critic_net(embedded_inputs)
     
         # [batch_size]
-        R = self.objective_fn(actions, self.use_cuda)
+        R = self.objective_fn(actions_index, self.use_cuda)
 
         #return R, v, probs, actions, action_idxs
         return R, probs, actions, action_idxs
