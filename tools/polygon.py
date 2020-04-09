@@ -517,6 +517,7 @@ class PltFunc(object):
             # plt.axis([-1000,2000,-979400.4498015114,20000])
             # plt.axis([-500,1000,0,1500])
         plt.show()
+        plt.clf()
 
     def showPolys(polys):
         for poly in polys:
@@ -526,6 +527,7 @@ class PltFunc(object):
     def saveFig(name):
         plt.savefig('figs\\'+name+'.png')
         plt.cla()
+    
     
 class RatotionPoly():
     def __init__(self,angle):
