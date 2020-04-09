@@ -244,15 +244,16 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        # self.main()
-        self.orientation()
+        
+        self.main()
+        # self.orientation()
     
     def orientation(self):
         fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
         _len= fu.shape[0]
         min_angle=90
         rotation_range=[0,1,2,3]
-        with open("/Users/sean/Documents/Projects/Data/blaz_orientation.csv","a+") as csvfile:
+        with open("/Users/sean/Documents/Projects/Data/fu_orientation.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
@@ -266,8 +267,8 @@ class PreProccess(object):
         fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
         _len= fu.shape[0]
         rotation_range=[0,1,2,3]
-        min_angle=math.pi/2
-        with open("/Users/sean/Documents/Projects/Data/blaz.csv","a+") as csvfile:
+        min_angle=90
+        with open("/Users/sean/Documents/Projects/Data/fu.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
@@ -281,7 +282,6 @@ class PreProccess(object):
                             new_poly_j=self.rotation(Poly_j,oj,min_angle)
                             nfp=NFP(new_poly_i,new_poly_j)
                             new_nfp=LPSearch.deleteOnline(nfp.nfp)
-                            print(new_nfp)
                             all_bisectior,divided_nfp,target_func=LPSearch.getDividedNfp(new_nfp)
                             writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,divided_nfp,target_func]])
 
@@ -289,6 +289,7 @@ class PreProccess(object):
         bottom_pt,min_y=[],999999999
         for pt in poly:
             if pt[1]<min_y:
+                min_y=pt[1]
                 bottom_pt=[pt[0],pt[1]]
         GeoFunc.slidePoly(poly,-bottom_pt[0],-bottom_pt[1])
 
@@ -301,7 +302,7 @@ class PreProccess(object):
     def rotation(self,Poly,orientation,min_angle):
         if orientation==0:
             return self.getPoint(Poly)
-        new_Poly=affinity.rotate(Poly,orientation*min_angle*orientation)
+        new_Poly=affinity.rotate(Poly,min_angle*orientation)
         return self.getPoint(new_Poly)
     
     def getPoint(self,shapely_object):
@@ -311,7 +312,25 @@ class PreProccess(object):
         for pt in coordinates:
             new_poly.append([pt[0],pt[1]])
         return new_poly
+
+
+class initialResult(object)
+    def getAreaDecreaing(self,polys):
+
+        pass
+
+    def getLengthDecreaing(self,polys):
     
+        pass
+
+    def getWidthDecreaing(self,polys):
+        
+        pass
+
+    def getRectangularityDecreaing(self,polys):
+        
+        pass
+
 
 if __name__ == '__main__':
     PreProccess()
