@@ -20,64 +20,6 @@ from tools.lp_assistant import LPAssistant
 
 bias=0.0000001
 
-def testNonConvex():
-    # 数据加载
-    blaz = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/blaz1.csv")
-    poly1 = json.loads(blaz["polygon"][1])
-    poly2=json.loads(blaz["polygon"][3])
-    GeoFunc.normData(poly1,50)
-    GeoFunc.normData(poly2,50)
-    # NFP计算
-    nfp=NFP(poly1,poly2)
-    new_nfp=LPAssistant.deleteOnline(nfp.nfp)
-    convex_poly=LPAssistant.getConvexPoly(new_nfp)
-
-    OriginalPoly=Polygon(new_nfp)
-    
-    if convex_poly==new_nfp:
-        print("形状为凸多边形")
-
-    # 初始化函数，分开成convex和non-convex两种情况处理
-    all_bisectior,divided_nfp,target_func=[],[],[]
-    left_point,right_point,bottom_point,top_point=LPAssistant.getBoundPoint(convex_poly)
-
-    i,j=0,0
-    extend_convex_poly,extend_new_nfp=convex_poly+convex_poly,new_nfp+new_nfp
-
-    print(convex_poly)
-    print(new_nfp)
-    return 
-
-    while i<len(convex_poly):
-        while j<len(new_nfp):
-            if convex_poly[i]==new_nfp[j]:
-                i=i+1
-            else:
-                PltFunc.addLine([new_nfp[j],convex_poly[i-1]],color="blue")
-                # print(new_nfp[j])
-                # 中间位置 new_nfp[j] 上一个 convex_poly[i-1] 下一个 convex_poly[i]
-                # 求两条垂线
-                # vertical_vector1=LPAssistant.rotationVectorAnti([new_nfp[j][0]-convex_poly[i-1][0],new_nfp[j][1]-convex_poly[i-1][1]])
-                # print([new_nfp[j],[new_nfp[j][0]+vertical_vector1[0],new_nfp[j][1]+vertical_vector1[1]]])
-                # PltFunc.addLine([new_nfp[j],[new_nfp[j][0]+vertical_vector1[0],new_nfp[j][1]+vertical_vector1[1]]],color="blue")
-                # 处理前一条边
-                # [convex_poly[i-1],new_nfp[j-1],new_nfp[j]]
-
-
-                # 凹点如何计算，需要划分1/2/4个区域，视情况而定
-                # target_func.append()
-
-                # 处理后一条边
-                # vertical_vector2=LPAssistant.rotationVector([new_nfp[j-1][0]-convex_poly[i-1][0],new_nfp[j-1][1]-convex_poly[i-1][1]])
-                # print([new_nfp[j-1],[new_nfp[j-1][0]+vertical_vector1[0],new_nfp[j-1][1]+vertical_vector1[1]]])
-                # PltFunc.addLine([new_nfp[j-1],[new_nfp[j-1][0]+vertical_vector1[0],new_nfp[j-1][1]+vertical_vector1[1]]],color="blue")
-
-            j=j+1
-    print("计算结束")
-    PltFunc.addPolygonColor(convex_poly)
-    PltFunc.addPolygon(new_nfp)
-    PltFunc.showPlt()
-
 class LPSearch(object):
     '''
     线性检索算法，采用数据集Fu
@@ -86,7 +28,7 @@ class LPSearch(object):
         self.width=width
         self.polys=copy.deepcopy(original_polys)
         self.fu=pd.read_csv("/Users/sean/Documents/Projects/Data/fu_orientation.csv",header=None)
-        self.fu_pre=pd.read_csv("/Users/sean/Documents/Projects/Data/fu.csv")
+        self.fu_pre=pd.read_csv("/Users/sean/Documents/Projects/Data/fu_simplify.csv")
         self.NFPAssistant=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
         self.getAllPolygons()
@@ -96,8 +38,8 @@ class LPSearch(object):
     # 获得初始解
     def getInitialResult(self):
         blf = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/blf.csv")
-        self.total_area=blf["total_area"][4]
-        self.polys=json.loads(blf["polys"][4])
+        self.total_area=blf["total_area"][5]
+        self.polys=json.loads(blf["polys"][5])
         self.best_polys= copy.deepcopy(self.polys)# 按照index的顺序排列
         self.best_poly_status,self.poly_status=[],[]
         self.use_ratio=[]
@@ -171,17 +113,18 @@ class LPSearch(object):
                 # 遍历四个角度的最优值
                 for orientation in [0,1,2,3]:
                     print("测试角度:",90*orientation,"度")
-                    # self.getPrerequisiteOffLine(choose_index,orientation)
-                    self.getPrerequisite(choose_index)
+                    start_time = time.time()
+                    self.getPrerequisite(choose_index,orientation,offline=True)
                     self.getProblemLP()
                     new_position,new_depth=self.searchBestPosition() # 获得最优位置
-
-                    top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
-                    new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
-                    PltFunc.addPolygonColor(new_polygon)
-                    self.showPolys()
+                    # top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
+                    # new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
+                    # PltFunc.addPolygonColor(new_polygon)
+                    # PltFunc.showPlt()
                     if new_depth<best_depth:
                         best_position,best_orientation,best_depth=copy.deepcopy(new_position),orientation,new_depth
+                    end_time = time.time()
+                    print("本次检索耗时:",end_time-start_time)
 
                 # 如果有变化状态则需要更新overlap以及移动形状
                 if best_position!=original_position:
@@ -196,11 +139,11 @@ class LPSearch(object):
                     # 更新形状与重叠情况
                     self.polys[choose_index]=new_poly
                     self.updateOverlap()
-            # self.showPolys()
             # 计算新方案的重叠情况
             cur_fitness=self.getFitness()
             if cur_fitness==0:
                 print("没有重叠，本次检索结束")
+                self.showPolys()
                 break
             elif cur_fitness<fitness:
                 fitness=cur_fitness
@@ -211,6 +154,7 @@ class LPSearch(object):
             self.updateMiu()
         if it==N:
             print("超出更新次数")
+            self.showPolys()
     
     # 获得全部形状不同方向-存储起来
     def getAllPolygons(self):
@@ -246,22 +190,6 @@ class LPSearch(object):
                 if inter.area>bias:
                     self.pair_overlap[i][j]=self.pair_overlap[i][j]+inter.area
                     self.pair_overlap[j][i]=self.pair_overlap[j][i]+inter.area
-
-    # 获得全部的NFP和IFR
-    def getPrerequisite(self,index):
-        self.all_nfps,self.all_points_target,self.all_edges_target=[],[],[]
-        for i in range(len(self.polys)):
-            nfp=LPAssistant.deleteOnline(self.NFPAssistant.getDirectNFP(self.polys[i],self.polys[index])) # NFP可能有同一直线上的点
-            points_target,edges_target=[],[]
-            for i in range(len(nfp)):
-                edges_target.append(LPAssistant.getTargetFunction([nfp[i-1],nfp[i]]))
-                points_target.append([nfp[i][0],nfp[i][1]])
-            self.all_nfps.append(nfp)
-            self.all_edges_target.append(edges_target)
-            self.all_points_target.append(points_target)
-
-        self.ifr=PackingUtil.getInnerFitRectangle(self.polys[index],self.cur_length,self.width)
-        self.IFR=Polygon(self.ifr)
     
     # 基于NFP获得全部的约束
     def getProblemLP(self):
@@ -342,7 +270,7 @@ class LPSearch(object):
     def searchBestPosition(self):
         '''基于上述获得的区域与目标函数检索最优位置'''
         min_depth,best_position=9999999999,[]
-        n=0
+        # n=0
         for i,item in enumerate(self.target_areas):
             for j,area_item in enumerate(item):
                 # 计算差集后归零
@@ -350,11 +278,12 @@ class LPSearch(object):
                     continue
                 # 分别计算每个点在每个区域的最值
                 for pt in area_item[0]:
+                    # n=n+1
                     depth=self.getBestValue(pt,area_item[1:])
                     if depth<min_depth:
                         min_depth=depth
                         best_position=[pt[0],pt[1]]
-        print("\n共检索",n,"个位置")
+        # print("\n共检索",n,"个位置")
         print("最佳位置：",best_position)
         print("最小重叠：",min_depth,"\n")
         return best_position,min_depth
@@ -416,33 +345,34 @@ class LPSearch(object):
         print(self.miu)
     
     # 直接读取目标情况-带方向
-    def getPrerequisiteOffLine(self,i,orientation):
+    def getPrerequisite(self,i,orientation,**kw):
         # 获得全部NFP以及拆分情况
-        self.all_nfps,self.all_target_func,self.max_divided_len=[],[],[],0
-        for j,item in enumerate(self.poly_status):
+        self.all_nfps,self.all_points_target,self.all_edges_target=[],[],[]
+        offline=kw['offline']
+        for j,item in enumerate(self.polys):
+            # 两个相等的情况，跳过否则会计算错误
             if j == i:
                 self.all_nfps.append([])
-                self.all_target_func.append([])
+                self.all_points_target.append([])
+                self.all_edges_target.append([])
                 continue
-            
-            # 获得初始数据
-            row=j*192+i*16+self.poly_status[j][2]*4+orientation
-            original_nfp,original_divided_nfp,original_target_func=json.loads(self.fu_pre["nfp"][row]),json.loads(self.fu_pre["divided_nfp"][row]),json.loads(self.fu_pre["target_func"][row])
-            # 原点平移到当前位置
-            bottom_pt=LPAssistant.getBottomPoint(self.polys[j])
-            delta_x,delta_y=bottom_pt[0],bottom_pt[1]
-            # NFP计算结果
-            self.all_nfps.append(GeoFunc.getSlide(original_nfp,delta_x,delta_y)) 
-            # 目标函数
-            target_func=[]
-            for coefficient in original_target_func:
-                [a,b,c]=coefficient
-                c=c-(a*delta_x+b*delta_y)
-                target_func.append([a*self.miu[j][i],b*self.miu[j][i],c*self.miu[j][i]])
-            self.all_target_func.append(target_func)
-
-            if len(divided_nfp)>self.max_divided_len:
-                self.max_divided_len=len(divided_nfp)
+            # 预处理的情况
+            points_target,edges_target,nfp=[],[],[]
+            if offline==True:
+                row=j*192+i*16+self.poly_status[j][2]*4+orientation
+                bottom_pt=LPAssistant.getBottomPoint(self.polys[j])
+                delta_x,delta_y=bottom_pt[0],bottom_pt[1]
+                nfp=GeoFunc.getSlide(json.loads(self.fu_pre["nfp"][row]),delta_x,delta_y)
+            else:
+                nfp=LPAssistant.deleteOnline(self.NFPAssistant.getDirectNFP(self.polys[j],self.polys[i])) # NFP可能有同一直线上的点
+            # 计算对应目标函数
+            for pt_index in range(len(nfp)):
+                edges_target.append(LPAssistant.getTargetFunction([nfp[pt_index-1],nfp[pt_index]]))
+                points_target.append([nfp[pt_index][0],nfp[pt_index][1]])
+            # 添加上去
+            self.all_nfps.append(nfp)
+            self.all_edges_target.append(edges_target)
+            self.all_points_target.append(points_target)
 
         # 获取IFR
         self.target_poly=self.all_polygons[i][orientation]
