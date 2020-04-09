@@ -13,7 +13,7 @@ from shapely.geometry import Point,mapping
 # 量化算法部分
 class vectorFunc(object):
     def __init__(self,polygon_vertexs,**kw):
-        print("初始化处理器：",polygon_vertexs)
+        # print("初始化处理器：",polygon_vertexs)
         self.error=1
         self.polygon_vertexs=polygon_vertexs
         self.centroid_out_force=False
@@ -38,12 +38,12 @@ class vectorFunc(object):
         2. centroid在外部：选择外接矩形的边上的点，180度范围上的两个交点
         '''
         self.moveToStandard()
-        print(self.polygon_vertexs)
+        # print(self.polygon_vertexs)
         if self.error==-1:
             return
         self.computeMultiLines(self.cut_nums)
         self.vector=[]
-        print("self.centroid_in",self.centroid_in)
+        # print("self.centroid_in",self.centroid_in)
         # 如果在内部
         if self.centroid_in and self.centroid_out_force==False:
             for index,line in enumerate(self.cut_lines):
@@ -109,7 +109,8 @@ class vectorFunc(object):
             else:
                 self.vector=merge_vector[0]+merge_vector[1]+merge_vector[2]+merge_vector[3]
 
-        print('vector:',self.vector)
+        return self.vector
+        #print('vector:',self.vector)
 
 
     def centOutUpdate(self):
@@ -414,7 +415,7 @@ if __name__ == '__main__':
     low=[[0.0, 0.0], [2.0, -1.0], [4.0, 0.0], [4.0, 3.0], [2.0, 4.0], [0.0, 3.0]]
 
     poly=low
-
+    
     pp=vectorFunc(poly,cut_nums=16)
     rebuildEvalute(pp.vector,pp)
     

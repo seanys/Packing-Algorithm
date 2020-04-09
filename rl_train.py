@@ -104,7 +104,7 @@ if __name__ == "__main__":
     parser.add_argument('--val_name', type=str, default='fu1500')
     parser.add_argument('--train_size', default=1500, help='')
     parser.add_argument('--val_size', default=900, help='')
-    parser.add_argument('--is_train', type=str2bool, default=False, help='')
+    parser.add_argument('--is_train', type=str2bool, default=True, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=800, help='Width of BottomLeftFill')
@@ -164,13 +164,12 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
 
     '''奖励函数'''
-    def reward(sample_solution, USE_CUDA=False):
+    def reward_old(sample_solution, USE_CUDA=False):
         # start=datetime.datetime.now()
         # print(start,"开始reward")
         # sample_solution shape: [sourceL, batch_size, input_dim]
         batch_size = sample_solution[0].size(0)
         n = len(sample_solution)
-        height = Variable(torch.zeros([batch_size]))
         points=[]
         for i in range(n):
             sample=sample_solution[i]
@@ -216,6 +215,43 @@ if __name__ == "__main__":
         #     result[index]=threads[index].getResult()
         return torch.Tensor(result)
 
+    def reward(sample_solution, USE_CUDA=False):
+        # start=datetime.datetime.now()
+        # print(start,"开始reward")
+        # sample_solution shape: [sourceL, batch_size]
+        batch_size = sample_solution[0].size(0)
+        result=np.zeros(batch_size)
+        sequences=[]
+        for sample in sample_solution:
+            sequences.append(sample.numpy())
+        sequences=np.array(sequences)
+        if trainning:
+            p=Pool() # 多进程计算BLF
+            res=[]
+            for index in range(batch_size):
+                sequence=sequences[:,index]
+                ///////----//////
+                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],index+cur_batch*batch_size))
+                # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
+                res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
+            p.close()
+            p.join()
+            for index in range(batch_size):
+                result[index]=res[index].get()
+        else: # 验证时不开多进程
+            sequence=sequences[:,0]
+            ///////----//////
+            poly_new=[]
+            for i in range(len(poly)):
+                poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
+            poly_new=drop0(poly_new)
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
+            result[0]=getBLF(args['width'],poly_new,nfp_asst)
+        # end=datetime.datetime.now()
+        # print(end,"结束reward")
+        # print(end-start)
+        return torch.Tensor(result)
+
     def plot_attention(in_seq, out_seq, attentions):
         """ From http://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html"""
 
@@ -237,9 +273,8 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
-    args['load_path']='outputs/0407/fu1500/epoch-198.pt'
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'])
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
         model = NeuralCombOptRL(
