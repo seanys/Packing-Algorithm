@@ -228,10 +228,14 @@ class PolyListProcessor(object):
         if check_index>=0:
             length=history_length_list[check_index]
         else:
-            if 'NFPAssistant' in kw:
-                length=heuristic.BottomLeftFill(width,polys,NFPAssistant=kw['NFPAssistant']).contain_length
-            else:
-                length=heuristic.BottomLeftFill(width,polys).contain_length
+            try:
+                if 'NFPAssistant' in kw:
+                    length=heuristic.BottomLeftFill(width,polys,NFPAssistant=kw['NFPAssistant']).contain_length
+                else:
+                    length=heuristic.BottomLeftFill(width,polys).contain_length
+            except:
+                print('出现Self-intersection')
+                length=99999
             history_index_list.append(index_list)
             history_length_list.append(length)
         return length

@@ -91,7 +91,6 @@ def str2bool(v):
       return v.lower() in ('true', '1')
 
 def getBLF(width,poly,nfp_asst):
-    poly=drop0(poly)
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
     return blf.getLength()
 
@@ -100,11 +99,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0405', help='')
+    parser.add_argument('--task', default='0408', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
+    parser.add_argument('--val_name', type=str, default='fu1500')
     parser.add_argument('--train_size', default=1500, help='')
-    parser.add_argument('--val_size', default=1, help='')
-    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--val_size', default=900, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=800, help='Width of BottomLeftFill')
@@ -124,9 +124,9 @@ if __name__ == "__main__":
     '''训练设置'''
     parser.add_argument('--batch_size', default=32, help='')
     parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
-    parser.add_argument('--critic_net_lr', default=1e-4, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=5000, help='')
-    parser.add_argument('--critic_lr_decay_step', default=5000, help='')
+    parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
+    parser.add_argument('--actor_lr_decay_step', default=500, help='')
+    parser.add_argument('--critic_lr_decay_step', default=500, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
@@ -186,6 +186,7 @@ if __name__ == "__main__":
                 poly_new=[]
                 for i in range(len(poly)):
                     poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
+                poly_new=drop0(poly_new)
                 nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],index+cur_batch*batch_size))
                 # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
                 res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
@@ -204,7 +205,8 @@ if __name__ == "__main__":
             poly_new=[]
             for i in range(len(poly)):
                 poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],cur_batch))
+            poly_new=drop0(poly_new)
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
             result[0]=getBLF(args['width'],poly_new,nfp_asst)
         # for t in threads:
         #     t.start()
@@ -235,9 +237,9 @@ if __name__ == "__main__":
 
     input_dim = 8
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='fu1500.npy')
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='fu1500_val.npy')
-
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
+    args['load_path']='outputs/0407/fu1500/epoch-198.pt'
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
         model = NeuralCombOptRL(
@@ -284,7 +286,6 @@ if __name__ == "__main__":
                 int(args['actor_lr_decay_step'])), gamma=float(args['actor_lr_decay_rate']))
 
     training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
-
     validation_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=1)
 
     critic_exp_mvg_avg = torch.zeros(1)
@@ -298,12 +299,10 @@ if __name__ == "__main__":
     step = 0
     val_step = 0
 
-    if not args['is_train']:
-        args['n_epochs'] = '1'
+    if not args['is_train']: args['n_epochs'] = '1'
     
     epoch = int(args['epoch_start'])
     for i in range(epoch, epoch + int(args['n_epochs'])):
-        
         if args['is_train']:
             # put in train mode!
             model.train()
@@ -393,11 +392,9 @@ if __name__ == "__main__":
         model.actor_net.decoder.decode_type = "beam_search"
         
         print('\n~Validating~\n')
-
         example_input = []
         example_output = []
         predict_sequence = []
-        predict_height = []
         avg_reward = []
 
         # put in test mode!
@@ -408,10 +405,7 @@ if __name__ == "__main__":
         for batch_id, val_batch in enumerate(tqdm(validation_dataloader,
                 disable=args['disable_progress_bar'])):
             bat = Variable(val_batch)
-
-            if args['use_cuda']:
-                bat = bat.cuda()
-
+            if args['use_cuda']: bat = bat.cuda()
             R, probs, actions, action_idxs = model(bat)
             cur_batch=cur_batch+1
             avg_reward.append(R[0].item())
@@ -428,43 +422,27 @@ if __name__ == "__main__":
                     # example_output.append(action[0].numpy())
                     example_input.append(bat[0, :, idx].cpu().numpy()) # 尝试item改numpy
                 # print('Step: {}'.format(batch_id))
-                # #print('Example test input: {}'.format(example_input))
-                # print('Example test output: {}'.format(example_output))
-                # print('Example test reward: {}'.format(R[0].item()))
                 predict_sequence.append(example_output)
-                predict_height.append(R[0].item())
                 if args['plot_attention']:
                     probs = torch.cat(probs, 0)
                     plot_attention(example_input,
                             example_output, probs.data.cpu().numpy())
-
+        
+        if not args['is_train']:
+            predict_sequence=np.array(predict_sequence)
+            np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
+            np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),avg_reward,fmt='%.05f')
+            
         print('Validation overall avg_reward: {}'.format(np.mean(avg_reward)))
         print('Validation overall reward var: {}'.format(np.var(avg_reward)))
         writer.add_scalar('val_avg_reward', np.mean(avg_reward), i)
 
         # with open('rewards_val.csv',"a+") as csvfile:
         #     csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')
-        predict_sequence=np.array(predict_sequence)
-        np.savetxt(os.path.join(save_dir, 'sequence-{}.csv'.format(i)),predict_sequence,fmt='%d')
-        predict_height=np.array(predict_height)
-        np.savetxt(os.path.join(save_dir, 'height-{}.csv'.format(i)),predict_height,fmt='%.05f')
+        
         if args['is_train']:
             model.actor_net.decoder.decode_type = "stochastic"
             print('Saving model...')
             torch.save(model, os.path.join(save_dir, 'epoch-{}.pt'.format(i)))
 
             # If the task requires generating new data after each epoch, do that here!
-    '''        if COP == 'tsp':
-                training_dataset = tsp_task.TSPDataset(train=True, size=size,
-                    num_samples=int(args['train_size']))
-                training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),
-                    shuffle=True, num_workers=1)
-            if COP == 'sort':
-                train_fname, _ = sorting_task.create_dataset(
-                    int(args['train_size']),
-                    int(args['val_size']),
-                    data_dir,
-                    data_len=size)
-                training_dataset = sorting_task.SortingDataset(train_fname)
-                training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),
-                        shuffle=True, num_workers=1)'''

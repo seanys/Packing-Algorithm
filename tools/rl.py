@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.autograd as autograd
 from torch.autograd import Variable
-import torch.nn.functional as F
 import math
 import numpy as np
 # PyTorch 0.4.0 compatibility
@@ -253,13 +252,13 @@ class Decoder(nn.Module):
             gates = self.input_weights(x) + self.hidden_weights(hx)
             ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
 
-            ingate = F.sigmoid(ingate)
-            forgetgate = F.sigmoid(forgetgate)
-            cellgate = F.tanh(cellgate)
-            outgate = F.sigmoid(outgate)
+            ingate = torch.sigmoid(ingate)
+            forgetgate = torch.sigmoid(forgetgate)
+            cellgate = torch.tanh(cellgate)
+            outgate = torch.sigmoid(outgate)
 
             cy = (forgetgate * cx) + (ingate * cellgate)
-            hy = outgate * F.tanh(cy)  # batch_size x hidden_dim
+            hy = outgate * torch.tanh(cy)  # batch_size x hidden_dim
             
             g_l = hy
             for i in range(self.n_glimpses):
@@ -641,10 +640,7 @@ class NeuralCombOptRL(nn.Module):
         #v = self.critic_net(embedded_inputs)
     
         # [batch_size]
-        # if self.is_train:
         R = self.objective_fn(actions, self.use_cuda)
-        # else:
-        #     R=torch.zeros(1)
 
         #return R, v, probs, actions, action_idxs
         return R, probs, actions, action_idxs
