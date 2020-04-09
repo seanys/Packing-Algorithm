@@ -1,4 +1,7 @@
-from tools.polygon import PltFunc,GeoFunc,NFP
+from tools.polygon import PltFunc,GeoFunc,NFP,getData
+from sequence import BottomLeftFill
+from tools.packing import NFPAssistant
+from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping
 from shapely import affinity
 from lp_search import LPSearch
@@ -11,18 +14,8 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.simplify()
-        # self.main()
+        self.main()
         # self.orientation()
-
-    def simplify(self):        
-        fu = pd.read_csv("/Users/sean/Documents/Projects/Data/fu.csv")
-        with open("/Users/sean/Documents/Projects/Data/fu_simplify.csv","a+") as csvfile:
-            writer = csv.writer(csvfile)
-            for i in range(fu.shape[0]):
-                # i,j,oi,oj,new_poly_i,new_poly_j,nfp
-                writer.writerows([[fu["i"][i],fu["j"][i],fu["oi"][i],fu["oj"][i],fu["new_poly_i"][i],fu["new_poly_j"][i],fu["nfp"][i]]])
-                
 
     def orientation(self):
         fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
@@ -91,22 +84,82 @@ class PreProccess(object):
 
 
 class initialResult(object):
-    def getAreaDecreaing(self,polys):
+    def __init__(self,polys):
+        self.polys=polys
+        self.main(_type="width")
+    
+    def main(self,_type):
+        _list=[]
+        if _type=="area":
+            pass
+        elif _type=="length":
+            pass
+        elif _type=="width":
+            _list=self.getWidthDecreaing()
+        elif _type=="rectangularity":
+            pass
+        else:
+            pass
+        # 重排列后的结果
+        all_new_seq=self.getAllSeq(_list)
+    
+    def checkOneSeq(self):
+        pass
+        # 获得排样情况
+        # new_polys=[]
+        # for item in new_list:
+        #     new_polys.append(self.polys[item[0]])
 
+        # nfp_assistant=NFPAssistant(new_polys,store_nfp=False,get_all_nfp=True,load_history=True)
+        # packing_polys=BottomLeftFill(760,new_polys,NFPAssistant=nfp_assistant).polygons
+        # _len=LPAssistant.getLength(packing_polys)
+
+        # # print("利用率：",433200/(_len*760))
+        # res=[[] for i in range(len(new_polys))]
+        # for i,item in enumerate(new_list):
+        #     res[new_list[i][0]]=packing_polys[i]
+
+        # return res
+
+    def getAreaDecreaing(self):
         pass
 
     def getLengthDecreaing(self,polys):
-    
+
         pass
 
-    def getWidthDecreaing(self,polys):
-        
-        pass
+    def getWidthDecreaing(self):
+        width_list=[]
+        for i,poly in enumerate(self.polys):
+            left_pt,right_pt=LPAssistant.getLeftPoint(poly),LPAssistant.getRightPoint(poly)
+            width_list.append([i,right_pt[0]-left_pt[0]])
+        return width_list
 
     def getRectangularityDecreaing(self,polys):
         
         pass
 
+    def getAllSeq(self,_list):
+        # 初步排列
+        new_list=sorted(_list, key=lambda item: item[1],reverse=True)
+        print(new_list)
+        # 获得全部聚类结果
+        clustering,now_clustering,last_value=[],[],new_list[0][1]
+        for i,item in enumerate(new_list):
+            if item[1]==last_value:
+                now_clustering.append(item)
+            else:
+                clustering.append(now_clustering)
+                last_value=item[1]
+                now_clustering=[item]
+        clustering.append(now_clustering)
+        # 获得全部序列
+        
+
+
+class Clustering(object):
+    def __init__(self):
+        pass
 
 if __name__ == '__main__':
-    PreProccess()
+    initialResult(getData())

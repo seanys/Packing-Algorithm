@@ -56,7 +56,7 @@ class GA(object):
 
         # 持续获得下一代
         for i in range(0, self.generations):
-            # print("############################计算第",i+1,"代#######################################")
+            print("############################计算第",i+1,"代#######################################")
             self.getLengthRanked() # 高度排列
             self.getNextGeneration() # 获得下一代
 
@@ -66,6 +66,7 @@ class GA(object):
                 self.global_lowest_length=self.fitness_ranked[0][1]
                 self.global_best_sequence=self.pop[self.fitness_ranked[0][0]]
             self.lowest_length_record.append(self.global_lowest_length)
+            print(self.global_lowest_length)
 
         # print("Final length: " + str(self.global_lowest_length))
 
@@ -274,8 +275,8 @@ if __name__=='__main__':
     print(len(polys))
     poly_list=PolyListProcessor.getPolyObjectList(polys+polys+polys,[0])
     # TOPOS(polys,1500)
-
-    GA(poly_list)
+    nfp_assistant=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    GA(760,poly_list,nfp_asst=nfp_assistant)
     # SA(poly_list)
 
     # GetBestSeq(1000,getConvex(num=5),"decrease")

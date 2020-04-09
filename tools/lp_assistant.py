@@ -221,7 +221,7 @@ class LPAssistant(object):
             for shapely_item in list(region):
                 if shapely_item.area>bias:
                     area=area+GeoFunc.polyToArr(shapely_item)
-        return area
+        return area    
 
     @staticmethod
     def getLength(polys):
@@ -232,6 +232,7 @@ class LPAssistant(object):
                 _max=x
         return _max
 
+    @staticmethod
     def judegeFeasible(polys):
         for i in range(len(polys)-1):
             for j in range(i+1,len(polys)):
@@ -239,3 +240,10 @@ class LPAssistant(object):
                 if P1.intersection(P2).area>bias:
                     return False
         return True
+    
+    @staticmethod
+    def delEmpty(target_areas):
+        new_target_areas=[]
+        for line in target_areas:
+            new_target_areas.append([item for item in line if item])
+        return new_target_areas

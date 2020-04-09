@@ -117,10 +117,12 @@ class LPSearch(object):
                     self.getPrerequisite(choose_index,orientation,offline=True)
                     self.getProblemLP()
                     new_position,new_depth=self.searchBestPosition() # 获得最优位置
-                    # top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
-                    # new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
-                    # PltFunc.addPolygonColor(new_polygon)
-                    # PltFunc.showPlt()
+
+                    top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
+                    new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
+                    PltFunc.addPolygonColor(new_polygon)
+                    PltFunc.showPlt()
+                    
                     if new_depth<best_depth:
                         best_position,best_orientation,best_depth=copy.deepcopy(new_position),orientation,new_depth
                     end_time = time.time()
@@ -195,6 +197,7 @@ class LPSearch(object):
     def getProblemLP(self):
         # 获得目标区域
         self.target_areas=[[],[],[],[],[],[],[],[],[]]
+        self.last_index=[[],[],[],[],[],[],[],[],[]]
         
         # 获得两个NFP在IFR中重叠的情况
         self.nfp_overlap_pair=[[i] for i in range(len(self.all_nfps))]
@@ -205,6 +208,7 @@ class LPSearch(object):
                     self.nfp_overlap_pair[i].append(j)
                     self.nfp_overlap_pair[j].append(i)
                     self.target_areas[1].append([overlap_poly,i,j])
+                    self.last_index[1].append([i,j]) # 分别添加i,j
         
         # 切去一维重叠情况
         for i,nfp in enumerate(self.all_nfps):
@@ -217,6 +221,9 @@ class LPSearch(object):
             # 在目标区域增加情况，首先排除点和直线，以及面积过小
             if new_region.is_empty!=True and new_region.geom_type!="Point" and new_region.geom_type!="LineString" and new_region.area>bias:
                 self.target_areas[0].append([LPAssistant.processRegion(new_region),i]) # 删除直线/顶点情况
+            else:
+                self.target_areas[0].append([])
+            self.last_index[0].append([])
         
         # 获得后续的重叠
         for i in range(2,len(self.target_areas)):
@@ -241,6 +248,7 @@ class LPSearch(object):
                     if P1.intersects(P2):
                         inter=P1.intersection(P2)
                         if inter.area>bias:
+                            self.last_index[i].append([j])
                             self.target_areas[i].append([LPAssistant.processRegion(inter)]+target_area[1:]+[possible_target])
                 
                 # 删除已经有的，遍历计算重叠
@@ -254,9 +262,12 @@ class LPSearch(object):
 
             # 如果该轮没有计算出重叠则停止
             if self.target_areas[i]==[]:
+                self.max_overlap=i
                 print("至多",i,"个形状重叠，计算完成")
                 break
-    
+
+        # self.clearRedundancyPoint()
+
     # 删除重复情况
     def cutFrontRegion(self,all_possible_target_difference,P1):
         '''根据可行区域计算切除的结果'''
@@ -313,7 +324,7 @@ class LPSearch(object):
             if new_inter.area>bias:
                 overlap,overlap_poly=True,LPAssistant.processRegion(new_inter) # 相交区域肯定是凸多边形
         return overlap,overlap_poly
-                     
+
     def slideToContainer(self):
         # 平移部分形状
         for index,poly in enumerate(self.polys):
