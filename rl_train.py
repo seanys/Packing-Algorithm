@@ -20,7 +20,21 @@ from torch.utils.tensorboard import SummaryWriter
 from tools.rl import NeuralCombOptRL
 from tools.packing import NFPAssistant
 from heuristic import BottomLeftFill
-from rl_test import generateData_fu,drop0
+
+train_preload=None
+val_preload=None
+
+class Preload(object):
+    def __init__(self,source):
+        self.data=np.load(source,allow_pickle=True)
+
+    def getPolysbySeq(self,index,sequence):
+        polys=self.data[index]
+        Z=zip(sequence,polys)
+        Z=sorted(Z)
+        rank,polys_new=zip(*Z)
+        return polys_new
+
 
 class PolygonsDataset(Dataset):
     def __init__(self,size,max_point_num,path=None):
@@ -31,16 +45,13 @@ class PolygonsDataset(Dataset):
         '''
         x=[]
         if not path:
-            for i in range(size):
-                polys=generateData_fu(10)
-                polys=polys.T
-                x.append(polys)
-            self.x=np.array(x)
-            self.input=torch.from_numpy(self.x)
+            print('Warning: No load path')
         else:
             data=np.load(path,allow_pickle=True)
             for i in range(size):
-                x.append(data[i])
+                polys=data[i]
+                polys=polys.T
+                x.append(polys)
             self.x=np.array(x)
             self.input=torch.from_numpy(self.x)
 
@@ -92,22 +103,128 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
+    print(poly)
+    blf.showAll()
     return blf.getLength()
+
+'''奖励函数'''
+def reward_old(sample_solution, USE_CUDA=False):
+    # start=datetime.datetime.now()
+    # print(start,"开始reward")
+    # sample_solution shape: [sourceL, batch_size, input_dim]
+    batch_size = sample_solution[0].size(0)
+    n = len(sample_solution)
+    points=[]
+    for i in range(n):
+        sample=sample_solution[i]
+        points.append(sample.cpu().numpy())
+    points=np.array(points)
+    result=np.zeros(batch_size)
+    # threads=[] # 多线程计算BLF
+    if trainning:
+        p=Pool() # 多进程计算BLF
+        res=[]
+        for index in range(batch_size):
+            poly=points[:,index,:]
+            poly_new=[]
+            for i in range(len(poly)):
+                poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
+            poly_new=drop0(poly_new)
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],index+cur_batch*batch_size))
+            # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
+            res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
+            # result[index]=blf.getLength()
+            # thread = BottomLeftFillThread(index,args['width'],poly_new) 
+            # threads.append(thread)
+        p.close()
+        p.join()
+        # end=datetime.datetime.now()
+        # print(end,"结束reward")
+        # print(end-start)
+        for index in range(batch_size):
+            result[index]=res[index].get()
+    else: # 验证时不开多进程
+        poly=points[:,0,:]
+        poly_new=[]
+        for i in range(len(poly)):
+            poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
+        poly_new=drop0(poly_new)
+        nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
+        result[0]=getBLF(args['width'],poly_new,nfp_asst)
+    # for t in threads:
+    #     t.start()
+    # for t in threads:
+    #     t.join()
+    # for index in range(batch_size):
+    #     result[index]=threads[index].getResult()
+    return torch.Tensor(result)
+
+def reward(sample_solution, USE_CUDA=False):
+    # start=datetime.datetime.now()
+    # print(start,"开始reward")
+    # sample_solution shape: [sourceL, batch_size]
+    batch_size = sample_solution[0].size(0)
+    result=np.zeros(batch_size)
+    sequences=[]
+    for sample in sample_solution:
+        sequences.append(sample.numpy())
+    sequences=np.array(sequences)
+    if trainning:
+        p=Pool() # 多进程计算BLF
+        res=[]
+        for index in range(batch_size):
+            sample_id=index+cur_batch*batch_size
+            sequence=sequences[:,index]
+            poly_new=train_preload.getPolysbySeq(sample_id,sequence)
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],sample_id))
+            res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
+        p.close()
+        p.join()
+        for index in range(batch_size):
+            result[index]=res[index].get()
+    else: # 验证时不开多进程
+        sequence=sequences[:,0]
+        poly_new=val_preload.getPolysbySeq(cur_batch,sequence)
+        nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
+        result[0]=getBLF(args['width'],poly_new,nfp_asst)
+    # end=datetime.datetime.now()
+    # print(end,"结束reward")
+    # print(end-start)
+    return torch.Tensor(result)
+
+def plot_attention(in_seq, out_seq, attentions):
+    """ From http://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html"""
+
+    # Set up figure with colorbar
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(attentions, cmap='bone')
+    fig.colorbar(cax)
+
+    # Set up axes
+    ax.set_xticklabels([' '] + [str(x) for x in in_seq], rotation=90)
+    ax.set_yticklabels([' '] + [str(x) for x in out_seq])
+
+    # Show label at every tick
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+    plt.show()
 
 if __name__ == "__main__":  
     multiprocessing.set_start_method('spawn',True) 
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0408', help='')
-    parser.add_argument('--run_name', type=str, default='fu1500')
-    parser.add_argument('--val_name', type=str, default='fu1500')
-    parser.add_argument('--train_size', default=1500, help='')
-    parser.add_argument('--val_size', default=900, help='')
-    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--task', default='0410', help='')
+    parser.add_argument('--run_name', type=str, default='fu2000')
+    parser.add_argument('--val_name', type=str, default='fu2000')
+    parser.add_argument('--train_size', default=2000, help='')
+    parser.add_argument('--val_size', default=500, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
     '''多边形参数'''
-    parser.add_argument('--width', default=800, help='Width of BottomLeftFill')
+    parser.add_argument('--width', default=760, help='Width of BottomLeftFill')
     parser.add_argument('--max_point_num', default=4, help='')
 
     '''网络设计'''  
@@ -162,119 +279,13 @@ if __name__ == "__main__":
     writer = SummaryWriter(os.path.join(args['log_dir'], args['task'], args['run_name']))
 
     size = 10 # 解码器长度（序列长度）
-
-    '''奖励函数'''
-    def reward_old(sample_solution, USE_CUDA=False):
-        # start=datetime.datetime.now()
-        # print(start,"开始reward")
-        # sample_solution shape: [sourceL, batch_size, input_dim]
-        batch_size = sample_solution[0].size(0)
-        n = len(sample_solution)
-        points=[]
-        for i in range(n):
-            sample=sample_solution[i]
-            points.append(sample.cpu().numpy())
-        points=np.array(points)
-        result=np.zeros(batch_size)
-        # threads=[] # 多线程计算BLF
-        if trainning:
-            p=Pool() # 多进程计算BLF
-            res=[]
-            for index in range(batch_size):
-                poly=points[:,index,:]
-                poly_new=[]
-                for i in range(len(poly)):
-                    poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-                poly_new=drop0(poly_new)
-                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],index+cur_batch*batch_size))
-                # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
-                res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
-                # result[index]=blf.getLength()
-                # thread = BottomLeftFillThread(index,args['width'],poly_new) 
-                # threads.append(thread)
-            p.close()
-            p.join()
-            # end=datetime.datetime.now()
-            # print(end,"结束reward")
-            # print(end-start)
-            for index in range(batch_size):
-                result[index]=res[index].get()
-        else: # 验证时不开多进程
-            poly=points[:,0,:]
-            poly_new=[]
-            for i in range(len(poly)):
-                poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            poly_new=drop0(poly_new)
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
-            result[0]=getBLF(args['width'],poly_new,nfp_asst)
-        # for t in threads:
-        #     t.start()
-        # for t in threads:
-        #     t.join()
-        # for index in range(batch_size):
-        #     result[index]=threads[index].getResult()
-        return torch.Tensor(result)
-
-    def reward(sample_solution, USE_CUDA=False):
-        # start=datetime.datetime.now()
-        # print(start,"开始reward")
-        # sample_solution shape: [sourceL, batch_size]
-        batch_size = sample_solution[0].size(0)
-        result=np.zeros(batch_size)
-        sequences=[]
-        for sample in sample_solution:
-            sequences.append(sample.numpy())
-        sequences=np.array(sequences)
-        if trainning:
-            p=Pool() # 多进程计算BLF
-            res=[]
-            for index in range(batch_size):
-                sequence=sequences[:,index]
-                ///////----//////
-                nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],index+cur_batch*batch_size))
-                # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
-                res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
-            p.close()
-            p.join()
-            for index in range(batch_size):
-                result[index]=res[index].get()
-        else: # 验证时不开多进程
-            sequence=sequences[:,0]
-            ///////----//////
-            poly_new=[]
-            for i in range(len(poly)):
-                poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-            poly_new=drop0(poly_new)
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
-            result[0]=getBLF(args['width'],poly_new,nfp_asst)
-        # end=datetime.datetime.now()
-        # print(end,"结束reward")
-        # print(end-start)
-        return torch.Tensor(result)
-
-    def plot_attention(in_seq, out_seq, attentions):
-        """ From http://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html"""
-
-        # Set up figure with colorbar
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        cax = ax.matshow(attentions, cmap='bone')
-        fig.colorbar(cax)
-
-        # Set up axes
-        ax.set_xticklabels([' '] + [str(x) for x in in_seq], rotation=90)
-        ax.set_yticklabels([' '] + [str(x) for x in out_seq])
-
-        # Show label at every tick
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-
-        plt.show()
-
-    input_dim = 8
+    input_dim = 384
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'])
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
+    train_preload = Preload('{}_xy.npy'.format(args['run_name']))
+    val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
+
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
         model = NeuralCombOptRL(

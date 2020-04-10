@@ -626,7 +626,7 @@ class NeuralCombOptRL(nn.Module):
         # inputs_ is [batch_size, sourceL, input_dim]
         for action_id in action_idxs:
             actions.append(inputs_[[x for x in range(batch_size)], action_id.data, :])
-            actions_index.append(torch.tensor(action_id.data))
+            actions_index.append(action_id.data)
 
         if self.is_train:
             # probs_ is a list of len sourceL of [batch_size x sourceL]

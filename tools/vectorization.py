@@ -4,8 +4,9 @@
 import numpy as np
 import math
 import json
-from collections import Counter
+import copy
 import pyclipper 
+from collections import Counter
 from shapely.wkt import loads as load_wkt
 from shapely.geometry import Polygon,LineString
 from shapely.geometry import Point,mapping
@@ -15,7 +16,7 @@ class vectorFunc(object):
     def __init__(self,polygon_vertexs,**kw):
         # print("初始化处理器：",polygon_vertexs)
         self.error=1
-        self.polygon_vertexs=polygon_vertexs
+        self.polygon_vertexs=copy.deepcopy(polygon_vertexs)
         self.centroid_out_force=False
         self.updateFeature()
         if self.error==-1:
@@ -109,7 +110,6 @@ class vectorFunc(object):
             else:
                 self.vector=merge_vector[0]+merge_vector[1]+merge_vector[2]+merge_vector[3]
 
-        return self.vector
         #print('vector:',self.vector)
 
 
@@ -416,6 +416,6 @@ if __name__ == '__main__':
 
     poly=low
     
-    pp=vectorFunc(poly,cut_nums=16)
+    pp=vectorFunc(poly,cut_nums=128)
     rebuildEvalute(pp.vector,pp)
     
