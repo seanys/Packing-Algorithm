@@ -37,9 +37,10 @@ class LPSearch(object):
 
     # 获得初始解
     def getInitialResult(self):
+        index=6
         blf = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/blf.csv")
-        self.total_area=blf["total_area"][5]
-        self.polys=json.loads(blf["polys"][5])
+        self.total_area=blf["total_area"][6]
+        self.polys=json.loads(blf["polys"][6])
         self.best_polys= copy.deepcopy(self.polys)# 按照index的顺序排列
         self.best_poly_status,self.poly_status=[],[]
         self.use_ratio=[]
@@ -52,7 +53,7 @@ class LPSearch(object):
     # 主要执行过程
     def main(self):
         ration_dec,ration_inc=0.04,0.01
-        max_time=100
+        max_time=1000
 
         self.length=LPAssistant.getLength(self.polys) # 最佳状态
         self.cur_length=self.length
@@ -90,9 +91,10 @@ class LPSearch(object):
 
     # 最小化重叠区域
     def minimizeOverlap(self):
+        start_time=time.time()
         self.miu=[[1]*len(self.polys) for _ in range(len(self.polys))] # 用于引导检索，每次都需要更新
         self.updateOverlap() # 更新当前的重叠情况用于计算fitness
-        fitness,it,N=self.getFitness(),0,40
+        fitness,it,N,cur_fitness=self.getFitness(),0,200,0
         # 限定计算次数
         print("开始一次检索")
         while it<N:
@@ -110,23 +112,23 @@ class LPSearch(object):
                 # 记录最优情况，默认是当前情况
                 original_position=self.poly_status[choose_index][1]
                 best_position,best_orientation,best_depth=self.poly_status[choose_index][1],self.poly_status[choose_index][2],cur_min_depth
+                print("当前最低高度:",best_depth)
+
                 # 遍历四个角度的最优值
                 for orientation in [0,1,2,3]:
                     print("测试角度:",90*orientation,"度")
-                    start_time = time.time()
                     self.getPrerequisite(choose_index,orientation,offline=True)
                     self.getProblemLP()
                     new_position,new_depth=self.searchBestPosition() # 获得最优位置
-
-                    top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
-                    new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
-                    PltFunc.addPolygonColor(new_polygon)
-                    PltFunc.showPlt()
                     
                     if new_depth<best_depth:
+                        print("new_depth:",new_depth)
+                        top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
+                        new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
+                        PltFunc.addPolygonColor(new_polygon)
+                        self.showPolys()
+
                         best_position,best_orientation,best_depth=copy.deepcopy(new_position),orientation,new_depth
-                    end_time = time.time()
-                    print("本次检索耗时:",end_time-start_time)
 
                 # 如果有变化状态则需要更新overlap以及移动形状
                 if best_position!=original_position:
@@ -143,9 +145,8 @@ class LPSearch(object):
                     self.updateOverlap()
             # 计算新方案的重叠情况
             cur_fitness=self.getFitness()
-            if cur_fitness==0:
+            if cur_fitness<bias:
                 print("没有重叠，本次检索结束")
-                self.showPolys()
                 break
             elif cur_fitness<fitness:
                 fitness=cur_fitness
@@ -156,7 +157,12 @@ class LPSearch(object):
             self.updateMiu()
         if it==N:
             print("超出更新次数")
-            self.showPolys()
+            # self.showPolys()
+
+        end_time=time.time()
+        with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/fu_result.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows([[time.time(),end_time-start_time,self.total_area/(self.cur_length*self.width),cur_fitness,self.poly_status,self.polys]])
     
     # 获得全部形状不同方向-存储起来
     def getAllPolygons(self):
@@ -171,7 +177,7 @@ class LPSearch(object):
     def getPolyDepeth(self,index):
         cur_min_depth=0
         for j in range(len(self.polys)):
-            cur_min_depth=cur_min_depth+self.miu[index][j]*self.pair_overlap[index][j]
+            cur_min_depth=cur_min_depth+self.miu[j][index]*self.pair_overlap[j][index]
         return cur_min_depth
         
     # 获得整个fitness也是重叠情况
@@ -266,8 +272,6 @@ class LPSearch(object):
                 print("至多",i,"个形状重叠，计算完成")
                 break
 
-        # self.clearRedundancyPoint()
-
     # 删除重复情况
     def cutFrontRegion(self,all_possible_target_difference,P1):
         '''根据可行区域计算切除的结果'''
@@ -280,7 +284,7 @@ class LPSearch(object):
 
     def searchBestPosition(self):
         '''基于上述获得的区域与目标函数检索最优位置'''
-        min_depth,best_position=9999999999,[]
+        min_depth,best_position,searched_points=9999999999,[],[]
         # n=0
         for i,item in enumerate(self.target_areas):
             for j,area_item in enumerate(item):
@@ -289,14 +293,14 @@ class LPSearch(object):
                     continue
                 # 分别计算每个点在每个区域的最值
                 for pt in area_item[0]:
+                    if pt in searched_points:
+                        continue
+                    searched_points.append(pt)
                     # n=n+1
                     depth=self.getBestValue(pt,area_item[1:])
                     if depth<min_depth:
                         min_depth=depth
                         best_position=[pt[0],pt[1]]
-        # print("\n共检索",n,"个位置")
-        print("最佳位置：",best_position)
-        print("最小重叠：",min_depth,"\n")
         return best_position,min_depth
     
     def getBestValue(self,pt,possible_target):
@@ -305,10 +309,16 @@ class LPSearch(object):
             min_value=999999999
             for item in self.all_points_target[index]:
                 value=abs(pt[0]-item[0])+abs(pt[1]-item[1])
+                if value<bias:
+                    min_value=0
+                    break
                 if value<min_value:
                     min_value=value
             for item in self.all_edges_target[index]:
                 value=abs(pt[0]*item[0]+pt[1]*item[1]+item[2])
+                if value<bias:
+                    min_value=0
+                    break
                 if value<min_value:
                     min_value=value
             total_depth=total_depth+min_value

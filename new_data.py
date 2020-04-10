@@ -8,6 +8,7 @@ from lp_search import LPSearch
 import pandas as pd # 读csv
 import csv # 写csv
 import json
+import itertools
 
 class PreProccess(object):
     '''
@@ -103,23 +104,21 @@ class initialResult(object):
         # 重排列后的结果
         all_new_seq=self.getAllSeq(_list)
     
-    def checkOneSeq(self):
-        pass
-        # 获得排样情况
-        # new_polys=[]
-        # for item in new_list:
-        #     new_polys.append(self.polys[item[0]])
+    def checkOneSeq(self,one_list):
+        new_polys=[]
+        for item in one_list:
+            new_polys.append(self.polys[item[0]])
 
-        # nfp_assistant=NFPAssistant(new_polys,store_nfp=False,get_all_nfp=True,load_history=True)
-        # packing_polys=BottomLeftFill(760,new_polys,NFPAssistant=nfp_assistant).polygons
-        # _len=LPAssistant.getLength(packing_polys)
+        packing_polys=BottomLeftFill(760,new_polys,NFPAssistant=self.nfp_assistant).polygons
+        _len=LPAssistant.getLength(packing_polys)
 
-        # # print("利用率：",433200/(_len*760))
-        # res=[[] for i in range(len(new_polys))]
-        # for i,item in enumerate(new_list):
-        #     res[new_list[i][0]]=packing_polys[i]
+        ratio=433200/(_len*760)
 
-        # return res
+        res=[[] for i in range(len(new_polys))]
+        for i,item in enumerate(one_list):
+            res[one_list[i][0]]=packing_polys[i]
+
+        return ratio,res
 
     def getAreaDecreaing(self):
         pass
@@ -142,7 +141,6 @@ class initialResult(object):
     def getAllSeq(self,_list):
         # 初步排列
         new_list=sorted(_list, key=lambda item: item[1],reverse=True)
-        print(new_list)
         # 获得全部聚类结果
         clustering,now_clustering,last_value=[],[],new_list[0][1]
         for i,item in enumerate(new_list):
@@ -154,8 +152,18 @@ class initialResult(object):
                 now_clustering=[item]
         clustering.append(now_clustering)
         # 获得全部序列
-        
+        all_list0=list(itertools.permutations(clustering[0]))
+        all_list1=list(itertools.permutations(clustering[1]))
 
+        self.nfp_assistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
+        with open("/Users/sean/Documents/Projects/Data/fu_best.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            for permutations0 in all_list0:
+                for permutations1 in all_list1:
+                    one_list=list(permutations0+permutations1)+[clustering[2][0]]+[clustering[3][0]]
+                    ratio,res=self.checkOneSeq(one_list)
+                    if ratio>0.70:
+                        writer.writerows([[ratio,one_list,res]])
 
 class Clustering(object):
     def __init__(self):
