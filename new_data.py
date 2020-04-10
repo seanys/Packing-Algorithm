@@ -102,7 +102,14 @@ class initialResult(object):
         else:
             pass
         # 重排列后的结果
-        all_new_seq=self.getAllSeq(_list)
+        self.nfp_assistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
+        PltFunc.showPolys([[[496.0, 64.0], [696.0, 64.0], [696.0, 264.0], [496.0, 264.0]], [[490.0, 500.0], [690.0, 500.0], [690.0, 700.0], [490.0, 700.0]], [[210.0, 580.0], [490.0, 580.0], [490.0, 760.0], [210.0, 760.0]], [[280.0, 0.0], [560.0, 0.0], [420.0, 140.0]], [[0.0, 460.0], [0.0, 280.0], [280.0, 460.0]], [[0.0, 0.0], [280.0, 0.0], [280.0, 280.0], [0.0, 280.0]], [[280.0, 84.0], [480.0, 164.0], [480.0, 264.0], [280.0, 264.0]], [[580.0, 264.0], [680.0, 264.0], [680.0, 444.0], [580.0, 444.0]], [[100.0, 280.0], [380.0, 280.0], [380.0, 560.0]], [[380.0, 264.0], [580.0, 264.0], [580.0, 464.0], [380.0, 544.0]], [[0.0, 757.1428571428571], [80.0, 597.1428571428571], [160.0, 757.1428571428571]], [[0.0, 460.0], [280.0, 460.0], [140.0, 700.0]]])
+        all_list = pd.read_csv("/Users/sean/Documents/Projects/Data/all_list.csv")
+        for i in range(10000,11000):
+            seq=json.loads(all_list["list"][i])
+            ratio,result=self.checkOneSeq(seq)
+            if ratio>0.77:
+                print(i,ratio,result)
     
     def checkOneSeq(self,one_list):
         new_polys=[]
@@ -155,15 +162,16 @@ class initialResult(object):
         all_list0=list(itertools.permutations(clustering[0]))
         all_list1=list(itertools.permutations(clustering[1]))
 
-        self.nfp_assistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
-        with open("/Users/sean/Documents/Projects/Data/fu_best.csv","a+") as csvfile:
+        n=0
+        with open("/Users/sean/Documents/Projects/Data/all_list.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for permutations0 in all_list0:
                 for permutations1 in all_list1:
+                    print("计算第",n,"个组合")
                     one_list=list(permutations0+permutations1)+[clustering[2][0]]+[clustering[3][0]]
                     ratio,res=self.checkOneSeq(one_list)
-                    if ratio>0.70:
-                        writer.writerows([[ratio,one_list,res]])
+                    writer.writerows([[n,one_list]])
+                    n=n+1
 
 class Clustering(object):
     def __init__(self):
