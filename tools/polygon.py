@@ -177,10 +177,15 @@ class GeoFunc(object):
     def polyToArr(inter):
         res=mapping(inter)
         _arr=[]
-        if res["type"]=="MultiPolygon" or res["type"]=="GeometryCollection":
+        if res["type"]=="MultiPolygon":
             for poly in res["coordinates"]:
                 for point in poly[0]:
                     _arr.append([point[0],point[1]])
+        elif res["type"]=="GeometryCollection":
+            for item in res["geometries"]:
+                if item["type"]=="Polygon":
+                    for point in item["coordinates"][0]:
+                        _arr.append([point[0],point[1]])
         else:
             if res["coordinates"][0][0]==res["coordinates"][0][-1]:
                 for point in res["coordinates"][0][0:-1]:
