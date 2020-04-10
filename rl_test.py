@@ -21,7 +21,8 @@ def getNFP(polys,save_name,index):
 def getAllNFP(data_source,save_name):
     data=np.load(data_source,allow_pickle=True)
     p=Pool()
-    for index,polys in enumerate(data):
+    for index in range(19,len(data)):
+        polys=data[index]
         p.apply_async(getNFP,args=(polys,save_name,index))
     p.close()
     p.join()
@@ -242,6 +243,8 @@ class GenerateData_vector(object):
             a=100
             x=a+(b-a)*np.random.random()
             y=a+(b-a)*np.random.random()
+            if x<100 or y<100:
+                print(1)
             if shape==0 or shape==1:
                 poly=np.array([0,0,x,0,x,y,0,y]).reshape(4,2).tolist()
             elif shape==2:
@@ -280,6 +283,8 @@ class GenerateData_vector(object):
                 r=100+(160-100)*np.random.random()
                 x=r*np.math.cos(theta)
                 y=r*np.math.sin(theta)
+                if x>200 or y>200:
+                    print(1)
                 poly.append([x,y])
             polys.append(poly)
         return polys
@@ -289,10 +294,11 @@ class GenerateData_vector(object):
         data=[]
         vectors=[]
         for i in tqdm(range(size)):
-            if np.random.random()<0.5:
-                polys=GenerateData_vector.generateData_fu(10)
-            else:
-                polys=GenerateData_vector.generatePolygon(10,8)
+            # if np.random.random()<0.5:
+            polys=GenerateData_vector.generateData_fu(10)
+            # else:
+            #     polys=GenerateData_vector.generatePolygon(10,8)
+            print(polys)
             data.append(polys)
             vector=[]
             for poly in polys:
@@ -307,7 +313,7 @@ class GenerateData_vector(object):
     def poly2vector(source,save_name):
         data=np.load(source,allow_pickle=True)
         vectors=[]
-        for line in tqdm(data):
+        for index,line in enumerate(tqdm(data)):
             vector=[]
             for poly in line:
                 vector.append(vectorFunc(poly,cut_nums=128).vector)
@@ -370,10 +376,9 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
     #print(GenerateData_vector.generateData_fu(5))
-    #GenerateData_vector.poly2vector('fu2000_val_xy.npy')
     #getAllNFP('fu2000_val_xy.npy','fu2000_val')
-    #GenerateData_vector.generateTestData('fu20001',2000)
-    GenerateData_vector.poly2vector('fu2000_xy.npy','fu2000')
+    GenerateData_vector.generateTestData('fu1000',1000)
+    #GenerateData_vector.poly2vector('fu1000_xy.npy','fu20001')
     #getBenchmark('dighe2.npy',single=True)
     end=time.time()
     print(end-start)

@@ -103,6 +103,8 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
+    print(poly)
+    blf.showAll()
     return blf.getLength()
 
 '''奖励函数'''
@@ -214,12 +216,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0409', help='')
+    parser.add_argument('--task', default='0410', help='')
     parser.add_argument('--run_name', type=str, default='fu2000')
-    parser.add_argument('--val_name', type=str, default='fu2000_val')
+    parser.add_argument('--val_name', type=str, default='fu2000')
     parser.add_argument('--train_size', default=2000, help='')
     parser.add_argument('--val_size', default=500, help='')
-    parser.add_argument('--is_train', type=str2bool, default=True, help='')
+    parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
     '''多边形参数'''
     parser.add_argument('--width', default=760, help='Width of BottomLeftFill')
@@ -280,9 +282,9 @@ if __name__ == "__main__":
     input_dim = 384
     reward_fn = reward  # 奖励函数
     training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}.npy'.format(args['val_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
-    val_preload = Preload('{}_xy.npy'.format(args['val_name']))
+    val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
