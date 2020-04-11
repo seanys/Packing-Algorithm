@@ -21,49 +21,41 @@ def getNFP(polys,save_name,index):
 def getAllNFP(data_source,save_name):
     data=np.load(data_source,allow_pickle=True)
     p=Pool()
-    for index in range(19,len(data)):
-        polys=data[index]
+    for index,polys in enumerate(data):
         p.apply_async(getNFP,args=(polys,save_name,index))
     p.close()
     p.join()
 
-def BLFwithSequence(test_path,width=2000,seq_path=None,decrease=None,GA_algo=False):
+def BLFwithSequence(test_path,width=760,seq_path=None,decrease=None,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
-    data=np.load(test_path)
+    data=np.load(test_path,allow_pickle=True)
     size=data.shape[0]
     height=[]
     if GA_algo: p=Pool()
     multi_res=[]
     for i,line in enumerate(tqdm(data)):
-        polys_new=[]
         polys_final=[]
         if seq_path!=None: # 指定序列
             seq=seqs[i].split(' ')
         else: # 随机序列
             seq=[0,1,2,3,4,5,6,7,8,9]
             np.random.shuffle(seq)
-        line=line.T
-        for polys in line:
-            poly=polys.reshape(max_point_num,2).tolist()
-            polys_new.append(poly)
-        for j in range(len(polys_new)):
+        for j in range(len(line)):
             if seq_path!=None:
                 index=int(seq[j])
             else:
                 index=seq[j]
-            polys_final.append(polys_new[index])
-        polys_final=drop0(polys_final)
+            polys_final.append(line[index])
         if decrease!=None: # 降序
             polys_final=GetBestSeq(width,polys_final,criteria=decrease).getDrease()            
-        #nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1500_val/{}.csv'.format(i))
-        nfp_asst=None
+        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000_val/{}.csv'.format(i))
         if GA_algo==True: # 遗传算法
             polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
             multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
         else:
-            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst,rectangle=True)
+            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
             height.append(blf.getLength())
     if GA_algo:
         p.close()
@@ -93,12 +85,12 @@ def getBenchmark(source,single=False):
     # np.savetxt('predict.CSV',predict)
     # print('predict...OK')
 
-    # ga=BLFwithSequence(source,decrease='length',GA_algo=True)
-    # if single:  print('GA',ga)
-    # else:
-    #     ga=np.array(ga)
-    #     np.savetxt('GA.CSV',ga)
-    #     print('GA...OK')
+    ga=BLFwithSequence(source,decrease='length',GA_algo=True)
+    if single:  print('GA',ga)
+    else:
+        ga=np.array(ga)
+        np.savetxt('GA.CSV',ga)
+        print('GA...OK')
 
 
 class GenerateData_xy(object):
@@ -243,8 +235,6 @@ class GenerateData_vector(object):
             a=100
             x=a+(b-a)*np.random.random()
             y=a+(b-a)*np.random.random()
-            if x<100 or y<100:
-                print(1)
             if shape==0 or shape==1:
                 poly=np.array([0,0,x,0,x,y,0,y]).reshape(4,2).tolist()
             elif shape==2:
@@ -298,7 +288,6 @@ class GenerateData_vector(object):
             polys=GenerateData_vector.generateData_fu(10)
             # else:
             #     polys=GenerateData_vector.generatePolygon(10,8)
-            print(polys)
             data.append(polys)
             vector=[]
             for poly in polys:
@@ -316,11 +305,40 @@ class GenerateData_vector(object):
         for index,line in enumerate(tqdm(data)):
             vector=[]
             for poly in line:
-                vector.append(vectorFunc(poly,cut_nums=128).vector)
+                vector.append(vectorFunc(poly,cut_nums=8).vector)
             vectors.append(vector)
         vectors=np.array(vectors)
         np.save(save_name,vectors)
 
+    @staticmethod
+    def xy2vector(source,save_name):
+        data=np.load(source,allow_pickle=True)
+        vectors=[]
+        for index,line in enumerate(tqdm(data)):
+            line=line.T
+            vector=[]
+            for poly in line:
+                poly=poly.reshape(4,2).tolist()
+                poly=[poly]
+                poly=GenerateData_xy.drop0(poly)
+                vector.append(vectorFunc(poly[0],cut_nums=128).vector)
+            vectors.append(vector)
+        vectors=np.array(vectors)
+        np.save(save_name,vectors)
+
+    @staticmethod
+    def xy2poly(source,save_name):
+        data=np.load(source,allow_pickle=True)
+        data_new=[]
+        for index,line in enumerate(tqdm(data)):
+            line=line.T
+            line_new=[]
+            for poly in line:
+                poly=poly.reshape(4,2).tolist()
+                line_new.append(poly)
+            line_new=GenerateData_xy.drop0(line_new)
+            data_new.append(line_new)
+        np.save(save_name,data_new)
             
 class GetBestSeq(object):
     def __init__(self,width,polys,criteria='area'):
@@ -376,9 +394,10 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
     #print(GenerateData_vector.generateData_fu(5))
-    #getAllNFP('fu2000_val_xy.npy','fu2000_val')
-    GenerateData_vector.generateTestData('fu1000',1000)
-    #GenerateData_vector.poly2vector('fu1000_xy.npy','fu20001')
-    #getBenchmark('dighe2.npy',single=True)
+    #getAllNFP('fu1000_xy.npy','fu1000')
+    #GenerateData_vector.generateTestData('fu1000_val',500)
+    GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
+    #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
+    #getBenchmark('fu1000_val_xy.npy')
     end=time.time()
     print(end-start)

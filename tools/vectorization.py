@@ -414,8 +414,8 @@ if __name__ == '__main__':
 
     low=[[0.0, 0.0], [2.0, -1.0], [4.0, 0.0], [4.0, 3.0], [2.0, 4.0], [0.0, 3.0]]
 
-    poly=low
-    
-    pp=vectorFunc(poly,cut_nums=128)
+    poly=[[0,0],[150,0],[150,120],[0,120]]
+    poly=[[0,0],[100,0],[0,160]]
+    pp=vectorFunc(poly,cut_nums=8)
     rebuildEvalute(pp.vector,pp)
     
