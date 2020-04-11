@@ -7,7 +7,5 @@ history*
 **/*.pyc
 record*
 *.npy
-.DS_Store
-*/.DS_Store
 .VSCodeCounter*
 *.pt
