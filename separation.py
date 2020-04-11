@@ -1,6 +1,10 @@
-'''
-该文件中包含了CollisionFree、Compaction、Separation、SHAH、TOPOS算法
-'''
+"""
+该文件实现了拆分算法 Separation去除重叠
+-----------------------------------
+Created on Wed Dec 11, 2020
+@author: seanys,prinway
+-----------------------------------
+"""
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex
 from tools.lp import sovleLP,problem
 from tools.heuristic import BottomLeftFill
@@ -12,42 +16,22 @@ from interval import Interval
 import copy
 import random
 import math
-
-class CollisionFree(object):
-    '''
-    参考文献：2012 An algorithm for the strip packing problem using collision free region and exact fitting placement
-    '''
-    def __init__(self,target_poly,polys):
-        self.target_poly=target_poly
-        self.polys=polys
     
-
-
-class Compaction(object):
+class Separation(object):
     '''
-    参考文献：2006 Solving Irregular Strip Packing problems by hybridising simulated annealing and linear programming
-    输入：已经排样好的结果
-    输出：n次Compaction后的结果
+    参考文献：Solving Irregular Strip Packing problems by hybridising simulated annealing and linear programming
+    功能：拆分全部的重叠
     '''
-    def __init__(self,width,original_polys):
-        self.polys=copy.deepcopy(original_polys)
+    def __init__(self,polys,poly_status,width,length):
+        self.all_nfp=pd.read_csv("/Users/sean/Documents/Projects/Data/fu_simplify.csv")
+        self.poly_status=copy.deepcopy(poly_status)
+        self.polys=copy.deepcopy(polys)
         self.WIDTH=width
-        self.DISTANCE=400
-        self.getLength()
-        self.NFPAssistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=False,load_history=True)
-        self.run()
-
-    def getLength(self):
-        _max=0
-        for i in range(0,len(self.polys)):
-            extreme_index=GeoFunc.checkRight(self.polys[i])
-            extreme=self.polys[i][extreme_index][0]
-            if extreme>_max:
-                _max=extreme
-        self.LENGTH=_max
-
-    # 运行程序
-    def run(self):
+        self.LENGTH=length
+        self.DISTANCE=400        
+        self.main()
+        
+    def main(self):
         # 初始化全部参数，目标参数为z,x1,y1,x2,y...,
         N=len(self.polys)
         a,b,c=[[0]*(2*N+1) for _ in range(9*N+N*N)],[0 for _ in range(9*N+N*N)],[0 for _ in range(N*2+1)]
@@ -183,17 +167,13 @@ class Compaction(object):
         else:
             return -dis # 左侧返回负值
 
-class SHAH(object):
-    def __init__(self):
-        pass
-
-
-class TOPOS():
-    '''
-    参考资料：A beam search implementation for the irregular shape packing problem 
-    '''
-    def __init__(self):
-        pass
+    def getNFP(self,j,i,_path):
+        # j是固定位置，i是移动位置
+        row=j*192+i*16+self.poly_status[j][2]*4+self.poly_status[i][2]
+        bottom_pt=LPAssistant.getBottomPoint(self.polys[j])
+        delta_x,delta_y=bottom_pt[0],bottom_pt[1]
+        nfp=GeoFunc.getSlide(json.loads(self.fu_pre["nfp"][row]),delta_x,delta_y)
+        return nfp
 
 if __name__ == "__main__":
     polys=BottomLeftFill(1000,getConvex(num=5)).polygons
