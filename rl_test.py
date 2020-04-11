@@ -398,7 +398,7 @@ if __name__ == "__main__":
     #print(GenerateData_vector.generateData_fu(5))
     #getAllNFP('fu1000_xy.npy','fu1000')
     #GenerateData_vector.generateTestData('fu1000_val',500)
-    GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500')
+    GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
     #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
     #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
     #getBenchmark('fu1000_val_xy.npy')

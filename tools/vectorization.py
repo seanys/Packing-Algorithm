@@ -5,8 +5,10 @@ import numpy as np
 import math
 import json
 import copy
-import pyclipper 
+import pyclipper
+import time
 from collections import Counter
+# from polygon import PltFunc
 from shapely.wkt import loads as load_wkt
 from shapely.geometry import Polygon,LineString
 from shapely.geometry import Point,mapping
@@ -46,9 +48,12 @@ class vectorFunc(object):
         self.vector=[]
         # print("self.centroid_in",self.centroid_in)
         # 如果在内部
+        # PltFunc.addPolygon(self.polygon_vertexs)
+
         if self.centroid_in and self.centroid_out_force==False:
             for index,line in enumerate(self.cut_lines):
                 intersection=self.computeIntersection(line)
+                # PltFunc.addLine(line,color="blue")
                 if intersection!=None:
                     self.origin_intersection.append(intersection)
             for inter in self.origin_intersection:
@@ -110,6 +115,7 @@ class vectorFunc(object):
             else:
                 self.vector=merge_vector[0]+merge_vector[1]+merge_vector[2]+merge_vector[3]
 
+        #PltFunc.showPlt()
         #print('vector:',self.vector)
 
 
@@ -243,7 +249,8 @@ class vectorFunc(object):
         eighth_num=num/8
         half_num=num/2
         basic_angle=math.pi*2/num
-        half_width=self.centroid_x
+        # half_width=self.centroid_x
+        half_width=3000
 
         for i in range(0,num):
             angle=basic_angle*i
@@ -348,7 +355,7 @@ class rebuildEvalute(object):
         rebuildP=Polygon(self.vertexs)
         originP=Polygon(self.pp.polygon_vertexs)
         if rebuildP.is_valid==False or originP.is_valid==False:
-            print("#########重建错误，问题暂时无法解决#####")
+            print("#########重建错误，问题暂时无法解决#######")
             self.error=-1
             return
         interP=rebuildP.intersection(originP)
@@ -415,7 +422,10 @@ if __name__ == '__main__':
     low=[[0.0, 0.0], [2.0, -1.0], [4.0, 0.0], [4.0, 3.0], [2.0, 4.0], [0.0, 3.0]]
 
     poly=[[0,0],[150,0],[150,120],[0,120]]
-    poly=[[0,0],[100,0],[0,160]]
+    poly=[[50,50],[150,50],[50,210]]
+    start=time.time()
     pp=vectorFunc(poly,cut_nums=128)
+    end=time.time()
+    print(end-start)
     rebuildEvalute(pp.vector,pp)
     

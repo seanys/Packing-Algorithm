@@ -19,65 +19,6 @@ import matplotlib.pyplot as plt
 from tools.lp_assistant import LPAssistant
 
 bias=0.0000001
-
-def testNonConvex():
-    # 数据加载
-    blaz = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/blaz1.csv")
-    poly1 = json.loads(blaz["polygon"][1])
-    poly2=json.loads(blaz["polygon"][3])
-    GeoFunc.normData(poly1,50)
-    GeoFunc.normData(poly2,50)
-    # NFP计算
-    nfp=NFP(poly1,poly2)
-    new_nfp=LPAssistant.deleteOnline(nfp.nfp)
-    convex_poly=LPAssistant.getConvexPoly(new_nfp)
-
-    OriginalPoly=Polygon(new_nfp)
-    
-    if convex_poly==new_nfp:
-        print("形状为凸多边形")
-
-    # 初始化函数，分开成convex和non-convex两种情况处理
-    all_bisectior,divided_nfp,target_func=[],[],[]
-    left_point,right_point,bottom_point,top_point=LPAssistant.getBoundPoint(convex_poly)
-
-    i,j=0,0
-    extend_convex_poly,extend_new_nfp=convex_poly+convex_poly,new_nfp+new_nfp
-
-    print(convex_poly)
-    print(new_nfp)
-    return 
-
-    while i<len(convex_poly):
-        while j<len(new_nfp):
-            if convex_poly[i]==new_nfp[j]:
-                i=i+1
-            else:
-                PltFunc.addLine([new_nfp[j],convex_poly[i-1]],color="blue")
-                # print(new_nfp[j])
-                # 中间位置 new_nfp[j] 上一个 convex_poly[i-1] 下一个 convex_poly[i]
-                # 求两条垂线
-                # vertical_vector1=LPAssistant.rotationVectorAnti([new_nfp[j][0]-convex_poly[i-1][0],new_nfp[j][1]-convex_poly[i-1][1]])
-                # print([new_nfp[j],[new_nfp[j][0]+vertical_vector1[0],new_nfp[j][1]+vertical_vector1[1]]])
-                # PltFunc.addLine([new_nfp[j],[new_nfp[j][0]+vertical_vector1[0],new_nfp[j][1]+vertical_vector1[1]]],color="blue")
-                # 处理前一条边
-                # [convex_poly[i-1],new_nfp[j-1],new_nfp[j]]
-
-
-                # 凹点如何计算，需要划分1/2/4个区域，视情况而定
-                # target_func.append()
-
-                # 处理后一条边
-                # vertical_vector2=LPAssistant.rotationVector([new_nfp[j-1][0]-convex_poly[i-1][0],new_nfp[j-1][1]-convex_poly[i-1][1]])
-                # print([new_nfp[j-1],[new_nfp[j-1][0]+vertical_vector1[0],new_nfp[j-1][1]+vertical_vector1[1]]])
-                # PltFunc.addLine([new_nfp[j-1],[new_nfp[j-1][0]+vertical_vector1[0],new_nfp[j-1][1]+vertical_vector1[1]]],color="blue")
-
-            j=j+1
-    print("计算结束")
-    PltFunc.addPolygonColor(convex_poly)
-    PltFunc.addPolygon(new_nfp)
-    PltFunc.showPlt()
-
 class LPSearch(object):
     '''
     线性检索算法，采用数据集Fu
