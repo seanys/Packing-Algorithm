@@ -416,6 +416,6 @@ if __name__ == '__main__':
 
     poly=[[0,0],[150,0],[150,120],[0,120]]
     poly=[[0,0],[100,0],[0,160]]
-    pp=vectorFunc(poly,cut_nums=8)
+    pp=vectorFunc(poly,cut_nums=128)
     rebuildEvalute(pp.vector,pp)
     

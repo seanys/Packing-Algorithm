@@ -285,7 +285,7 @@ class GenerateData_vector(object):
         vectors=[]
         for i in tqdm(range(size)):
             # if np.random.random()<0.5:
-            polys=GenerateData_vector.generateData_fu(10)
+            polys=getData()
             # else:
             #     polys=GenerateData_vector.generatePolygon(10,8)
             data.append(polys)
@@ -305,7 +305,7 @@ class GenerateData_vector(object):
         for index,line in enumerate(tqdm(data)):
             vector=[]
             for poly in line:
-                vector.append(vectorFunc(poly,cut_nums=8).vector)
+                vector.append(vectorFunc(poly,cut_nums=128).vector)
             vectors.append(vector)
         vectors=np.array(vectors)
         np.save(save_name,vectors)
@@ -339,6 +339,8 @@ class GenerateData_vector(object):
             line_new=GenerateData_xy.drop0(line_new)
             data_new.append(line_new)
         np.save(save_name,data_new)
+
+
             
 class GetBestSeq(object):
     def __init__(self,width,polys,criteria='area'):
@@ -396,7 +398,8 @@ if __name__ == "__main__":
     #print(GenerateData_vector.generateData_fu(5))
     #getAllNFP('fu1000_xy.npy','fu1000')
     #GenerateData_vector.generateTestData('fu1000_val',500)
-    GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
+    GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500')
+    #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
     #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
     #getBenchmark('fu1000_val_xy.npy')
     end=time.time()
