@@ -87,14 +87,14 @@ class PreProccess(object):
 class initialResult(object):
     def __init__(self,polys):
         self.polys=polys
-        self.main(_type="width")
+        self.main(_type="length")
     
     def main(self,_type):
         _list=[]
         if _type=="area":
             pass
         elif _type=="length":
-            pass
+            _list=self.getLengthDecreaing()
         elif _type=="width":
             _list=self.getWidthDecreaing()
         elif _type=="rectangularity":
@@ -103,13 +103,7 @@ class initialResult(object):
             pass
         # 重排列后的结果
         self.nfp_assistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
-        PltFunc.showPolys([[[496.0, 64.0], [696.0, 64.0], [696.0, 264.0], [496.0, 264.0]], [[490.0, 500.0], [690.0, 500.0], [690.0, 700.0], [490.0, 700.0]], [[210.0, 580.0], [490.0, 580.0], [490.0, 760.0], [210.0, 760.0]], [[280.0, 0.0], [560.0, 0.0], [420.0, 140.0]], [[0.0, 460.0], [0.0, 280.0], [280.0, 460.0]], [[0.0, 0.0], [280.0, 0.0], [280.0, 280.0], [0.0, 280.0]], [[280.0, 84.0], [480.0, 164.0], [480.0, 264.0], [280.0, 264.0]], [[580.0, 264.0], [680.0, 264.0], [680.0, 444.0], [580.0, 444.0]], [[100.0, 280.0], [380.0, 280.0], [380.0, 560.0]], [[380.0, 264.0], [580.0, 264.0], [580.0, 464.0], [380.0, 544.0]], [[0.0, 757.1428571428571], [80.0, 597.1428571428571], [160.0, 757.1428571428571]], [[0.0, 460.0], [280.0, 460.0], [140.0, 700.0]]])
-        all_list = pd.read_csv("/Users/sean/Documents/Projects/Data/all_list.csv")
-        for i in range(10000,11000):
-            seq=json.loads(all_list["list"][i])
-            ratio,result=self.checkOneSeq(seq)
-            if ratio>0.77:
-                print(i,ratio,result)
+        new_list=sorted(_list, key=lambda item: item[1],reverse=True)
     
     def checkOneSeq(self,one_list):
         new_polys=[]
@@ -130,22 +124,28 @@ class initialResult(object):
     def getAreaDecreaing(self):
         pass
 
-    def getLengthDecreaing(self,polys):
-
-        pass
-
-    def getWidthDecreaing(self):
+    def getWidthDecreaing(self,polys):
         width_list=[]
         for i,poly in enumerate(self.polys):
             left_pt,right_pt=LPAssistant.getLeftPoint(poly),LPAssistant.getRightPoint(poly)
             width_list.append([i,right_pt[0]-left_pt[0]])
         return width_list
 
+    def getLengthDecreaing(self):
+        length_list=[]
+        for i,poly in enumerate(self.polys):
+            bottom_pt,top_pt=LPAssistant.getBottomPoint(poly),LPAssistant.getTopPoint(poly)
+            length_list.append([i,top_pt[1]-bottom_pt[1]])
+        return length_list
+
     def getRectangularityDecreaing(self,polys):
         
         pass
 
     def getAllSeq(self,_list):
+        '''
+        当前获得是全部序列
+        '''
         # 初步排列
         new_list=sorted(_list, key=lambda item: item[1],reverse=True)
         # 获得全部聚类结果
@@ -178,4 +178,5 @@ class Clustering(object):
         pass
 
 if __name__ == '__main__':
-    initialResult(getData())
+    # initialResult(getData())
+    print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])

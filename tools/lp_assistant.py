@@ -130,6 +130,15 @@ class LPAssistant(object):
         return left_pt
 
     @staticmethod
+    def getBottomLeftPoint(poly):
+        bottom_left_pt,min_x,min_y=[],999999999,999999999
+        for pt in poly:
+            if pt[0]<=min_x and pt[1]<=min_y:
+                min_x,min_y=pt[0],pt[1]
+                bottom_left_pt=[pt[0],pt[1]]
+        return bottom_left_pt
+
+    @staticmethod
     def getBoundPoint(poly):
         left_pt,bottom_pt,right_pt,top_pt=[],[],[],[]
         min_x,min_y,max_x,max_y=999999999,999999999,-999999999,-999999999

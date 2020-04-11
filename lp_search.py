@@ -14,6 +14,7 @@ import random
 import math
 import datetime
 import time
+import csv # 写csv
 import numpy as np
 import matplotlib.pyplot as plt
 from tools.lp_assistant import LPAssistant
@@ -37,30 +38,34 @@ class LPSearch(object):
 
     # 获得初始解
     def getInitialResult(self):
-        index=7
+        index=6
         blf = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/blf.csv")
         self.total_area=blf["total_area"][index]
         self.polys=json.loads(blf["polys"][index])
         self.best_polys= copy.deepcopy(self.polys)# 按照index的顺序排列
-        self.best_poly_status,self.poly_status=[],[]
+        self.best_poly_status,self.poly_status=json.loads(blf["poly_status"][index]),json.loads(blf["poly_status"][index])
         self.use_ratio=[]
-        for i,poly in enumerate(self.polys):
-            top_pt=LPAssistant.getTopPoint(poly)
-            self.best_poly_status.append([i,top_pt,0]) # 分别为序列号、位置及方向
-            self.poly_status.append([i,top_pt,0]) # 分别为序列号、位置及方向
+        # 在没有的时候全部加载一遍
+        if len(self.best_poly_status)==0:
+            for i,poly in enumerate(self.polys):
+                top_pt=LPAssistant.getTopPoint(poly)
+                self.best_poly_status.append([i,top_pt,0]) # 分别为序列号、位置及方向
+                self.poly_status.append([i,top_pt,0]) # 分别为序列号、位置及方向
         print("一共",len(self.polys),"个形状")
+        # self.length=LPAssistant.getLength(self.polys)
+        # self.cur_length=self.length*(1+0.01)
+        # self.slideToLeft()
     
     # 主要执行过程
     def main(self):
         ration_dec,ration_inc=0.04,0.01
-        max_time=1000
-
+        max_time=2000
+        print("执行主程序")
         self.length=LPAssistant.getLength(self.polys) # 最佳状态
         # self.cur_length=self.length
         self.cur_length=self.length*(1-ration_dec) # 当前的宽度
-        self.showPolys()
+
         self.slideToContainer() # 把突出去的移进来
-        self.showPolys()
 
         start_time = time.time()
         self.use_ratio.append(self.total_area/(self.length*self.width))
@@ -80,8 +85,9 @@ class LPSearch(object):
             else:
                 # 如果不可行则在上一次的结果基础上增加，再缩减
                 self.cur_length=self.length*(1+ration_inc)
+                # self.slideToLeft()
         end_time = time.time()
-        print("最终结果：",self.polys)
+        print("最优结果：",self.best_polys)
         self.showPolys()
         self.plotRecord()
 
@@ -99,7 +105,9 @@ class LPSearch(object):
         start_time=time.time()
         self.miu=[[1]*len(self.polys) for _ in range(len(self.polys))] # 用于引导检索，每次都需要更新
         self.initialOverlap() # 更新当前的重叠情况（）用于计算fitness
-        minimal_overlap,it,N=self.getTotalOverlap(),0,200
+        # self.local_best_polys,self.local_best_poly_status=copy.deepcopy(self.polys),copy.deepcopy(self.poly_status)
+
+        minimal_overlap,it,N=self.getTotalOverlap(),0,50
         cur_overlap=minimal_overlap
         # 限定计算次数
         print("开始一次检索")
@@ -111,11 +119,20 @@ class LPSearch(object):
             for i in range(len(self.polys)):
                 # 选择特定形状
                 choose_index=permutation[i]
+
+                # 通过重叠判断是否需要计算
+                with_overlap=False
+                for item in self.pair_overlap[choose_index]:
+                    if item>0:
+                        with_overlap=True
+                        break
+                if with_overlap==False:
+                    continue
+
                 # 获得当前的最小的深度（调整后），如果没有重叠，直接下一个
                 self.getPrerequisite(choose_index,self.poly_status[choose_index][2],offline=True)
                 cur_min_depth=self.getPolyDepeth(choose_index)
-                if cur_min_depth==0:
-                    continue
+
                 # 记录最优情况，默认是当前情况
                 original_position=self.poly_status[choose_index][1]
                 best_position,best_orientation,best_depth=self.poly_status[choose_index][1],self.poly_status[choose_index][2],cur_min_depth
@@ -131,16 +148,16 @@ class LPSearch(object):
                     if new_depth<best_depth:
                         print("new_depth:",new_depth)
 
-                        top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
-                        new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
-                        PltFunc.addPolygonColor(new_polygon)
-                        self.showPolys()
-
+                        # top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
+                        # new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
+                        # PltFunc.addPolygonColor(new_polygon)
+                        # self.showPolys()
+                        
                         best_position,best_orientation,best_depth=copy.deepcopy(new_position),orientation,new_depth
 
                 # 如果有变化状态则需要更新overlap以及移动形状
                 if best_position!=original_position:
-                    # print("本次检索最低深度：",best_depth)
+                    print("本次检索最低深度：",best_depth)
                     # 更新记录的位置
                     self.poly_status[choose_index][1]=copy.deepcopy(best_position)
                     self.poly_status[choose_index][2]=best_orientation
@@ -159,20 +176,29 @@ class LPSearch(object):
                 break
             elif cur_overlap<minimal_overlap:
                 minimal_overlap=cur_overlap
+                # self.local_best_polys=copy.deepcopy(self.polys)
+                # self.local_best_poly_status=copy.deepcopy(self.poly_status)
                 it=0
+            print("\n当前重叠:",cur_overlap,"\n")
             # 如果没有更新则会增加（更新了的话会归零）
             it=it+1
             # 更新全部的Miu
             self.updateMiu()
         if it==N:
+            # self.polys=copy.deepcopy(self.local_best_polys)
+            # self.poly_status=copy.deepcopy(self.local_best_poly_status)
             print("超出更新次数")
             # self.showPolys()
 
         end_time=time.time()
+        print("本轮耗时：",end_time-start_time)
+        print("最终结果：",self.polys)
+        print("当前状态：",self.poly_status)
         with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/fu_result.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerows([[time.time(),end_time-start_time,self.total_area/(self.cur_length*self.width),cur_fitness,self.poly_status,self.polys]])
-    
+            writer.writerows([[time.time(),end_time-start_time,self.total_area/(self.cur_length*self.width),cur_overlap,self.poly_status,self.polys]])
+        self.showPolys()
+
     # 获得全部形状不同方向-存储起来
     def getAllPolygons(self):
         self.all_polygons=[]
@@ -184,6 +210,7 @@ class LPSearch(object):
         
     # 获得整个重叠情况
     def getTotalOverlap(self):
+        # print(self.pair_overlap)
         overlap=0
         for i in range(len(self.pair_overlap)-1):
             for j in range(i+1,len(self.pair_overlap[0])):
@@ -211,9 +238,9 @@ class LPSearch(object):
             inter=P1.intersection(P2) # 获得重叠区域
             inter_area=0
             if inter.area>bias:
-                area=inter.area        
-            self.pair_overlap[i][j]=inter_area
-            self.pair_overlap[j][i]=inter_area
+                inter_area=inter.area        
+            self.pair_overlap[choose_index][j]=inter_area
+            self.pair_overlap[j][choose_index]=inter_area
     
     # 基于NFP获得全部的约束
     def getProblemLP(self):
@@ -285,7 +312,7 @@ class LPSearch(object):
             # 如果该轮没有计算出重叠则停止
             if self.target_areas[i]==[]:
                 self.max_overlap=i
-                print("至多",i,"个形状重叠，计算完成")
+                # print("至多",i,"个形状重叠，计算完成")
                 break
 
     # 删除重复情况
@@ -371,6 +398,34 @@ class LPSearch(object):
                 top_pt=self.poly_status[index][1]
                 self.poly_status[index][1]=[top_pt[0]+delta_x,top_pt[1]]
 
+    # 把所有形状全部往左移
+    def slideToLeft(self):
+        _list=[]
+        for i,poly in enumerate(self.polys):
+            bottom_left_pt=LPAssistant.getBottomLeftPoint(poly)
+            _list.append([i,bottom_left_pt[0],bottom_left_pt[1]])
+        _list=sorted(_list, key=lambda x:(x[1], x[2]))
+        # 按照该序列一个个计算
+        for i,item in enumerate(_list):
+            top_point=LPAssistant.getTopPoint(self.polys[item[0]])
+            if top_point[0]==0:
+                continue
+            possible_region=Polygon(PackingUtil.getInnerFitRectangle(self.polys[item[0]],self.cur_length,self.width))
+            for placed_item in _list[:i]:
+                possible_region=possible_region.difference(Polygon(self.getNFP(placed_item[0],item[0])))
+            
+            # 获得当前形状的顶点，计算最左侧交点并平移
+            line=LineString([[0,top_point[1]],[top_point[0]+1000,top_point[1]]])
+            line_inter=possible_region.intersection(line)
+            if possible_region.is_empty!=True and line_inter.is_empty!=True:
+                min_x=line_inter.bounds[0]
+                GeoFunc.slidePoly(self.polys[item[0]],min_x-top_point[0],0)
+            else:
+                GeoFunc.slidePoly(self.polys[item[0]],self.cur_length-top_point[0],0)
+                
+        # （移除重叠）
+        self.slideToContainer()
+
     def showPolys(self):
         for poly in self.polys:
             PltFunc.addPolygon(poly)
@@ -390,8 +445,16 @@ class LPSearch(object):
             for j in range(i,len(self.miu[0])):
                 self.miu[j][i]=self.miu[j][i]+self.pair_overlap[i][j]/_max
                 self.miu[i][j]=self.miu[i][j]+self.pair_overlap[i][j]/_max
-        print(self.miu)
+        # print(self.miu)
     
+    def getNFP(self,j,i):
+        # j是固定位置，i是移动位置
+        row=j*192+i*16+self.poly_status[j][2]*4+self.poly_status[i][2]
+        bottom_pt=LPAssistant.getBottomPoint(self.polys[j])
+        delta_x,delta_y=bottom_pt[0],bottom_pt[1]
+        nfp=GeoFunc.getSlide(json.loads(self.fu_pre["nfp"][row]),delta_x,delta_y)
+        return nfp
+
     # 直接读取目标情况-带方向
     def getPrerequisite(self,i,orientation,**kw):
         # 获得全部NFP以及拆分情况
@@ -436,3 +499,5 @@ if __name__=='__main__':
     # print(blf.polygons)
     LPSearch(760,polys)
     # testNonConvex()
+    # PltFunc.addPolygon([[460,760],[654.3264153600001,760],[654.3264153600001,280],[460,280],[460,760]])
+    # PltFunc.showPlt()
