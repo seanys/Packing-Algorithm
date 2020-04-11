@@ -305,7 +305,7 @@ class GenerateData_vector(object):
         for index,line in enumerate(tqdm(data)):
             vector=[]
             for poly in line:
-                vector.append(vectorFunc(poly,cut_nums=128).vector)
+                vector.append(vectorFunc(poly,cut_nums=8).vector)
             vectors.append(vector)
         vectors=np.array(vectors)
         np.save(save_name,vectors)
@@ -396,7 +396,8 @@ if __name__ == "__main__":
     #print(GenerateData_vector.generateData_fu(5))
     #getAllNFP('fu1000_xy.npy','fu1000')
     #GenerateData_vector.generateTestData('fu1000_val',500)
-    GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
+    GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
+    #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
     #getBenchmark('fu1000_val_xy.npy')
     end=time.time()
     print(end-start)

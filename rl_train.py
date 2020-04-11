@@ -29,10 +29,11 @@ class Preload(object):
         self.data=np.load(source,allow_pickle=True)
 
     def getPolysbySeq(self,index,sequence):
+        # sequence:(a,b,c...) 意思是把第a个放到第1个
         polys=self.data[index]
-        Z=zip(sequence,polys)
-        Z=sorted(Z)
-        rank,polys_new=zip(*Z)
+        polys_new=[]
+        for seq in sequence:
+            polys_new.append(polys[seq])
         polys_new=np.array(polys_new)
         return polys_new.tolist()
 
@@ -215,7 +216,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0410', help='')
+    parser.add_argument('--task', default='0411', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
     parser.add_argument('--val_name', type=str, default='fu1500')
     parser.add_argument('--train_size', default=1500, help='')
@@ -280,8 +281,8 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
     input_dim = 128
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}_128.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_128_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
 
