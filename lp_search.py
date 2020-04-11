@@ -84,7 +84,7 @@ class LPSearch(object):
                 self.slideToContainer() 
             else:
                 # 如果不可行则在上一次的结果基础上增加，再缩减
-                self.cur_length=self.length*(1+ration_inc)
+                self.cur_length=self.cur_length*(1+ration_inc)
                 # self.slideToLeft()
         end_time = time.time()
         print("最优结果：",self.best_polys)
