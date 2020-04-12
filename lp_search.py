@@ -7,12 +7,13 @@ Created on Wed Dec 11, 2020
 """
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex,NFP
 from tools.packing import PolyListProcessor,NFPAssistant,PackingUtil
-from tools.lp import sovleLP
+from tools.lp_assistant import LPAssistant
 from heuristic import BottomLeftFill
-import pandas as pd
-import json
+from compaction import Compaction,Separation,SearchUtil
 from shapely.geometry import Polygon,Point,mapping,LineString
 from interval import Interval
+import pandas as pd
+import json
 import copy
 import random
 import math
@@ -21,7 +22,6 @@ import time
 import csv # 写csv
 import numpy as np
 import matplotlib.pyplot as plt
-from tools.lp_assistant import LPAssistant
 
 bias=0.0000001
 
@@ -74,6 +74,7 @@ class LPSearch(object):
         start_time = time.time()
         self.use_ratio.append(self.total_area/(self.length*self.width))
         print("当前利用率：",self.total_area/(self.length*self.width))
+
         while time.time()-start_time<max_time:
             self.minimizeOverlap()
             if LPAssistant.judegeFeasible(self.polys)==True:
@@ -87,9 +88,10 @@ class LPSearch(object):
                 self.cur_length=self.length*(1-ration_dec)
                 self.slideToContainer() 
             else:
-                # 如果不可行则在上一次的结果基础上增加，再缩减
-                self.cur_length=self.cur_length*(1+ration_inc)
-                # self.slideToLeft()
+                # 如果有重叠，则直到找到可行解
+                while 
+
+                
         end_time = time.time()
         print("最优结果：",self.best_polys)
         self.showPolys()
@@ -106,10 +108,12 @@ class LPSearch(object):
         '''
         综合的Fitness采用Overlap，单个形状的新位置只参考Depth
         '''
+        multiple=200
+
         start_time=time.time()
         self.miu=[[1]*len(self.polys) for _ in range(len(self.polys))] # 用于引导检索，每次都需要更新
         self.initialOverlap() # 更新当前的重叠情况（）用于计算fitness
-        # self.local_best_polys,self.local_best_poly_status=copy.deepcopy(self.polys),copy.deepcopy(self.poly_status)
+        self.local_best_polys,self.local_best_poly_status=copy.deepcopy(self.polys),copy.deepcopy(self.poly_status)
 
         minimal_overlap,it,N=self.getTotalOverlap(),0,50
         cur_overlap=minimal_overlap
@@ -183,11 +187,15 @@ class LPSearch(object):
                 # self.local_best_polys=copy.deepcopy(self.polys)
                 # self.local_best_poly_status=copy.deepcopy(self.poly_status)
                 it=0
+            elif minimal_overlap*multiple<cur_overlap:
+                # 如果出现两百以上的倍数
+                
             print("\n当前重叠:",cur_overlap,"\n")
             # 如果没有更新则会增加（更新了的话会归零）
             it=it+1
             # 更新全部的Miu
             self.updateMiu()
+
         if it==N:
             # self.polys=copy.deepcopy(self.local_best_polys)
             # self.poly_status=copy.deepcopy(self.local_best_poly_status)
