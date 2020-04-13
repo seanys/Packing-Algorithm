@@ -92,7 +92,6 @@ def getBenchmark(source,single=False):
         np.savetxt('GA.CSV',ga)
         print('GA...OK')
 
-
 class GenerateData_xy(object):
     '''
     04/09后采用vector方法生成 弃用此类

@@ -23,6 +23,8 @@ from heuristic import BottomLeftFill
 
 train_preload=None
 val_preload=None
+training_dataset=None
+val_dataset=None
 
 class Preload(object):
     def __init__(self,source):
@@ -56,16 +58,25 @@ class PolygonsDataset(Dataset):
                 x.append(polys)
             self.x=np.array(x)
             self.input=torch.from_numpy(self.x)
+        # 定义数据获取顺序
+        self.shuffle=np.array(range(self.__len__()))
+        np.random.shuffle(self.shuffle)
 
     def __getitem__(self, index):
-        inputs=self.input[index]
+        real_index=self.getRealIndex(index)
+        inputs=self.input[real_index]
         return inputs
 
     def __len__(self):
         return len(self.input)
 
-    def save_data(self,path):
-        np.save(path,self.x)
+    def getRealIndex(self,index):
+        return self.shuffle[index]
+
+    def updateRealIndex(self):
+        np.random.shuffle(self.shuffle)
+        # print('Shuffled:', self.shuffle)
+
 
 """class BottomLeftFillThread (threading.Thread):
     # 多线程和多进程一起用会报错 已弃用
@@ -174,9 +185,10 @@ def reward(sample_solution, USE_CUDA=False):
         res=[]
         for index in range(batch_size):
             sample_id=index+cur_batch*batch_size
+            real_id=training_dataset.getRealIndex(sample_id)
             sequence=sequences[:,index]
-            poly_new=train_preload.getPolysbySeq(sample_id,sequence)
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],sample_id))
+            poly_new=train_preload.getPolysbySeq(real_id,sequence)
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],real_id))
             res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
         p.close()
         p.join()
@@ -184,8 +196,9 @@ def reward(sample_solution, USE_CUDA=False):
             result[index]=res[index].get()
     else: # 验证时不开多进程
         sequence=sequences[:,0]
-        poly_new=val_preload.getPolysbySeq(cur_batch,sequence)
-        nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
+        real_id=val_dataset.getRealIndex(cur_batch)
+        poly_new=val_preload.getPolysbySeq(real_id,sequence)
+        nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],real_id))
         result[0]=getBLF(args['width'],poly_new,nfp_asst)
     # end=datetime.datetime.now()
     # print(end,"结束reward")
@@ -216,7 +229,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0412-2', help='')
+    parser.add_argument('--task', default='0413', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
     parser.add_argument('--val_name', type=str, default='fu1000')
     parser.add_argument('--train_size', default=1500, help='')
@@ -240,10 +253,10 @@ if __name__ == "__main__":
 
     '''训练设置'''
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--actor_net_lr', default=2e-4, help="Set the learning rate for the actor network")
-    parser.add_argument('--critic_net_lr', default=1e-4, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=500, help='')
-    parser.add_argument('--critic_lr_decay_step', default=500, help='')
+    parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
+    parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
+    parser.add_argument('--actor_lr_decay_step', default=2000, help='')
+    parser.add_argument('--critic_lr_decay_step', default=5000, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--reward_scale', default=2, type=float,  help='')
@@ -285,7 +298,8 @@ if __name__ == "__main__":
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
-    args['load_path']='outputs/0412/fu1500/epoch-139.pt'
+    args['load_path']='outputs/0412-2/fu1500/epoch-400.pt'
+
 
 
     '''初始化网络/测试已有网络'''
@@ -325,13 +339,10 @@ if __name__ == "__main__":
     except:
         pass
 
-    # critic_mse = torch.nn.MSELoss()
-    # critic_optim = optim.Adam(model.critic_net.parameters(), lr=float(args['critic_net_lr']))
-    # critic_scheduler = lr_scheduler.MultiStepLR(critic_optim,
-    #         range(int(args['critic_lr_decay_step']), int(args['critic_lr_decay_step']) * 1000,
-    #             int(args['critic_lr_decay_step'])), gamma=float(args['critic_lr_decay_rate']))
-
+    #critic_mse = torch.nn.MSELoss()
+    #critic_optim = optim.Adam(model.critic_net.parameters(), lr=float(args['critic_net_lr']))
     actor_optim = optim.Adam(model.actor_net.parameters(), lr=float(args['actor_net_lr']))
+
     actor_scheduler = lr_scheduler.MultiStepLR(actor_optim,
             range(int(args['actor_lr_decay_step']), int(args['actor_lr_decay_step']) * 1000,
                 int(args['actor_lr_decay_step'])), gamma=float(args['actor_lr_decay_rate']))
@@ -373,14 +384,18 @@ if __name__ == "__main__":
                 else:
                     critic_exp_mvg_avg = (critic_exp_mvg_avg * beta) + ((1. - beta) * R.mean())
                 advantage = R - critic_exp_mvg_avg
-
+                
                 logprobs = 0
+                nll = 0
                 for prob in probs: 
                     # compute the sum of the log probs
                     # for each tour in the batch
                     logprob = torch.log(prob)
+                    nll += -logprob
                     logprobs += logprob
-
+            
+                # guard against nan
+                nll[(nll != nll).detach()] = 0.
                 # clamp any -inf's to 0 to throw away this tour
                 logprobs[(logprobs < -1000).detach()] = 0.
 
@@ -402,22 +417,24 @@ if __name__ == "__main__":
 
                 critic_exp_mvg_avg = critic_exp_mvg_avg.detach()
 
-                # R = R.detach()
-                # critic_loss = critic_mse(v.squeeze(1), R)
-                # critic_optim.zero_grad()
-                # critic_loss.backward()
+                #critic_scheduler.step()
+                #R = R.detach()
+                #critic_loss = critic_mse(v.squeeze(1), R)
+                #critic_optim.zero_grad()
+                #critic_loss.backward()
                 
-                # torch.nn.utils.clip_grad_norm_(model.critic_net.parameters(),
+                #torch.nn.utils.clip_grad_norm_(model.critic_net.parameters(),
                 #        float(args['max_grad_norm']), norm_type=2)
-                # critic_optim.step()
-                # critic_scheduler.step()
+                #critic_optim.step()
                 
                 step += 1
-                # writer.add_scalar('critic_loss', critic_loss.item(), step)
+                # if not args['disable_tensorboard']:
+                    # log_value('critic_loss', critic_loss.item(), step)
                 writer.add_scalar('reward', R.mean().item(), step)
                 avg_reward.append(R.mean().item())
                 writer.add_scalar('actor_loss', actor_loss.item(), step)
                 writer.add_scalar('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
+                # writer.add_scalar('nll', nll.mean().item(), step)
                 # if step % int(args['log_step']) == 0:
                 #     # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
                 #     #     i, batch_id, R.mean().item()))
@@ -491,3 +508,6 @@ if __name__ == "__main__":
             torch.save(model, os.path.join(save_dir, 'epoch-{}.pt'.format(i)))
 
             # If the task requires generating new data after each epoch, do that here!
+            training_dataset.updateRealIndex()
+            val_dataset.updateRealIndex()
+
