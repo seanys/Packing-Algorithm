@@ -216,7 +216,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0412', help='')
+    parser.add_argument('--task', default='0412-2', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
     parser.add_argument('--val_name', type=str, default='fu1000')
     parser.add_argument('--train_size', default=1500, help='')
@@ -240,8 +240,8 @@ if __name__ == "__main__":
 
     '''训练设置'''
     parser.add_argument('--batch_size', default=32, help='')
-    parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
-    parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
+    parser.add_argument('--actor_net_lr', default=2e-4, help="Set the learning rate for the actor network")
+    parser.add_argument('--critic_net_lr', default=1e-4, help="Set the learning rate for the critic network")
     parser.add_argument('--actor_lr_decay_step', default=500, help='')
     parser.add_argument('--critic_lr_decay_step', default=500, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
-    args['load_path']='outputs/0411/fu1500/epoch-30.pt'
+    args['load_path']='outputs/0412/fu1500/epoch-139.pt'
 
 
     '''初始化网络/测试已有网络'''
@@ -325,10 +325,13 @@ if __name__ == "__main__":
     except:
         pass
 
-    #critic_mse = torch.nn.MSELoss()
-    #critic_optim = optim.Adam(model.critic_net.parameters(), lr=float(args['critic_net_lr']))
-    actor_optim = optim.Adam(model.actor_net.parameters(), lr=float(args['actor_net_lr']))
+    # critic_mse = torch.nn.MSELoss()
+    # critic_optim = optim.Adam(model.critic_net.parameters(), lr=float(args['critic_net_lr']))
+    # critic_scheduler = lr_scheduler.MultiStepLR(critic_optim,
+    #         range(int(args['critic_lr_decay_step']), int(args['critic_lr_decay_step']) * 1000,
+    #             int(args['critic_lr_decay_step'])), gamma=float(args['critic_lr_decay_rate']))
 
+    actor_optim = optim.Adam(model.actor_net.parameters(), lr=float(args['actor_net_lr']))
     actor_scheduler = lr_scheduler.MultiStepLR(actor_optim,
             range(int(args['actor_lr_decay_step']), int(args['actor_lr_decay_step']) * 1000,
                 int(args['actor_lr_decay_step'])), gamma=float(args['actor_lr_decay_rate']))
@@ -370,18 +373,14 @@ if __name__ == "__main__":
                 else:
                     critic_exp_mvg_avg = (critic_exp_mvg_avg * beta) + ((1. - beta) * R.mean())
                 advantage = R - critic_exp_mvg_avg
-                
+
                 logprobs = 0
-                nll = 0
                 for prob in probs: 
                     # compute the sum of the log probs
                     # for each tour in the batch
                     logprob = torch.log(prob)
-                    nll += -logprob
                     logprobs += logprob
-            
-                # guard against nan
-                nll[(nll != nll).detach()] = 0.
+
                 # clamp any -inf's to 0 to throw away this tour
                 logprobs[(logprobs < -1000).detach()] = 0.
 
@@ -403,24 +402,22 @@ if __name__ == "__main__":
 
                 critic_exp_mvg_avg = critic_exp_mvg_avg.detach()
 
-                #critic_scheduler.step()
-                #R = R.detach()
-                #critic_loss = critic_mse(v.squeeze(1), R)
-                #critic_optim.zero_grad()
-                #critic_loss.backward()
+                # R = R.detach()
+                # critic_loss = critic_mse(v.squeeze(1), R)
+                # critic_optim.zero_grad()
+                # critic_loss.backward()
                 
-                #torch.nn.utils.clip_grad_norm_(model.critic_net.parameters(),
+                # torch.nn.utils.clip_grad_norm_(model.critic_net.parameters(),
                 #        float(args['max_grad_norm']), norm_type=2)
-                #critic_optim.step()
+                # critic_optim.step()
+                # critic_scheduler.step()
                 
                 step += 1
-                # if not args['disable_tensorboard']:
-                    # log_value('critic_loss', critic_loss.item(), step)
+                # writer.add_scalar('critic_loss', critic_loss.item(), step)
                 writer.add_scalar('reward', R.mean().item(), step)
                 avg_reward.append(R.mean().item())
                 writer.add_scalar('actor_loss', actor_loss.item(), step)
                 writer.add_scalar('critic_exp_mvg_avg', critic_exp_mvg_avg.item(), step)
-                # writer.add_scalar('nll', nll.mean().item(), step)
                 # if step % int(args['log_step']) == 0:
                 #     # print('epoch: {}, train_batch_id: {}, avg_reward: {}'.format(
                 #     #     i, batch_id, R.mean().item()))
