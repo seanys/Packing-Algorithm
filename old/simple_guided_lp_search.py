@@ -1,19 +1,15 @@
-"""
-Hybrid Algorithm：Guided LP Search+Separation
------------------------------------
-Created on Wed Dec 11, 2020
-@author: seanys,prinway
------------------------------------
-"""
+'''
+2020年4月8日 修正版 Use Linear Programming Search New Position
+局限性：需要与Separation结合处理
+'''
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex,NFP
 from tools.packing import PolyListProcessor,NFPAssistant,PackingUtil
-from tools.lp_assistant import LPAssistant
+from tools.lp import sovleLP
 from heuristic import BottomLeftFill
-from compaction import Compaction,Separation,SearchUtil
-from shapely.geometry import Polygon,Point,mapping,LineString
-from interval import Interval
 import pandas as pd
 import json
+from shapely.geometry import Polygon,Point,mapping,LineString
+from interval import Interval
 import copy
 import random
 import math
@@ -22,6 +18,7 @@ import time
 import csv # 写csv
 import numpy as np
 import matplotlib.pyplot as plt
+from tools.lp_assistant import LPAssistant
 
 bias=0.0000001
 
@@ -74,7 +71,6 @@ class LPSearch(object):
         start_time = time.time()
         self.use_ratio.append(self.total_area/(self.length*self.width))
         print("当前利用率：",self.total_area/(self.length*self.width))
-
         while time.time()-start_time<max_time:
             self.minimizeOverlap()
             if LPAssistant.judegeFeasible(self.polys)==True:
@@ -88,10 +84,9 @@ class LPSearch(object):
                 self.cur_length=self.length*(1-ration_dec)
                 self.slideToContainer() 
             else:
-                # 如果有重叠，则直到找到可行解
-                while 
-
-                
+                # 如果不可行则在上一次的结果基础上增加，再缩减
+                self.cur_length=self.cur_length*(1+ration_inc)
+                # self.slideToLeft()
         end_time = time.time()
         print("最优结果：",self.best_polys)
         self.showPolys()
@@ -108,12 +103,10 @@ class LPSearch(object):
         '''
         综合的Fitness采用Overlap，单个形状的新位置只参考Depth
         '''
-        multiple=200
-
         start_time=time.time()
         self.miu=[[1]*len(self.polys) for _ in range(len(self.polys))] # 用于引导检索，每次都需要更新
         self.initialOverlap() # 更新当前的重叠情况（）用于计算fitness
-        self.local_best_polys,self.local_best_poly_status=copy.deepcopy(self.polys),copy.deepcopy(self.poly_status)
+        # self.local_best_polys,self.local_best_poly_status=copy.deepcopy(self.polys),copy.deepcopy(self.poly_status)
 
         minimal_overlap,it,N=self.getTotalOverlap(),0,50
         cur_overlap=minimal_overlap
@@ -144,23 +137,17 @@ class LPSearch(object):
                 # 记录最优情况，默认是当前情况
                 original_position=self.poly_status[choose_index][1]
                 best_position,best_orientation,best_depth=self.poly_status[choose_index][1],self.poly_status[choose_index][2],cur_min_depth
-                # print("当前最低高度:",best_depth)
+                print("当前最低高度:",best_depth)
 
                 # 遍历四个角度的最优值
                 for orientation in [0,1,2,3]:
-                    # print("测试角度:",90*orientation,"度")
+                    print("测试角度:",90*orientation,"度")
                     self.getPrerequisite(choose_index,orientation,offline=True)
                     self.getProblemLP()
                     new_position,new_depth=self.searchBestPosition(choose_index) # 获得最优位置
                     
                     if new_depth<best_depth:
-                        # print("new_depth:",new_depth)
-
-                        # top_point=LPAssistant.getTopPoint(self.all_polygons[choose_index][orientation])
-                        # new_polygon=GeoFunc.getSlide(self.all_polygons[choose_index][orientation],new_position[0]-top_point[0],new_position[1]-top_point[1])
-                        # PltFunc.addPolygonColor(new_polygon)
-                        # self.showPolys()
-                        
+                        print("new_depth:",new_depth)                        
                         best_position,best_orientation,best_depth=copy.deepcopy(new_position),orientation,new_depth
 
                 # 如果有变化状态则需要更新overlap以及移动形状
@@ -184,21 +171,13 @@ class LPSearch(object):
                 break
             elif cur_overlap<minimal_overlap:
                 minimal_overlap=cur_overlap
-                # self.local_best_polys=copy.deepcopy(self.polys)
-                # self.local_best_poly_status=copy.deepcopy(self.poly_status)
                 it=0
-            elif minimal_overlap*multiple<cur_overlap:
-                # 如果出现两百以上的倍数
-                
             print("\n当前重叠:",cur_overlap,"\n")
             # 如果没有更新则会增加（更新了的话会归零）
             it=it+1
             # 更新全部的Miu
             self.updateMiu()
-
         if it==N:
-            # self.polys=copy.deepcopy(self.local_best_polys)
-            # self.poly_status=copy.deepcopy(self.local_best_poly_status)
             print("超出更新次数")
             # self.showPolys()
 
@@ -388,6 +367,7 @@ class LPSearch(object):
                 min_value=value
         return min_value*self.miu[target_index][choose_index]
 
+
     def polysOverlapIFR(self,poly1,poly2):
         '''判断两个形状之间是否重叠、重叠区域面积、重叠区域是否与IFR有重叠'''
         P1,P2=Polygon(poly1),Polygon(poly2)
@@ -408,34 +388,6 @@ class LPSearch(object):
                 GeoFunc.slidePoly(poly,delta_x,0)
                 top_pt=self.poly_status[index][1]
                 self.poly_status[index][1]=[top_pt[0]+delta_x,top_pt[1]]
-
-    # 把所有形状全部往左移
-    def slideToLeft(self):
-        _list=[]
-        for i,poly in enumerate(self.polys):
-            bottom_left_pt=LPAssistant.getBottomLeftPoint(poly)
-            _list.append([i,bottom_left_pt[0],bottom_left_pt[1]])
-        _list=sorted(_list, key=lambda x:(x[1], x[2]))
-        # 按照该序列一个个计算
-        for i,item in enumerate(_list):
-            top_point=LPAssistant.getTopPoint(self.polys[item[0]])
-            if top_point[0]==0:
-                continue
-            possible_region=Polygon(PackingUtil.getInnerFitRectangle(self.polys[item[0]],self.cur_length,self.width))
-            for placed_item in _list[:i]:
-                possible_region=possible_region.difference(Polygon(self.getNFP(placed_item[0],item[0])))
-            
-            # 获得当前形状的顶点，计算最左侧交点并平移
-            line=LineString([[0,top_point[1]],[top_point[0]+1000,top_point[1]]])
-            line_inter=possible_region.intersection(line)
-            if possible_region.is_empty!=True and line_inter.is_empty!=True:
-                min_x=line_inter.bounds[0]
-                GeoFunc.slidePoly(self.polys[item[0]],min_x-top_point[0],0)
-            else:
-                GeoFunc.slidePoly(self.polys[item[0]],self.cur_length-top_point[0],0)
-                
-        # （移除重叠）
-        self.slideToContainer()
 
     def showPolys(self):
         for poly in self.polys:

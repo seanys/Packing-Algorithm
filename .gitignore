@@ -3,10 +3,10 @@
 euro_data/dighe1:2.png
 outputs*
 logs*
+history*
 **/*.pyc
 record*
 *.npy
-*.csv
-.DS_Store
 .VSCodeCounter*
 *.pt
+*.csv

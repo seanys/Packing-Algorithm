@@ -130,6 +130,15 @@ class LPAssistant(object):
         return left_pt
 
     @staticmethod
+    def getBottomLeftPoint(poly):
+        bottom_left_pt,min_x,min_y=[],999999999,999999999
+        for pt in poly:
+            if pt[0]<=min_x and pt[1]<=min_y:
+                min_x,min_y=pt[0],pt[1]
+                bottom_left_pt=[pt[0],pt[1]]
+        return bottom_left_pt
+
+    @staticmethod
     def getBoundPoint(poly):
         left_pt,bottom_pt,right_pt,top_pt=[],[],[],[]
         min_x,min_y,max_x,max_y=999999999,999999999,-999999999,-999999999
@@ -221,7 +230,7 @@ class LPAssistant(object):
             for shapely_item in list(region):
                 if shapely_item.area>bias:
                     area=area+GeoFunc.polyToArr(shapely_item)
-        return area
+        return area    
 
     @staticmethod
     def getLength(polys):
@@ -232,6 +241,7 @@ class LPAssistant(object):
                 _max=x
         return _max
 
+    @staticmethod
     def judegeFeasible(polys):
         for i in range(len(polys)-1):
             for j in range(i+1,len(polys)):
@@ -239,3 +249,10 @@ class LPAssistant(object):
                 if P1.intersection(P2).area>bias:
                     return False
         return True
+    
+    @staticmethod
+    def delEmpty(target_areas):
+        new_target_areas=[]
+        for line in target_areas:
+            new_target_areas.append([item for item in line if item])
+        return new_target_areas

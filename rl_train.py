@@ -21,9 +21,22 @@ from tools.rl import NeuralCombOptRL
 from tools.packing import NFPAssistant
 from heuristic import BottomLeftFill
 
+train_preload=None
+val_preload=None
+
 class Preload(object):
     def __init__(self,source):
-        self.data=np.load(source)
+        self.data=np.load(source,allow_pickle=True)
+
+    def getPolysbySeq(self,index,sequence):
+        # sequence:(a,b,c...) 意思是把第a个放到第1个
+        polys=self.data[index]
+        polys_new=[]
+        for seq in sequence:
+            polys_new.append(polys[seq])
+        polys_new=np.array(polys_new)
+        return polys_new.tolist()
+
 
 class PolygonsDataset(Dataset):
     def __init__(self,size,max_point_num,path=None):
@@ -38,7 +51,9 @@ class PolygonsDataset(Dataset):
         else:
             data=np.load(path,allow_pickle=True)
             for i in range(size):
-                x.append(data[i])
+                polys=data[i]
+                polys=polys.T
+                x.append(polys)
             self.x=np.array(x)
             self.input=torch.from_numpy(self.x)
 
@@ -158,10 +173,10 @@ def reward(sample_solution, USE_CUDA=False):
         p=Pool() # 多进程计算BLF
         res=[]
         for index in range(batch_size):
+            sample_id=index+cur_batch*batch_size
             sequence=sequences[:,index]
-            ///////----//////
-            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],index+cur_batch*batch_size))
-            # blf=BottomLeftFill(args['width'],poly_new,NFPAssistant=nfp_asst)
+            poly_new=train_preload.getPolysbySeq(sample_id,sequence)
+            nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],sample_id))
             res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
         p.close()
         p.join()
@@ -169,11 +184,7 @@ def reward(sample_solution, USE_CUDA=False):
             result[index]=res[index].get()
     else: # 验证时不开多进程
         sequence=sequences[:,0]
-        ///////----//////
-        poly_new=[]
-        for i in range(len(poly)):
-            poly_new.append(poly[i].reshape(args['max_point_num'],2).tolist())
-        poly_new=drop0(poly_new)
+        poly_new=val_preload.getPolysbySeq(cur_batch,sequence)
         nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}_val/{}.csv'.format(args['val_name'],cur_batch))
         result[0]=getBLF(args['width'],poly_new,nfp_asst)
     # end=datetime.datetime.now()
@@ -205,15 +216,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0408', help='')
+    parser.add_argument('--task', default='0412', help='')
     parser.add_argument('--run_name', type=str, default='fu1500')
-    parser.add_argument('--val_name', type=str, default='fu1500')
+    parser.add_argument('--val_name', type=str, default='fu1000')
     parser.add_argument('--train_size', default=1500, help='')
-    parser.add_argument('--val_size', default=900, help='')
+    parser.add_argument('--val_size', default=500, help='')
     parser.add_argument('--is_train', type=str2bool, default=True, help='')
 
     '''多边形参数'''
-    parser.add_argument('--width', default=800, help='Width of BottomLeftFill')
+    parser.add_argument('--width', default=760, help='Width of BottomLeftFill')
     parser.add_argument('--max_point_num', default=4, help='')
 
     '''网络设计'''  
@@ -270,8 +281,12 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
     input_dim = 128
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'])
-    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'])
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
+    val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
+    train_preload = Preload('{}_xy.npy'.format(args['run_name']))
+    val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
+    args['load_path']='outputs/0411/fu1500/epoch-30.pt'
+
 
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
