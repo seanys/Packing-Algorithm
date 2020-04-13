@@ -23,6 +23,8 @@ from heuristic import BottomLeftFill
 
 train_preload=None
 val_preload=None
+data_shuffle=None
+
 
 class Preload(object):
     def __init__(self,source):
@@ -56,16 +58,22 @@ class PolygonsDataset(Dataset):
                 x.append(polys)
             self.x=np.array(x)
             self.input=torch.from_numpy(self.x)
+        # 定义数据获取顺序
+        self.shuffle=np.array(range(self.__len__()))
+        np.random.shuffle(self.shuffle)
 
     def __getitem__(self, index):
-        inputs=self.input[index]
+        real_index=self.getRealIndex(index)
+        print(real_index)
+        inputs=self.input[real_index]
         return inputs
 
     def __len__(self):
         return len(self.input)
 
-    def save_data(self,path):
-        np.save(path,self.x)
+    def getRealIndex(index):
+        return self.shuffle[index]
+
 
 """class BottomLeftFillThread (threading.Thread):
     # 多线程和多进程一起用会报错 已弃用
@@ -212,6 +220,7 @@ def plot_attention(in_seq, out_seq, attentions):
     plt.show()
 
 if __name__ == "__main__":  
+
     multiprocessing.set_start_method('spawn',True) 
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
