@@ -9,3 +9,4 @@ record*
 *.npy
 .VSCodeCounter*
 *.pt
+*.csv
