@@ -2,7 +2,7 @@
 //  Data Assistant.cpp
 //  Nesting Problem
 //
-//  Created by 爱学习的兔子 on 2020/4/14.
+//  Created by Sean Yang on 2020/4/14.
 //  Copyright © 2020 Tongji SEM. All rights reserved.
 //
 //  CSV Kits

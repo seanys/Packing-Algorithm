@@ -20,25 +20,74 @@ using namespace std;
 
 //主要包含注册多边形、转化多边形
 class GeometryProcess{
-    /*
-     将数组转化为多边形
-     */
-    static convertPoly(){
+    // 数组转化为多边形
+    static void convertPoly(){
         // 定义各种参数
+        typedef model::d2::point_xy<double> point_type;
         point_type a;
-        boost::geometry::model::linestring<point_type> b;
-        boost::geometry::model::polygon<point_type> c;
+        model::linestring<point_type> b;
+        model::polygon<point_type> poly;
         // 读取参数并输入
         read_wkt("POINT(1 2)", a);
         read_wkt("LINESTRING(0 0,2 2,3 1)", b);
-        read_wkt("POLYGON((0 0,0 7,4 2,2 0,0 0))", c);
+        read_wkt("POLYGON((0 0,0 7,4 2,2 0,0 0))", poly);
+        // 输出wkt模式的结果
+        cout << wkt(poly) << endl;
     }
     
 };
 
-class GeometryAssistant{
-private:
-    int test=1;
+// 单个多边形处理
+class PolygonFunctions{
+public:
+    // 获得多边形的边界
+    static void polyBound(){
+        polyBoundPoints(); // 获得边界点
+        
+    };
+    // 获得多边形的边界点
+    static void polyBoundPoints(){
+        typedef model::d2::point_xy<double> point;
+        model::polygon<point> poly;
+        read_wkt("POLYGON((0 0,0 4,4 0,0 0))", poly);
+//        for_each_point(poly, list_coordinates<point>);
+    };
+    // 计算多边形的重心
+    static void polyCentroid(){
+        typedef model::d2::point_xy<double> point_type;
+        typedef model::polygon<point_type> polygon_type;
+
+        polygon_type poly;
+        read_wkt(
+            "POLYGON((2 1.3,2.4 1.7,2.8 1.8,3.4 1.2,3.7 1.6,3.4 2,4.1 3,5.3 2.6,5.4 1.2,4.9 0.8,2.9 0.7,2 1.3)"
+                "(4.0 2.0, 4.2 1.4, 4.8 1.9, 4.4 2.2, 4.0 2.0))", poly);
+
+        point_type p;
+        centroid(poly, p);
+
+        cout << "centroid: " << dsv(p) << std::endl;
+
+    };
+    // 判读那多边形是否为空
+    static bool isEmpty(){
+        model::multi_linestring
+            <
+                model::linestring
+                    <
+                        model::d2::point_xy<double>
+                    >
+            > mls;
+        read_wkt("MULTILINESTRING((0 0,0 10,10 0),(1 1,8 1,1 8))", mls);
+        cout << "Is empty? " << (boost::geometry::is_empty(mls) ? "yes" : "no") << endl;
+        clear(mls);
+        cout << "Is empty (after clearing)? " << (boost::geometry::is_empty(mls) ? "yes" : "no") << endl;
+        return true;
+    }
+};
+
+
+// 计算多个多边形的关系
+class PolygonsAssistant{
 public:
     int getIntersection(){
         model::d2::point_xy<int> p1(1, 1), p2(2, 2);
@@ -103,21 +152,6 @@ public:
             cout << i++ << ": " << area(p) << endl;
         }
     }
-    // 判读那多边形是否为空
-    bool isEmpty(){
-        model::multi_linestring
-            <
-                model::linestring
-                    <
-                        model::d2::point_xy<double>
-                    >
-            > mls;
-        read_wkt("MULTILINESTRING((0 0,0 10,10 0),(1 1,8 1,1 8))", mls);
-        cout << "Is empty? " << (boost::geometry::is_empty(mls) ? "yes" : "no") << std::endl;
-        boost::geometry::clear(mls);
-        std::cout << "Is empty (after clearing)? " << (boost::geometry::is_empty(mls) ? "yes" : "no") << std::endl;
-        return true;
-    }
     // 计算多边形的差集合
     void polysDifference(){
         typedef boost::geometry::model::polygon<boost::geometry::model::d2::point_xy<double> > polygon;
@@ -151,22 +185,6 @@ public:
         {
             std::cout << i++ << ": " << boost::geometry::area(p) << std::endl;
         }
-
-    }
-    // 计算多边形的重心
-    void polyCentroid(){
-        typedef boost::geometry::model::d2::point_xy<double> point_type;
-        typedef boost::geometry::model::polygon<point_type> polygon_type;
-
-        polygon_type poly;
-        boost::geometry::read_wkt(
-            "POLYGON((2 1.3,2.4 1.7,2.8 1.8,3.4 1.2,3.7 1.6,3.4 2,4.1 3,5.3 2.6,5.4 1.2,4.9 0.8,2.9 0.7,2 1.3)"
-                "(4.0 2.0, 4.2 1.4, 4.8 1.9, 4.4 2.2, 4.0 2.0))", poly);
-
-        point_type p;
-        boost::geometry::centroid(poly, p);
-
-        std::cout << "centroid: " << boost::geometry::dsv(p) << std::endl;
 
     }
 };
