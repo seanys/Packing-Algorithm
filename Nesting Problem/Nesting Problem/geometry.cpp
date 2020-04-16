@@ -18,7 +18,25 @@ using namespace std;
 
 #define BIAS 0.000001
 
-class GeoFunc{
+//主要包含注册多边形、转化多边形
+class GeometryProcess{
+    /*
+     将数组转化为多边形
+     */
+    static convertPoly(){
+        // 定义各种参数
+        point_type a;
+        boost::geometry::model::linestring<point_type> b;
+        boost::geometry::model::polygon<point_type> c;
+        // 读取参数并输入
+        read_wkt("POINT(1 2)", a);
+        read_wkt("LINESTRING(0 0,2 2,3 1)", b);
+        read_wkt("POLYGON((0 0,0 7,4 2,2 0,0 0))", c);
+    }
+    
+};
+
+class GeometryAssistant{
 private:
     int test=1;
 public:
@@ -27,13 +45,13 @@ public:
         cout << "Distance p1-p2 is: " << distance(p1, p2) << endl;
         return 0;
     }
-    // 判断多边形是否香蕉
+    // 判断多边形是否相交
     void polysIntersects(){
         typedef boost::geometry::model::d2::point_xy<double> P;
         boost::geometry::model::linestring<P> line1, line2;
 
-        boost::geometry::read_wkt("linestring(1 1,2 2,3 3)", line1);
-        boost::geometry::read_wkt("linestring(2 1,1 2,4 0)", line2);
+        read_wkt("linestring(1 1,2 2,3 3)", line1);
+        read_wkt("linestring(2 1,1 2,4 0)", line2);
 
         bool b = boost::geometry::intersects(line1, line2);
 

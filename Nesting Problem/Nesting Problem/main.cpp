@@ -31,8 +31,8 @@ public:
     }
     double run(){
         cout<<"success"<<endl;
-//        data_assistant->readCSV();
-        plt_func->pltTest();
+        data_assistant->test();
+//        plt_func->pltTest();
 //        geo_func->getIntersection();
 //        geo_func->polysUnion();
         return 0.0;
@@ -44,7 +44,6 @@ int main(int argc, const char * argv[]) {
     LPSearch *lp;
     lp=new LPSearch();
     lp->run();
-    
     
 
     return 0;
