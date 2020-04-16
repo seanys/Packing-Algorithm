@@ -8,11 +8,11 @@ def sovleLP(a,b,c,**kw):
     if '_type' in kw and kw['_type']=="compaction":
         '''Compaction约束效果'''
         for i in range(len(c)):
-            if i==0:
+            if i==len(c)-1:
                 all_var.append(LpVariable("z",0))
-            elif i%2==0:
-                all_var.append(LpVariable("y"+formatNum(i//2),0))
             elif i%2==1:
+                all_var.append(LpVariable("y"+formatNum(i//2),0))
+            elif i%2==0:
                 all_var.append(LpVariable("x"+formatNum(i//2+1),0))
     elif '_type' in kw and kw['_type']=="separation":
         '''Separation约束效果'''
@@ -47,6 +47,7 @@ def sovleLP(a,b,c,**kw):
     result=[]
     for i,v in enumerate(prob.variables()):
         result.append(v.varValue)
+        # print(v.name, "=", v.varValue)
         # if i>=144:
         #     print(v.name, "=", v.varValue)
     print("目标函数最小值 = ", value(prob.objective))
