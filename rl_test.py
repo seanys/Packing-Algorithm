@@ -26,7 +26,7 @@ def getAllNFP(data_source,save_name):
     p.close()
     p.join()
 
-def BLFwithSequence(test_path,width=760,seq_path=None,decrease=None,GA_algo=False):
+def BLFwithSequence(test_path,width=1500,seq_path=None,decrease=None,GA_algo=False):
     if seq_path!=None:
         f=open(seq_path,'r')
         seqs=f.readlines()
@@ -36,11 +36,12 @@ def BLFwithSequence(test_path,width=760,seq_path=None,decrease=None,GA_algo=Fals
     if GA_algo: p=Pool()
     multi_res=[]
     for i,line in enumerate(tqdm(data)):
+        if i>4:break
         polys_final=[]
         if seq_path!=None: # 指定序列
             seq=seqs[i].split(' ')
         else: # 随机序列
-            seq=[0,1,2,3,4,5,6,7,8,9]
+            seq=np.array(range(len(line)))
             np.random.shuffle(seq)
         for j in range(len(line)):
             if seq_path!=None:
@@ -50,10 +51,10 @@ def BLFwithSequence(test_path,width=760,seq_path=None,decrease=None,GA_algo=Fals
             polys_final.append(line[index])
         if decrease!=None: # 降序
             polys_final=GetBestSeq(width,polys_final,criteria=decrease).getDrease()            
-        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000_val/{}.csv'.format(i))
+        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/blaz2_val/{}.csv'.format(i))
         if GA_algo==True: # 遗传算法
             polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
-            multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
+            multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst,50,10)))
         else:
             blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
             height.append(blf.getLength())
@@ -65,27 +66,27 @@ def BLFwithSequence(test_path,width=760,seq_path=None,decrease=None,GA_algo=Fals
     return height
 
 def getBenchmark(source,single=False):
-    random=BLFwithSequence(source)
-    if single:  print('random',random)
-    else:
-        random=np.array(random)
-        np.savetxt('random.CSV',random)
-        print('random...OK')
+    # random=BLFwithSequence(source)
+    # if single:  print('random',random)
+    # else:
+    #     random=np.array(random)
+    #     np.savetxt('random.CSV',random)
+    #     print('random...OK')
 
-    for criteria in ['area','length','height']:
-        decrease=BLFwithSequence(source,decrease=criteria)
-        if single:  print(criteria,decrease)
-        else:
-            decrease=np.array(decrease)
-            np.savetxt('{}.CSV'.format(criteria),decrease)
-            print('{}...OK'.format(criteria))
+    # for criteria in ['area','length','height']:
+    #     decrease=BLFwithSequence(source,decrease=criteria)
+    #     if single:  print(criteria,decrease)
+    #     else:
+    #         decrease=np.array(decrease)
+    #         np.savetxt('{}.CSV'.format(criteria),decrease)
+    #         print('{}...OK'.format(criteria))
 
     # predict=BLFwithSequence(source,seq_path='outputs/0406/fu1500/sequence-0.csv')
     # predict=np.array(predict)
     # np.savetxt('predict.CSV',predict)
     # print('predict...OK')
 
-    ga=BLFwithSequence(source,decrease='length',GA_algo=True)
+    ga=BLFwithSequence(source,decrease=None,GA_algo=True)
     if single:  print('GA',ga)
     else:
         ga=np.array(ga)
@@ -284,7 +285,7 @@ class GenerateData_vector(object):
         vectors=[]
         for i in tqdm(range(size)):
             # if np.random.random()<0.5:
-            polys=getData()
+            polys=getData(3)
             # else:
             #     polys=GenerateData_vector.generatePolygon(10,8)
             data.append(polys)
@@ -395,11 +396,11 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
     #print(GenerateData_vector.generateData_fu(5))
-    #getAllNFP('fu1000_xy.npy','fu1000')
-    #GenerateData_vector.generateTestData('fu1000_val',500)
-    GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
+    #getAllNFP('blaz2_val_xy.npy','blaz2_val')
+    #GenerateData_vector.generateTestData('blaz2_val',1)
+    #GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
     #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
     #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
-    #getBenchmark('fu1000_val_xy.npy')
+    getBenchmark('blaz2_val_xy.npy',single=True)
     end=time.time()
     print(end-start)

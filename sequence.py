@@ -16,7 +16,7 @@ class GA(object):
     '''
     参考文献：A 2-exchange heuristic for nesting problems 2002
     '''
-    def __init__(self,width,poly_list,nfp_asst=None):
+    def __init__(self,width,poly_list,nfp_asst=None,generations=50,pop_size=20):
         self.width=width
         self.minimal_rotation=360 # 最小的旋转角度
         self.poly_list=poly_list
@@ -27,8 +27,8 @@ class GA(object):
 
         self.elite_size=10 # 每一代选择个数
         self.mutate_rate=0.1 # 变异概率
-        self.generations=50 # 代数
-        self.pop_size=20 # 每一代的个数
+        self.generations=generations # 代数
+        self.pop_size=pop_size # 每一代的个数
 
         self.history_index_list=[]
         self.history_length_list=[]
@@ -39,7 +39,7 @@ class GA(object):
             self.NFPAssistant=NFPAssistant(PolyListProcessor.getPolysVertices(poly_list),get_all_nfp=True)
 
         self.geneticAlgorithm()
-    
+        # self.plotRecord()
     # GA算法核心步骤
     def geneticAlgorithm(self):
         self.pop = [] # 种群记录
@@ -56,7 +56,7 @@ class GA(object):
 
         # 持续获得下一代
         for i in range(0, self.generations):
-            print("############################计算第",i+1,"代#######################################")
+            # print("############################计算第",i+1,"代#######################################")
             self.getLengthRanked() # 高度排列
             self.getNextGeneration() # 获得下一代
 
@@ -66,7 +66,7 @@ class GA(object):
                 self.global_lowest_length=self.fitness_ranked[0][1]
                 self.global_best_sequence=self.pop[self.fitness_ranked[0][0]]
             self.lowest_length_record.append(self.global_lowest_length)
-            print(self.global_lowest_length)
+            # print(self.global_lowest_length)
 
         # print("Final length: " + str(self.global_lowest_length))
 
