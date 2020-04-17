@@ -25,7 +25,13 @@ struct PolysArrange{
 };
 
 // NFP的存储对象——两两组合，四个方向
-
+struct AllNFP{
+    vector<vector<vector<double>>> polys; // 所有形状的情况
+    vector<vector<double>> polys_position; // 所有形状的顶点位置
+    vector<double> polys_orientation; // 所有形状的方向
+    double width;
+    double total_area;
+};
 
 // 输出数组的函数集合
 class ProcessFunc{

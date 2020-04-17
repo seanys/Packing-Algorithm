@@ -22,8 +22,6 @@
 using namespace std;
 using namespace x2struct;
 
-
-
 class DataAssistant{
 public:
     void test(){
@@ -78,11 +76,31 @@ public:
     }
 };
 
-class WriterAssistant{
+class NFPAssistant{
+protected:
+    csv::Reader read_result;
+    int poly_num;
+    int orientation_num;
 public:
     /*
-     写入CSV
+     预加载全部的NFP
      */
+    NFPAssistant(string _path,int poly_num,int orientation_num){
+        read_result.read(_path);
+        
+//        auto this->all_rows= read_result.rows();
+    };
+    /*
+     读取NFP的确定行数
+     */
+    static void getNFP(int i,int j){
+//        int row=
+    };
+};
+
+class WriterAssistant{
+public:
+    // 写入CSV
     static void writeCSV(){
         csv::Writer foo("/Users/sean/Documents/Projects/Packing-Algorithm/record/test.csv");
         foo.configure_dialect()
@@ -96,5 +114,5 @@ public:
               {"a", "7"}, {"b", "8"}, {"c", "9"} });
         }
         foo.close();
-    };
-}
+    }
+};

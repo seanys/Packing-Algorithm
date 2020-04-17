@@ -14,6 +14,12 @@ EURO Dataset：https://www.euro-online.org/websites/esicup/data-sets/#1535972088
 
 ## 算法实现情况
 
+### 版本
+
+Python：https://github.com/seanys/Packing-Algorithm
+
+C++：https://github.com/seanys/Packing-Algorithm/tree/master/Nesting%20Problem
+
 ### 基础算法
 
 - [x] **No-fit Polygon**：基本实现，Start Point的部分暂未实现，参考论文 Burke E K , Hellier R S R , Kendall G , et al. Complete and Robust No-Fit Polygon Generation for the Irregular Stock Cutting Problem[J]. European Journal of Operational Research, 2007, 179(1):27-49.

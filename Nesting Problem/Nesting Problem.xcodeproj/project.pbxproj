@@ -29,7 +29,6 @@
 		14BE2F852444ABB00049BA76 /* Nesting Problem */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Nesting Problem"; sourceTree = BUILT_PRODUCTS_DIR; };
 		14BE2F882444ABB00049BA76 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		14BE2F9A2445AB6A0049BA76 /* main.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = main.hpp; sourceTree = "<group>"; };
-		14BE2F9B2445AC060049BA76 /* tools */ = {isa = PBXFileReference; lastKnownFileType = folder; path = tools; sourceTree = "<group>"; };
 		14BE2F9E2445B0C80049BA76 /* data_assistant.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = data_assistant.cpp; sourceTree = "<group>"; };
 		14BE2FA02445B0D80049BA76 /* plot.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plot.cpp; sourceTree = "<group>"; };
 		14FFBA3C2445D336001C99D4 /* geometry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = geometry.cpp; sourceTree = "<group>"; };
@@ -49,7 +48,6 @@
 		14BE2F7C2444ABB00049BA76 = {
 			isa = PBXGroup;
 			children = (
-				14BE2F9B2445AC060049BA76 /* tools */,
 				14BE2F872444ABB00049BA76 /* Nesting Problem */,
 				14BE2F862444ABB00049BA76 /* Products */,
 			);

@@ -16,6 +16,14 @@
 
 using namespace std;
 
+class BLF{
+protected:
+    int polygons=0; // 输入形状可以考虑对应的序列
+public:
+    BLF(){
+        
+    }
+};
 
 class LPSearch{
 protected:
@@ -23,7 +31,6 @@ protected:
     int polygons; // 全部的形状
     vector<vector <double>> overlap; // 重叠情况
     PltFunc *plt_func;
-    GeoFunc *geo_func;
 public:
     LPSearch(){
         polygons=0;
@@ -31,7 +38,11 @@ public:
     }
     double run(){
         cout<<"success"<<endl;
-        data_assistant->test();
+        Polygon Poly;
+        vector<vector <double>> poly={{1, 2},{2,4},{0,5}};
+        GeometryProcess::convertPoly(poly,Poly);
+//        PolygonFunctions::polyBoundPoints();
+//        data_assistant->test();
 //        plt_func->pltTest();
 //        geo_func->getIntersection();
 //        geo_func->polysUnion();
