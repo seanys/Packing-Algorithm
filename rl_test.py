@@ -343,7 +343,6 @@ class GenerateData_vector(object):
         np.save(save_name,data_new)
 
 
-            
 class GetBestSeq(object):
     def __init__(self,width,polys,criteria='area'):
         self.polys=polys
