@@ -197,7 +197,7 @@ def reward(sample_solution, USE_CUDA=False):
                 sequence=sequences[:,index]
                 poly_new=train_preload.getPolysbySeq(real_id,sequence)
                 nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],real_id))
-                res.append(p.apply_async(getGA,args=(args['width'],poly_new,nfp_asst)))
+                res.append(p.apply_async(getBLF,args=(args['width'],poly_new,nfp_asst)))
             p.close()
             p.join()
             for index in range(batch_size):
@@ -209,7 +209,7 @@ def reward(sample_solution, USE_CUDA=False):
                 sequence=sequences[:,index]
                 poly_new=train_preload.getPolysbySeq(real_id,sequence)
                 nfp_asst=NFPAssistant(poly_new,load_history=True,history_path='record/{}/{}.csv'.format(args['run_name'],real_id))
-                result[index]=getGA(args['width'],poly_new,nfp_asst)
+                result[index]=getBLF(args['width'],poly_new,nfp_asst)
     else: # 验证时不开多进程
         sequence=sequences[:,0]
         real_id=val_dataset.getRealIndex(cur_batch)
