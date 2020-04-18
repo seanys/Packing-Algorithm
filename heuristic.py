@@ -23,6 +23,7 @@ class BottomLeftFill(object):
         self.choose_nfp=False
         self.width=width
         self.length=150000 # 代表长度
+        self.contain_length=2000
         self.polygons=original_polygons
         self.placeFirstPoly()
         self.NFPAssistant=None
@@ -42,6 +43,7 @@ class BottomLeftFill(object):
         for i in range(1,len(self.polygons)):
             # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
+        
         self.getLength()
         # self.showAll()
 
@@ -65,6 +67,12 @@ class BottomLeftFill(object):
                 nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
             else:
                 nfp=self.NFPAssistant.getDirectNFP(main,adjoin)
+                if len(nfp)<3:
+                    print('NFP failure, areas of polygons are:')
+                    self.showAll()
+                    for poly in main,adjoin:
+                        print(Polygon(poly).area)
+                    self.showPolys([main]+[adjoin])
             differ_region=differ_region.difference(Polygon(nfp))
 
         differ=GeoFunc.polyToArr(differ_region)
@@ -117,6 +125,12 @@ class BottomLeftFill(object):
         length=max(self.width,self.contain_length)
         # PltFunc.addLine([[self.width,0],[self.width,self.contain_height]],color="blue")
         PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width))    
+
+    def showPolys(self,polys):
+        for i in range(0,len(polys)):
+            PltFunc.addPolygon(polys[i])
+        length=max(self.width,self.contain_length)
+        PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width),minus=200)    
 
     def getLength(self):
         _max=0
