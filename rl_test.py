@@ -267,17 +267,21 @@ class GenerateData_vector(object):
             point_num=np.random.randint(3,max_point_num+1)
             angle=360/point_num # 根据边数划分角度区域
             theta_start=angle*np.random.random()
-            poly=[]
-            for j in range(point_num):
-                #theta=(theta_start+angle*j)*np.pi/180 # 在每个区域中取角度并转为弧度
-                theta_min=angle*j
-                theta_max=angle*(j+1)
-                theta=(theta_min+(theta_max-theta_min)*np.random.random())*np.pi/180
-                #max_r=min(np.math.fabs(500/np.math.cos(theta)),np.math.fabs(500/np.math.sin(theta)))
-                r=100+(200-100)*np.random.random()
-                x=r*np.math.cos(theta)
-                y=r*np.math.sin(theta)
-                poly.append([x,y])
+            polyCheck=False
+            while not polyCheck:
+                poly=[]
+                for j in range(point_num):
+                    #theta=(theta_start+angle*j)*np.pi/180 # 在每个区域中取角度并转为弧度
+                    theta_min=angle*j
+                    theta_max=angle*(j+1)
+                    theta=(theta_min+(theta_max-theta_min)*np.random.random())*np.pi/180
+                    #max_r=min(np.math.fabs(500/np.math.cos(theta)),np.math.fabs(500/np.math.sin(theta)))
+                    r=100+(200-100)*np.random.random()
+                    x=r*np.math.cos(theta)
+                    y=r*np.math.sin(theta)
+                    poly.append([x,y])
+                if Polygon(poly).area>10000: # 面积过小会导致无法计算NFP
+                    polyCheck=True
             polys.append(poly)
         return polys
     

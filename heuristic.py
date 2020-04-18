@@ -73,6 +73,7 @@ class BottomLeftFill(object):
                     for poly in main,adjoin:
                         print(Polygon(poly).area)
                     self.showPolys([main]+[adjoin])
+                    nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
             differ_region=differ_region.difference(Polygon(nfp))
 
         differ=GeoFunc.polyToArr(differ_region)
