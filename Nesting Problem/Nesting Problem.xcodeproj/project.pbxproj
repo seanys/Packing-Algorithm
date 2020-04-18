@@ -26,9 +26,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1426104E244AC16D00A2440D /* data_assistant.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = data_assistant.hpp; sourceTree = "<group>"; };
 		14BE2F852444ABB00049BA76 /* Nesting Problem */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Nesting Problem"; sourceTree = BUILT_PRODUCTS_DIR; };
 		14BE2F882444ABB00049BA76 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		14BE2F9A2445AB6A0049BA76 /* main.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = main.hpp; sourceTree = "<group>"; };
 		14BE2F9E2445B0C80049BA76 /* data_assistant.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = data_assistant.cpp; sourceTree = "<group>"; };
 		14BE2FA02445B0D80049BA76 /* plot.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plot.cpp; sourceTree = "<group>"; };
 		14FFBA3C2445D336001C99D4 /* geometry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = geometry.cpp; sourceTree = "<group>"; };
@@ -64,9 +64,9 @@
 		14BE2F872444ABB00049BA76 /* Nesting Problem */ = {
 			isa = PBXGroup;
 			children = (
+				1426104E244AC16D00A2440D /* data_assistant.hpp */,
 				14BE2FA02445B0D80049BA76 /* plot.cpp */,
 				14BE2F9E2445B0C80049BA76 /* data_assistant.cpp */,
-				14BE2F9A2445AB6A0049BA76 /* main.hpp */,
 				14BE2F882444ABB00049BA76 /* main.cpp */,
 				14FFBA3C2445D336001C99D4 /* geometry.cpp */,
 			);

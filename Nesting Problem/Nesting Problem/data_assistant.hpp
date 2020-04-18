@@ -1,40 +1,35 @@
 //
-//  main.pch
+//  data_assistant.hpp
 //  Nesting Problem
 //
-//  Created by 爱学习的兔子 on 2020/4/14.
+//  Created by Yang Shan on 2020/4/14.
 //  Copyright © 2020 Tongji SEM. All rights reserved.
-//
 
-
+#include <iostream>
+#include <string>
 #include <vector>
 #include <iterator>
-#include <iostream>
-#include <algorithm>
-#include <string>
 
 using namespace std;
 
+// 基础定义
+typedef vector<vector<double>> VectorPoints;
+
 // 形状排样的结果
 struct PolysArrange{
+    string name=""; // 该数据集的来源
+    int type_num=0; // 形状类别总数
+    int total_num=0; // 总形状数目
+    double width; // 宽度
+    double total_area; // 总面积
     vector<vector<vector<double>>> polys; // 所有形状的情况
+    vector<double> polys_type; // 形状对应的关系
     vector<vector<double>> polys_position; // 所有形状的顶点位置
     vector<double> polys_orientation; // 所有形状的方向
-    double width;
-    double total_area;
-};
-
-// NFP的存储对象——两两组合，四个方向
-struct AllNFP{
-    vector<vector<vector<double>>> polys; // 所有形状的情况
-    vector<vector<double>> polys_position; // 所有形状的顶点位置
-    vector<double> polys_orientation; // 所有形状的方向
-    double width;
-    double total_area;
 };
 
 // 输出数组的函数集合
-class ProcessFunc{
+class PrintAssistant{
 public:
     /*
     输出一维数组——泛型，暂时统一用double，比如Orientation

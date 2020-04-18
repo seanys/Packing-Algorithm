@@ -6,6 +6,7 @@
 //  Copyright © 2020 Tongji SEM. All rights reserved.
 //
 
+#include "data_assistant.cpp"
 #include <deque>
 #include <iostream>
 #include <boost/geometry.hpp>
@@ -32,6 +33,168 @@ typedef model::linestring<Point> LineString;
 //read_wkt(
 //    "POLYGON((4.0 -0.5 , 3.5 1.0 , 2.0 1.5 , 3.5 2.0 , 4.0 3.5 , 4.5 2.0 , 6.0 1.5 , 4.5 1.0 , 4.0 -0.5))", blue);
 
+// 包含处理函数
+class PackingAssistant{
+public:
+    /*
+     获得Inner Fit Rectangle
+     */
+    static void getIFR(VectorPoints polygon,double container_width,double container_length,VectorPoints &IFR){
+        // 初始参数，获得多边形特征
+        VectorPoints border_points;
+        getBorder(polygon,border_points);
+        double poly_width_left=border_points[3][0]-border_points[0][0];
+        double poly_width_right=border_points[2][0]-border_points[3][0];
+        double poly_height=border_points[3][1]-border_points[1][1];
+
+        // IFR具体计算（从左上角逆时针计算）
+        IFR.push_back({poly_width_left,container_width});
+        IFR.push_back({poly_width_left,poly_height});
+        IFR.push_back({container_length-poly_width_right,poly_height});
+        IFR.push_back({container_length-poly_width_right,container_width});
+    };
+    /*
+     移动某个多边形
+     */
+    static void slidePoly(VectorPoints &polygon,double delta_x,double delta_y){
+        for(int i=0;i<polygon.size();i++){
+            polygon[i][0]=polygon[i][0]+delta_x;
+            polygon[i][1]=polygon[i][1]+delta_y;
+        }
+    };
+    /*
+     移动多边形到某个位置（参考点）
+     */
+    static void slideToPosition(VectorPoints &polygon,vector<double> target_pt){
+        vector<double> refer_pt;
+        getReferPt(polygon,refer_pt);
+        double delta_x=target_pt[0]-refer_pt[0];
+        double delta_y=target_pt[1]-refer_pt[1];
+        for(int i=0;i<polygon.size();i++){
+            polygon[i][0]=polygon[i][0]+delta_x;
+            polygon[i][1]=polygon[i][1]+delta_y;
+        }
+    };
+    /*
+     获得多边形的所有的边界情况min_x min_y max_x max_y
+     */
+    static void getBound(VectorPoints polygon,vector<double> &bound){
+        VectorPoints border_points;
+        getBorder(polygon,border_points);
+        bound={border_points[0][0],border_points[1][1],border_points[2][0],border_points[3][1]};
+    };
+    /*
+     遍历获得一个多边形的最左侧点
+     */
+    static void getBottomLeft(VectorPoints polygon,vector<double> &bl_point){
+        bl_point={999999999,999999999};
+        for(auto point:polygon){
+            if(point[0]<bl_point[0] || (point[0]==bl_point[0]&&point[1]<bl_point[1]) ){
+                bl_point[0]=point[0];
+                bl_point[1]=point[1];
+            }
+        };
+    };
+    /*
+     仅仅获得参考点，是第一个Top位置
+     */
+    static void getReferPt(VectorPoints polygon,vector<double> &refer_pt){
+        refer_pt={0,-9999999999};
+        for(int i=0;i<polygon.size();i++){
+            if(polygon[i][1]>refer_pt[1]){
+                refer_pt[0]=polygon[i][0];
+                refer_pt[1]=polygon[i][1];
+            }
+        }
+    };
+    /*
+     仅仅获得底部位置（用于NFP计算），是第一个Bottom位置
+     */
+    static void getBottomPt(VectorPoints polygon,vector<double> &bottom_pt){
+        bottom_pt={0,9999999999};
+        for(int i=0;i<polygon.size();i++){
+            if(polygon[i][1]<bottom_pt[1]){
+                bottom_pt[0]=polygon[i][0];
+                bottom_pt[1]=polygon[i][1];
+            }
+        }
+    };
+    /*
+     获得多边形的边界四个点，border_points有left bottom right top四个点
+     暂时不考虑参考点，参考点统一逆时针旋转第一个最上方的点
+     */
+    static void getBorder(VectorPoints polygon,VectorPoints &border_points){
+        // 增加边界的几个点
+        border_points.push_back(vector<double>{9999999999,0});
+        border_points.push_back(vector<double>{0,999999999});
+        border_points.push_back(vector<double>{-999999999,0});
+        border_points.push_back(vector<double>{0,-999999999});
+        // 遍历所有的点，分别判断是否超出界限
+        for(auto point:polygon){
+            // 左侧点判断
+            if(point[0]<border_points[0][0]){
+                border_points[0][0]=point[0];
+                border_points[0][1]=point[1];
+            }
+            // 下侧点判断
+            if(point[1]<border_points[1][1]){
+                border_points[1][0]=point[0];
+                border_points[1][1]=point[1];
+            }
+            // 右侧点判断
+            if(point[0]>border_points[2][0]){
+                border_points[2][0]=point[0];
+                border_points[2][1]=point[1];
+            }
+            // 上侧点判断
+            if(point[1]>border_points[3][1]){
+                border_points[3][0]=point[0];
+                border_points[3][1]=point[1];
+            }
+        };
+    };
+};
+
+// 获得NFP
+class NFPAssistant{
+protected:
+    csv::Reader nfp_result;
+    int poly_num;
+    int orientation_num;
+    vector<VectorPoints> NPFs; // 存储全部的NFP，按行存储
+public:
+    /*
+     预加载全部的NFP，直接转化到NFP中
+     */
+    NFPAssistant(string _path,int poly_num,int orientation_num){
+        nfp_result.read(_path);
+        this->poly_num=poly_num;
+        this->orientation_num=orientation_num;
+        auto rows=nfp_result.rows();
+        while(nfp_result.busy()) {
+            if (nfp_result.ready()) {
+                auto row = nfp_result.next_row();
+                VectorPoints nfp;
+                cout<<row["new_poly_i"]<<endl;
+                DataAssistant::load2DVector(row["nfp"],nfp);
+                NPFs.push_back(nfp);
+            }
+        }
+    };
+    /*
+     读取NFP的确定行数，i为固定形状，j为非固定形状,oi/oj为形状
+     */
+    void getNFP(int i,int j, int oi, int oj, VectorPoints poly_j ,VectorPoints &nfp){
+        // 获得原始的NFP
+        int row_num= i*192+j*16+oi*4+oj;
+        VectorPoints original_nfp=NPFs[row_num];
+        // 将NFP移到目标位置
+        vector<double> bottom_pt;
+        PackingAssistant::getBottomPt(poly_j,bottom_pt);
+        PackingAssistant::slidePoly(nfp,bottom_pt[0],bottom_pt[1]);
+    }
+};
+
 
 //主要包含注册多边形、转化多边形
 class GeometryProcess{
@@ -49,152 +212,19 @@ public:
         wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][0])+"))";
         // 然后读取到Poly中
         read_wkt(wkt_poly, Poly);
-    }
-    
-};
-
-class PackingAssistant{
-public:
-    static void getIFR(){
-        
-    }
-};
-
-
-
-
-
-// 几何对象遍历的函数
-class GeometryFunctions{
-private:
-    string _type="slide";
-public:
-    PolygonFunctions(string opertor_type){
-        _type=opertor_type;
-    };
-    inline void operator()(Point& p){
-        if(_type=="slide"){
-            
-        }
-    };
-    
-};
-
-// 单个多边形处理
-class PolygonAssign{
-public:
-    /*
-     获得多边形的边界（x_min,x_max,y_min,y_max）
-     */
-    static void polyBound(){
-        polyBoundPoints(); // 获得边界点
-        
+        cout<<wkt(Poly)<<endl;
     };
     /*
-     平移多边形到目标位置（直接处理对象）
+     遍历形状的全部点——输出dvs格式
      */
-    static void slidePoly(){
-        Point point;
-
-        boost::geometry::set<0>(point, 1);
-        boost::geometry::set<1>(point, 2);
-
-        cout << "Location: " << dsv(point) << endl;
-    };
-    /*
-     遍历全部的点
-     */
-    template <typename Point>
-    static void traverseTest(Point const& pt){
-        cout<<get<0>(pt) <<","<<get<0>(pt) <<endl;
-    };
-    /*
-     获得边界的全部点
-     */
-    static void polyBoundPoints(){
-        Polygon poly;
-        read_wkt("POLYGON((0 0,0 4,4 0,0 0))", poly);
-//        cout<<dsv(get<0>(poly))<<endl;
-        for_each_point(poly, traverseTest<Point>);
-    };
-    /*
-     获得多边形的重心
-     */
-    static void polyCentroid(){
-        Polygon poly;
-        read_wkt(
-            "POLYGON((2 1.3,2.4 1.7,2.8 1.8,3.4 1.2,3.7 1.6,3.4 2,4.1 3,5.3 2.6,5.4 1.2,4.9 0.8,2.9 0.7,2 1.3)"
-                "(4.0 2.0, 4.2 1.4, 4.8 1.9, 4.4 2.2, 4.0 2.0))", poly);
-
-        Point p;
-        centroid(poly, p);
-        
-        // 输出dsv格式，也就是数组格式
-        cout << "centroid: " << dsv(p) << endl;
-
-    };
-    /*
-     判断是否为空
-     */
-    static bool isEmpty(){
-        model::multi_linestring <LineString> mls;
-        read_wkt("MULTILINESTRING((0 0,0 10,10 0),(1 1,8 1,1 8))", mls);
-        cout << "Is empty? " << (boost::geometry::is_empty(mls) ? "yes" : "no") << endl;
-        clear(mls);
-        cout << "Is empty (after clearing)? " << (boost::geometry::is_empty(mls) ? "yes" : "no") << endl;
-        return true;
-    };
-    /*
-     增加形状
-     */
-    static void addPoint(){
-        LineString line;
-        line.push_back(Point(0, 0));
-        line.push_back(Point(1, 1));
-
-//        cout<< dsv(line | boost::adaptors::reversed) << endl;
-    };
-    /*
-     注册一个有洞的多边形，后续带Start Point的需要计算
-     */
-    static void assignPolyWithHole(){
-//        typedef polygon::polygon_with_holes_data<int> polygon;
-//        typedef polygon::polygon_traits<polygon>::point_type point;
-//
-//        typedef boost::polygon::polygon_with_holes_traits<polygon>::hole_type hole;
-//
-//        point pts[5] = {
-//            boost::polygon::construct<Point>(0, 0),
-//            boost::polygon::construct<Point>(0, 10),
-//            boost::polygon::construct<Point>(10, 10),
-//            boost::polygon::construct<Point>(10, 0),
-//            boost::polygon::construct<Point>(0, 0)
-//        };
-//        point hole_pts[5] = {
-//            boost::polygon::construct<point>(1, 1),
-//            boost::polygon::construct<point>(9, 1),
-//            boost::polygon::construct<point>(9, 9),
-//            boost::polygon::construct<point>(1, 9),
-//            boost::polygon::construct<point>(1, 1)
-//        };
-//
-//        hole hls[1];
-//        boost::polygon::set_points(hls[0], hole_pts, hole_pts+5);
-//
-//        polygon poly;
-//        boost::polygon::set_points(poly, pts, pts+5);
-//        boost::polygon::set_holes(poly, hls, hls+1);
-//
-//        std::cout << "Area (using Boost.Geometry): "
-//            << boost::geometry::area(poly) << std::endl;
-//        std::cout << "Area (using Boost.Polygon): "
-//            << boost::polygon::area(poly) << std::endl;
+    static void travelPoints(Polygon poly){
+        cout<<dsv(poly)<<endl;
     }
 };
 
 
-// 计算多个多边形的关系
-class PolygonsAssistant{
+// 处理多个多边形的关系
+class PolygonsOperator{
 public:
     int getIntersection(){
         model::d2::point_xy<int> p1(1, 1), p2(2, 2);

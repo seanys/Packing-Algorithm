@@ -10,18 +10,36 @@
 #include <vector>
 #include <stdbool.h>
 #include <csv/reader.hpp>
-#include "data_assistant.cpp"
 #include "geometry.cpp"
 #include "plot.cpp"
 
-using namespace std;
 
 class BLF{
 protected:
     int polygons=0; // 输入形状可以考虑对应的序列
+    PolysArrange polys_arrange; // 形状的排样情况
+    NFPAssistant nfp_assistant=NFPAssistant("/Users/sean/Documents/Projects/Data/fu.csv",polys_arrange.type_num,4);
 public:
     BLF(){
-        
+        DataAssistant::readData(polys_arrange); // 加载数据
+//        memcpy(&initial_arrange, &arrange_result, sizeof(initial_arrange)); // 复制到排样结果
+//        arrange_result.polys={}; // 需要定义为空
+    };
+    void run(){
+        placeFirstPoly();
+        for(int j=1;j<polys_arrange.total_num;j++){
+            placeNextPoly(j);
+        }
+    };
+    void placeFirstPoly(){
+        VectorPoints IFR;
+        PackingAssistant::getIFR(polys_arrange.polys[0], polys_arrange.width, 99999999, IFR);
+        PackingAssistant::slideToPosition(polys_arrange.polys[0], IFR[1]);
+    };
+    void placeNextPoly(int j){
+        for(int i=0;i<j;i++){
+            
+        };
     }
 };
 
@@ -39,8 +57,11 @@ public:
     double run(){
         cout<<"success"<<endl;
         Polygon Poly;
-        vector<vector <double>> poly={{1, 2},{2,4},{0,5}};
-        GeometryProcess::convertPoly(poly,Poly);
+        VectorPoints poly={{1, 2},{2,4},{0,5}};
+//        GeometryProcess::convertPoly(poly,Poly);
+        
+        VectorPoints border_points;
+        PackingAssistant::getBorder(poly,border_points);
 //        PolygonFunctions::polyBoundPoints();
 //        data_assistant->test();
 //        plt_func->pltTest();
@@ -52,10 +73,13 @@ public:
 
 int main(int argc, const char * argv[]) {
     std::cout << "Hello, World!\n";
-    LPSearch *lp;
-    lp=new LPSearch();
-    lp->run();
+//    LPSearch *lp;
+//    lp=new LPSearch();
+//    lp->run();
     
+    BLF *blf;
+    blf=new BLF();
+    blf->run();
 
     return 0;
 }
