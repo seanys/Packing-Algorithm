@@ -269,7 +269,6 @@ class TOPOS(object):
 
     
 if __name__=='__main__':
-    starttime = datetime.datetime.now()
     # polys=getConvex(num=5)
     polys=getData()
     # poly_list=PolyListProcessor.getPolyObjectList(polys,[0])
@@ -279,6 +278,7 @@ if __name__=='__main__':
     # print(datetime.datetime.now(),"开始计算NFP")
     nfp_ass=packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
     # print(datetime.datetime.now(),"计算完成NFP")
+    starttime = datetime.datetime.now()
     bfl=BottomLeftFill(1500,polys,vertical=False,NFPAssistant=nfp_ass)
     
     # print(datetime.datetime.now(),"计算完成BLF")
