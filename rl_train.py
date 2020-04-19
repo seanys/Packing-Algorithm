@@ -77,7 +77,6 @@ class PolygonsDataset(Dataset):
         np.random.shuffle(self.shuffle)
         # print('Shuffled:', self.shuffle)
 
-
 """class BottomLeftFillThread (threading.Thread):
     # 多线程和多进程一起用会报错 已弃用
     def __init__(self, threadID, width, poly):
@@ -167,8 +166,9 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
+    #blf.showAll()
     return blf.getLength()
-
+        
 def getGA(width,poly,nfp_asst,generations=10):
     polys_GA=PolyListProcessor.getPolyObjectList(poly,[0])
     ga=GA(width,polys_GA,nfp_asst=nfp_asst,generations=generations,pop_size=10)
@@ -188,7 +188,7 @@ def reward(sample_solution, USE_CUDA=False):
         sequences.append(sample.numpy())
     sequences=np.array(sequences)
     if trainning:
-        if batch_size>20:
+        if batch_size>2:
             p=Pool() # 多进程计算BLF
             res=[]
             for index in range(batch_size):
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     parser.add_argument('--task', default='0417', help='')
     parser.add_argument('--run_name', type=str, default='oct10000')
     parser.add_argument('--val_name', type=str, default='fu1000')
-    parser.add_argument('--train_size', default=5206, help='')
+    parser.add_argument('--train_size', default=9996, help='')
     parser.add_argument('--val_size', default=500, help='')
     parser.add_argument('--is_train', type=str2bool, default=True, help='')
 
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=16, help='')
     parser.add_argument('--actor_net_lr', default=1.5e-4, help="Set the learning rate for the actor network")
     parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=2500, help='')
+    parser.add_argument('--actor_lr_decay_step', default=5000, help='')
     parser.add_argument('--critic_lr_decay_step', default=5000, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')

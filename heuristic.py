@@ -73,6 +73,7 @@ class BottomLeftFill(object):
                     for poly in main,adjoin:
                         print(Polygon(poly).area)
                     self.showPolys([main]+[adjoin])
+                    print('NFP loaded from: ',self.NFPAssistant.history_path)
                     nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
             differ_region=differ_region.difference(Polygon(nfp))
 
@@ -125,7 +126,7 @@ class BottomLeftFill(object):
             PltFunc.addPolygon(self.polygons[i])
         length=max(self.width,self.contain_length)
         # PltFunc.addLine([[self.width,0],[self.width,self.contain_height]],color="blue")
-        PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width))    
+        PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width),minus=100)    
 
     def showPolys(self,polys):
         for i in range(0,len(polys)):

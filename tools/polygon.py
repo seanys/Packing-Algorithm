@@ -517,7 +517,10 @@ class PltFunc(object):
     def showPlt(**kw):
         if len(kw)>0:
             if "minus" in kw:
+                plt.axhline(y=0,c="blue")
+                plt.axvline(x=0,c="blue")
                 plt.axis([-kw["minus"],kw["width"],-kw["minus"],kw["height"]])
+                
             else:
                 plt.axis([0,kw["width"],0,kw["height"]])
         else:
