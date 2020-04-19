@@ -122,6 +122,15 @@ public:
     static void load3DVector(string str,vector<vector<vector<T>>> &vec){
         str.erase(remove(str.begin(), str.end(), '\"'), str.end());
         X::loadjson(str, vec, false);
+    };
+    /*
+     List数组的增长
+     */
+    template <typename T>
+    static void appendList(list<T> &old_list,list<T> &new_list){
+        for(auto item:new_list){
+            old_list.push_back(item);
+        }
     }
 };
 

@@ -25,7 +25,6 @@ typedef model::d2::point_xy<double> Point;
 typedef model::polygon<Point> Polygon;
 typedef model::linestring<Point> LineString;
 
-
 //read_wkt(
 //    "POLYGON((2 1.3,2.4 1.7,2.8 1.8,3.4 1.2,3.7 1.6,3.4 2,4.1 3,5.3 2.6,5.4 1.2,4.9 0.8,2.9 0.7,2 1.3)"
 //        "(4.0 2.0, 4.2 1.4, 4.8 1.9, 4.4 2.2, 4.0 2.0))", green);
@@ -167,17 +166,19 @@ public:
      预加载全部的NFP，直接转化到NFP中
      */
     NFPAssistant(string _path,int poly_num,int orientation_num){
-        nfp_result.read(_path);
+//        nfp_result.read(_path);
+        nfp_result.read("/Users/sean/Documents/Projects/Data/fu.csv");
         this->poly_num=poly_num;
         this->orientation_num=orientation_num;
-        auto rows=nfp_result.rows();
+        cout<<"加载全部NFP"<<endl;
         while(nfp_result.busy()) {
             if (nfp_result.ready()) {
                 auto row = nfp_result.next_row();
                 VectorPoints nfp;
-                cout<<row["new_poly_i"]<<endl;
-                DataAssistant::load2DVector(row["nfp"],nfp);
-                NPFs.push_back(nfp);
+                if(row["nfp"]!=""){
+                    DataAssistant::load2DVector(row["nfp"],nfp);
+                    NPFs.push_back(nfp);
+                }
             }
         }
     };
@@ -187,7 +188,7 @@ public:
     void getNFP(int i,int j, int oi, int oj, VectorPoints poly_j ,VectorPoints &nfp){
         // 获得原始的NFP
         int row_num= i*192+j*16+oi*4+oj;
-        VectorPoints original_nfp=NPFs[row_num];
+        nfp=NPFs[row_num];
         // 将NFP移到目标位置
         vector<double> bottom_pt;
         PackingAssistant::getBottomPt(poly_j,bottom_pt);
@@ -195,6 +196,21 @@ public:
     }
 };
 
+// 封装获得全部点的函数
+template <typename Point>
+class AllPoint{
+private :
+    VectorPoints *temp_all_points;
+public :
+    AllPoint(VectorPoints *all_points){
+        temp_all_points=all_points;
+    };
+    inline void operator()(Point& pt)
+    {
+        vector<double> new_pt={get<0>(pt),get<1>(pt)};
+        (*temp_all_points).push_back(new_pt);
+    }
+};
 
 //主要包含注册多边形、转化多边形
 class GeometryProcess{
@@ -202,30 +218,58 @@ public:
     /*
      数组转化为多边形
      */
-    static void convertPoly(vector<vector<double>> poly, Polygon Poly){
+    static void convertPoly(vector<vector<double>> poly, Polygon &Poly){
         // 首先全部转化为wkt格式
         string wkt_poly="POLYGON((";
         for (int i = 0; i < poly.size();i++)
         {
-            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][0])+",";
+            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1])+",";
         };
-        wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][0])+"))";
+        wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1])+"))";
         // 然后读取到Poly中
         read_wkt(wkt_poly, Poly);
-        cout<<wkt(Poly)<<endl;
     };
     /*
-     遍历形状的全部点——输出dvs格式
+     通过for each point遍历
      */
-    static void travelPoints(Polygon poly){
-        cout<<dsv(poly)<<endl;
+    static void getAllPoints(list<Polygon> all_polys,VectorPoints &all_points){
+        for(auto poly:all_polys){
+            VectorPoints temp_points;
+            getGemotryPoints(poly,temp_points);
+            all_points.insert(all_points.end(),temp_points.begin(),temp_points.end());
+        }
+    };
+    static void getGemotryPoints(Polygon poly,VectorPoints &temp_points){
+        for_each_point(poly, AllPoint<Point>(&temp_points));
     }
 };
-
 
 // 处理多个多边形的关系
 class PolygonsOperator{
 public:
+    // 计算多边形的差集合
+    static void polysDifference(list<Polygon> &feasible_region, Polygon nfp_poly){
+        // 逐一遍历求解重叠
+        list<Polygon> new_feasible_region;
+        for(auto region_item:feasible_region){
+            // 计算差集
+            list<Polygon> output;
+            cout<<endl<<"region_item:"<<wkt(region_item)<<endl;
+            cout<<"nfp_poly:"<<wkt(nfp_poly)<<endl<<endl;
+            cout<<endl<<"region_item:"<<dsv(region_item)<<endl;
+            cout<<"nfp_poly:"<<dsv(nfp_poly)<<endl<<endl;
+
+            intersection(region_item, nfp_poly, output);
+            DataAssistant::appendList(new_feasible_region,output);
+            for(auto item:output){
+                cout<<"output:"<<dsv(item)<<endl;
+            };
+        };
+        // 将新的Output全部输入进去
+        feasible_region.clear();
+        copy(new_feasible_region.begin(), new_feasible_region.end(), back_inserter(feasible_region));
+    }
+    // 获得两条直线的交点
     int getIntersection(){
         model::d2::point_xy<int> p1(1, 1), p2(2, 2);
         cout << "Distance p1-p2 is: " << distance(p1, p2) << endl;
@@ -272,31 +316,5 @@ public:
         {
             cout << i++ << ": " << area(p) << endl;
         }
-    }
-    // 计算多边形的差集合
-    void polysDifference(){
-        // 测试基础
-        Polygon green, blue;
-
-        list<Polygon> output;
-        difference(green, blue, output);
-
-        int i = 0;
-        cout << "green - blue:" << endl;
-        BOOST_FOREACH(Polygon const& p, output)
-        {
-            std::cout << i++ << ": " << area(p) << std::endl;
-        }
-
-        output.clear();
-        difference(blue, green, output);
-
-        i = 0;
-        cout << "blue - green:" << endl;
-        BOOST_FOREACH(Polygon const& p, output)
-        {
-            std::cout << i++ << ": " << boost::geometry::area(p) << std::endl;
-        }
-
     }
 };

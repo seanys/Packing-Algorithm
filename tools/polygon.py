@@ -949,5 +949,10 @@ def getConvex(**kw):
     return polygons
 
 if __name__ == '__main__':
-    tryNFP()
+    # tryNFP()
     # polygonFuncCheck()
+    PltFunc.addPolygonColor(((480, 200), (480, 380), (200, 380), (200, 760), (1e+08, 760), (1e+08, 200), (480, 200)))
+    PltFunc.addPolygon(((480, 580), (200, 580), (200, 760), (1000, 760), (1000, 200), (480, 200), (480, 580)))
+
+    PltFunc.addPolygon(((0, 200), (480, 200), (480, 580), (0, 580), (0, 200)))
+    PltFunc.showPlt()
