@@ -42,15 +42,16 @@ public:
         // 初始参数，获得多边形特征
         VectorPoints border_points;
         getBorder(polygon,border_points);
+                
         double poly_width_left=border_points[3][0]-border_points[0][0];
         double poly_width_right=border_points[2][0]-border_points[3][0];
         double poly_height=border_points[3][1]-border_points[1][1];
 
-        // IFR具体计算（从左上角逆时针计算）
+        // IFR具体计算（从左上角顺时针计算）
         IFR.push_back({poly_width_left,container_width});
-        IFR.push_back({poly_width_left,poly_height});
-        IFR.push_back({container_length-poly_width_right,poly_height});
         IFR.push_back({container_length-poly_width_right,container_width});
+        IFR.push_back({container_length-poly_width_right,poly_height});
+        IFR.push_back({poly_width_left,poly_height});
     };
     /*
      移动某个多边形
@@ -95,11 +96,12 @@ public:
         };
     };
     /*
-     仅仅获得参考点，是第一个Top位置
+     仅仅获得参考点，是第一个Top位置，需要逆时针处理（NFP为逆时针）
      */
     static void getReferPt(VectorPoints polygon,vector<double> &refer_pt){
         refer_pt={0,-9999999999};
-        for(int i=0;i<polygon.size();i++){
+        int poly_size=(int)polygon.size();
+        for(int i=poly_size-1;i>=0;i--){
             if(polygon[i][1]>refer_pt[1]){
                 refer_pt[0]=polygon[i][0];
                 refer_pt[1]=polygon[i][1];
@@ -107,11 +109,12 @@ public:
         }
     };
     /*
-     仅仅获得底部位置（用于NFP计算），是第一个Bottom位置
+     仅仅获得底部位置（用于NFP计算），是第一个Bottom位置，需要逆时针处理
      */
     static void getBottomPt(VectorPoints polygon,vector<double> &bottom_pt){
         bottom_pt={0,9999999999};
-        for(int i=0;i<polygon.size();i++){
+        int poly_size=(int)polygon.size();
+        for(int i=poly_size-1;i>=0;i--){
             if(polygon[i][1]<bottom_pt[1]){
                 bottom_pt[0]=polygon[i][0];
                 bottom_pt[1]=polygon[i][1];
@@ -129,26 +132,27 @@ public:
         border_points.push_back(vector<double>{-999999999,0});
         border_points.push_back(vector<double>{0,-999999999});
         // 遍历所有的点，分别判断是否超出界限
-        for(auto point:polygon){
+        int poly_size=(int)polygon.size();
+        for(int i=poly_size-1;i>=0;i--){
             // 左侧点判断
-            if(point[0]<border_points[0][0]){
-                border_points[0][0]=point[0];
-                border_points[0][1]=point[1];
+            if(polygon[i][0]<border_points[0][0]){
+                border_points[0][0]=polygon[i][0];
+                border_points[0][1]=polygon[i][1];
             }
             // 下侧点判断
-            if(point[1]<border_points[1][1]){
-                border_points[1][0]=point[0];
-                border_points[1][1]=point[1];
+            if(polygon[i][1]<border_points[1][1]){
+                border_points[1][0]=polygon[i][0];
+                border_points[1][1]=polygon[i][1];
             }
             // 右侧点判断
-            if(point[0]>border_points[2][0]){
-                border_points[2][0]=point[0];
-                border_points[2][1]=point[1];
+            if(polygon[i][0]>border_points[2][0]){
+                border_points[2][0]=polygon[i][0];
+                border_points[2][1]=polygon[i][1];
             }
             // 上侧点判断
-            if(point[1]>border_points[3][1]){
-                border_points[3][0]=point[0];
-                border_points[3][1]=point[1];
+            if(polygon[i][1]>border_points[3][1]){
+                border_points[3][0]=polygon[i][0];
+                border_points[3][1]=polygon[i][1];
             }
         };
     };
@@ -166,8 +170,8 @@ public:
      预加载全部的NFP，直接转化到NFP中
      */
     NFPAssistant(string _path,int poly_num,int orientation_num){
-//        nfp_result.read(_path);
-        nfp_result.read("/Users/sean/Documents/Projects/Data/fu.csv");
+        nfp_result.read(_path);
+//        nfp_result.read("/Users/sean/Documents/Projects/Data/fu.csv");
         this->poly_num=poly_num;
         this->orientation_num=orientation_num;
         cout<<"加载全部NFP"<<endl;
@@ -254,16 +258,14 @@ public:
         for(auto region_item:feasible_region){
             // 计算差集
             list<Polygon> output;
-            cout<<endl<<"region_item:"<<wkt(region_item)<<endl;
-            cout<<"nfp_poly:"<<wkt(nfp_poly)<<endl<<endl;
-            cout<<endl<<"region_item:"<<dsv(region_item)<<endl;
-            cout<<"nfp_poly:"<<dsv(nfp_poly)<<endl<<endl;
+//            cout<<endl<<"region_item:"<<dsv(region_item)<<endl;
+//            cout<<"nfp_poly:"<<dsv(nfp_poly)<<endl<<endl;
 
-            intersection(region_item, nfp_poly, output);
+            difference(region_item, nfp_poly, output);
             DataAssistant::appendList(new_feasible_region,output);
-            for(auto item:output){
-                cout<<"output:"<<dsv(item)<<endl;
-            };
+//            for(auto item:output){
+//                cout<<"output:"<<dsv(item)<<endl;
+//            };
         };
         // 将新的Output全部输入进去
         feasible_region.clear();

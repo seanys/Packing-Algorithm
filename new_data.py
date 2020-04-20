@@ -177,6 +177,42 @@ class Clustering(object):
     def __init__(self):
         pass
 
+class ReverseFunction(object):
+    def __init__(self):
+        self.main()
+
+    def main(self):
+        fu = pd.read_csv("/Users/sean/Documents/Projects/Data/fu.csv")
+        _len= fu.shape[0]
+        
+        for i in range(_len):
+            # polygon=json.loads(fu["polygon"][i])
+            # clock_polygon=self.getReverse(polygon)
+            nfp=self.getReverse(json.loads(fu["nfp"][i]))
+            new_poly_i=self.getReverse(json.loads(fu["new_poly_i"][i]))
+            new_poly_j=self.getReverse(json.loads(fu["new_poly_j"][i]))
+            with open("/Users/sean/Documents/Projects/Data/fu_clock.csv","a+") as csvfile:
+                writer = csv.writer(csvfile)
+                # writer.writerows([[fu["num"][i],polygon,clock_polygon]])
+                writer.writerows([[fu["i"][i],fu["j"][i],fu["oi"][i],fu["oj"][i],new_poly_i,new_poly_j,nfp]])
+
+    def getReverse(self,polys):
+        i=len(polys)-1
+        new_polys=[]
+        while(i>=0):
+            new_polys.append(polys[i])
+            i=i-1
+        return new_polys
+
+def testCPlusResult():
+    fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/c_test.csv")
+    _len= fu.shape[0]
+    for i in range(_len):
+        PltFunc.addPolygon(json.loads(fu["polygon"][i]))
+    PltFunc.showPlt()
+
 if __name__ == '__main__':
     # initialResult(getData())
-    print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
+    # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
+    # ReverseFunction()
+    testCPlusResult()

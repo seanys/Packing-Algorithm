@@ -53,7 +53,7 @@ public:
                 for(int i=0;i<poly_num;i++){
                     // 加载形状（暂时每个都加载）
                     vector<vector<double>> new_poly;
-                    load2DVector(row["polygon"],new_poly);
+                    load2DVector(row["clock_polygon"],new_poly);
                     normData(&new_poly, 20);
                     // 修改对应性质
                     polys_arrange.polys.push_back(new_poly);

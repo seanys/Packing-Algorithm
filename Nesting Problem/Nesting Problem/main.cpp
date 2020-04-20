@@ -22,25 +22,19 @@ protected:
 public:
     BLF(){
         DataAssistant::readData(polys_arrange); // 加载数据
-        nfp_assistant=new NFPAssistant("/Users/sean/Documents/Projects/Data/fu.csv",polys_arrange.type_num,4);
+        nfp_assistant=new NFPAssistant("/Users/sean/Documents/Projects/Data/fu_clock.csv",polys_arrange.type_num,4);
         
     };
     void run(){
-        Polygon poly1,poly2;
-        read_wkt("POLYGON((480 200,480 380,200 380,200 760,1000 760,1000 200,480 200))", poly1);
-        read_wkt("POLYGON((0 200,480 200,480 580,0 580,0 200))", poly2);
-        list<Polygon> output;
-        boost::geometry::intersection(poly1, poly2, output);
-        for(auto item:output){
-            cout<<"output:"<<dsv(item)<<endl;
-        };
 //        clock_t start,end;
 //        start=clock();
 
-//        placeFirstPoly();
-//        for(int j=1;j<3;j++){
-//            placeNextPoly(j);
-//        }
+        placeFirstPoly();
+        int _max=polys_arrange.polys.size();
+//        int _max=3;
+        for(int j=1;j<_max;j++){
+            placeNextPoly(j);
+        }
         
 //        end=clock();
 //
@@ -50,18 +44,18 @@ public:
     void placeFirstPoly(){
         VectorPoints ifr;
         PackingAssistant::getIFR(polys_arrange.polys[0], polys_arrange.width, 99999999, ifr);
-        PackingAssistant::slideToPosition(polys_arrange.polys[0], ifr[1]);
+        PackingAssistant::slideToPosition(polys_arrange.polys[0], ifr[3]);
         PrintAssistant::print2DVector(polys_arrange.polys[0], true);
     };
     void placeNextPoly(int j){
         // 获得IFR
         VectorPoints ifr;
-        PackingAssistant::getIFR(polys_arrange.polys[0], polys_arrange.width, 99999999, ifr);
+        PackingAssistant::getIFR(polys_arrange.polys[j], polys_arrange.width, 99999999, ifr);
         // IFR转Polygon并计算差集
         Polygon IFR;
         GeometryProcess::convertPoly(ifr,IFR);
         list<Polygon> feasible_region={IFR};
-        cout<<endl<<"IFR:"<<dsv(IFR)<<endl;
+//        cout<<endl<<"IFR:"<<dsv(IFR)<<endl;
         // 逐一计算
         for(int i=0;i<j;i++){
             // 初步处理NFP多边形

@@ -37,12 +37,14 @@ public:
     template <typename T>
     static void print1DVector (vector<T> &vec, bool with_endle)
     {
-        vector<double>::iterator ite = vec.begin();
         cout<<"[";
-        for (; ite != vec.end(); ite++){
-            cout << *ite << ",";
+        for (int i=0;i<vec.size();i++){
+            cout<<vec[i];
+            if(i<(int)vec.size()-1){
+                cout<<",";
+            }
         }
-        cout<<"],";
+        cout<<"]";
         if(with_endle==true){
             cout<<endl;
         }
@@ -53,12 +55,14 @@ public:
     template <typename T>
     static void print2DVector (vector<vector<T>> &vec,bool with_endle)
     {
-        vector<vector<double>>::iterator ite = vec.begin();
-        cout<<"[";
-        for (; ite != vec.end(); ite++){
-            print1DVector(*ite,false);
+        cout<<"\"[";
+        for (int i=0;i<vec.size();i++){
+            print1DVector(vec[i],false);
+            if(i<(int)vec.size()-1){
+                cout<<",";
+            }
         }
-        cout<<"]";
+        cout<<"]\"";
         if(with_endle==true){
             cout<<endl;
         }
@@ -69,10 +73,9 @@ public:
     template <typename T>
     static void print3DVector (vector<vector<vector<T>>> &vec,bool with_endle)
     {
-        vector<vector<vector <double>>>::iterator ite = vec.begin();
         cout<<"[";
-        for (; ite != vec.end(); ite++){
-            print2DVector(*ite,false);
+        for (int i=0;i<vec.size();i++){
+            print2DVector(vec[i],false);
         }
         cout<<"]";
         if(with_endle==true){
