@@ -566,7 +566,7 @@ class NeuralCombOptRL(nn.Module):
                 beam_size,
                 use_cuda)
         
-        #self.critic_net = CriticNetwork(
+        # self.critic_net = CriticNetwork(
         #        embedding_dim,
         #        hidden_dim,
         #        n_process_block_iters,
@@ -637,10 +637,10 @@ class NeuralCombOptRL(nn.Module):
 
         # get the critic value fn estimates for the baseline
         # [batch_size]
-        #v = self.critic_net(embedded_inputs)
+        # v = self.critic_net(embedded_inputs)
     
         # [batch_size]
         R = self.objective_fn(action_idxs, self.use_cuda)
 
-        #return R, v, probs, actions, action_idxs
+        # return R, v, probs, actions, action_idxs
         return R, probs, actions, action_idxs

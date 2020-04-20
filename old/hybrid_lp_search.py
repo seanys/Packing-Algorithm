@@ -8,7 +8,8 @@ Created on Wed Dec 11, 2020
 from tools.polygon import GeoFunc,PltFunc,getData,getConvex,NFP
 from tools.packing import PolyListProcessor,NFPAssistant,PackingUtil
 from tools.lp_assistant import LPAssistant
-from compaction import searchForBest,LPFunction
+from heuristic import BottomLeftFill
+from compaction import searchForBest
 from shapely.geometry import Polygon,Point,mapping,LineString
 from interval import Interval
 import pandas as pd
@@ -74,21 +75,20 @@ class LPSearch(object):
         while time.time()-start_time<max_time:
             # 最小化重叠
             self.minimizeOverlap()
-            if LPAssistant.judegeFeasible(self.polys)==True:
-                # 更新全部状态
-                self.length=self.cur_length
-                self.use_ratio.append(self.total_area/(self.length*self.width))
-                print("当前利用率：",self.total_area/(self.length*self.width))
+
+            # 如果当前的高度更小，则更新全部最佳的情况
+            if self.cur_length<self.best_length:
+                self.best_length=self.cur_length
                 self.best_polys=copy.deepcopy(self.polys)
                 self.best_poly_status=copy.deepcopy(self.poly_status)
-                # 收缩边界，并且把突出去的移进来
-                self.cur_length=self.length*(1-ration_dec)
-                self.slideToContainer() 
-            else:
-                # 如果不可行就直接拆分
-                self.cur_length=self.best_length*(1+ration_inc)
+            
+            # 记录当前的利用率
+            self.use_ratio.append(self.total_area/(self.cur_length*self.width))
+            print("当前利用率：",self.total_area/(self.cur_length*self.width))
 
-                
+            # 收缩边界，并且把突出去的移进来
+            self.cur_length=self.cur_length*(1-ration_dec)
+            self.slideToContainer() 
       
         end_time = time.time()
         print("最优结果：",self.best_polys)
@@ -105,9 +105,12 @@ class LPSearch(object):
 
         # 记录重叠变化情况
         self.overlap_reocrd=[]
-
+        
+        # 记录检索过程中的最优情况，在退出循环的时候更新
+        self.local_best_polys,self.local_best_poly_status=copy.deepcopy(self.polys),copy.deepcopy(self.poly_status)
+        
         # 检索次数限制/超出倍数退出
-        it,N=0,50
+        it,N,multiple=0,50,200
         minimal_overlap=self.getTotalOverlap()
         cur_overlap=minimal_overlap
         print("初始重叠:",cur_overlap)
@@ -163,8 +166,7 @@ class LPSearch(object):
                     # 更新形状与重叠情况
                     self.polys[choose_index]=new_poly
                     self.updateOverlap(choose_index)
-                    # self.showPolys()
-
+                    
             # 计算新方案的重叠情况
             cur_overlap=self.getTotalOverlap()
             self.overlap_reocrd.append(cur_overlap)
@@ -172,14 +174,24 @@ class LPSearch(object):
                 print("没有重叠，本次检索结束")
                 break
             elif cur_overlap<minimal_overlap:
+                # 如果出现更小的，就更新it并记录
                 minimal_overlap=cur_overlap
+                self.local_best_polys=copy.deepcopy(self.polys)
+                self.local_best_poly_status=copy.deepcopy(self.poly_status)
                 it=0
+            elif minimal_overlap*multiple<cur_overlap:
+                # 如果出现两百以上的倍数，则退出循环
+                break
             print("\n当前重叠:",cur_overlap,"\n")
+            # 如果没有更新则会增加（更新了的话会归零）
             it=it+1
+            # 更新全部的Miu
             self.updateMiu()
         
-        # 超出检索次数
-        if it==N:
+        # 超出检索次数以及最优结果不是当前结果时，需要更新状态
+        if it==N or cur_overlap>minimal_overlap:
+            self.polys=copy.deepcopy(self.local_best_polys)
+            self.poly_status=copy.deepcopy(self.local_best_poly_status)
             print("超出更新次数/超出倍数")
             # self.showPolys()
 
@@ -188,13 +200,17 @@ class LPSearch(object):
         print("最终结果：",self.polys)
         print("当前状态：",self.poly_status)
 
-        with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/fu_result.csv","a+") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows([[time.asctime( time.localtime(time.time()) ),end_time-start_time,self.cur_length,self.total_area/(self.cur_length*self.width),cur_overlap,self.poly_status,self.polys]])
-        
+        # 如果不可行，则变为可行
+        if LPAssistant.judegeFeasible(self.polys)==False:
+            self.polys,self.poly_status,self.cur_length=searchForBest(self.polys,self.poly_status,self.width,self.cur_length)
+
         self.showPolys()
         self.plotRecord("Overlap Record:",self.overlap_reocrd)
 
+        with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/fu_result.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows([[minimal_overlap,end_time-start_time,self.cur_length,self.total_area/(self.cur_length*self.width),cur_overlap,self.poly_status,self.polys]])
+            
     # 获得全部形状不同方向-存储起来
     def getAllPolygons(self):
         self.all_polygons=[]
@@ -241,7 +257,6 @@ class LPSearch(object):
     # 基于NFP获得全部的约束
     def getProblemLP(self):
         # 获得目标区域
-        self.ifr_points=[]
         self.target_areas=[[],[],[],[],[],[],[],[],[]]
         self.last_index=[[],[],[],[],[],[],[],[],[]]
         
@@ -260,7 +275,6 @@ class LPSearch(object):
         for i,nfp in enumerate(self.all_nfps):
             # 删除与IFR重叠区域
             new_region=Polygon(nfp).intersection(self.IFR)
-            self.final_IFR=self.final_IFR.difference(Polygon(nfp))
             # 删除与其他NFP拆分的重叠
             for j in self.nfp_overlap_pair[i][1:]:
                 P=Polygon(self.all_nfps[j])
@@ -271,10 +285,6 @@ class LPSearch(object):
             else:
                 self.target_areas[0].append([])
             self.last_index[0].append([])
-        
-        # 增加IFR的计算
-        if self.final_IFR.is_empty!=True and self.final_IFR.geom_type!="Point" and self.final_IFR.geom_type!="LineString" and self.final_IFR.area>bias:
-            self.ifr_points=LPAssistant.processRegion(self.final_IFR)
         
         # 获得后续的重叠
         for i in range(2,len(self.target_areas)):
@@ -330,11 +340,6 @@ class LPSearch(object):
     def searchBestPosition(self,choose_index):
         '''基于上述获得的区域与目标函数检索最优位置'''
         min_depth,best_position,searched_points=9999999999,[],[]
-        # 首先判断在IFR上是否有点满足
-        if len(self.ifr_points)>0:
-            return self.ifr_points[random.randint(0,len(self.ifr_points)-1)],0
-
-        # 再选择是否有目标区域
         for i,item in enumerate(self.target_areas):
             for j,area_item in enumerate(item):
                 # 计算差集后归零
@@ -467,7 +472,6 @@ class LPSearch(object):
         self.target_poly=self.all_polygons[i][orientation]
         self.ifr=PackingUtil.getInnerFitRectangle(self.target_poly,self.cur_length,self.width)
         self.IFR=Polygon(self.ifr)
-        self.final_IFR=Polygon(self.ifr)
 
     @staticmethod
     def plotRecord(name,data):

@@ -516,7 +516,13 @@ class PltFunc(object):
     
     def showPlt(**kw):
         if len(kw)>0:
-            plt.axis([0,kw["width"],0,kw["height"]])
+            if "minus" in kw:
+                plt.axhline(y=0,c="blue")
+                plt.axvline(x=0,c="blue")
+                plt.axis([-kw["minus"],kw["width"],-kw["minus"],kw["height"]])
+                
+            else:
+                plt.axis([0,kw["width"],0,kw["height"]])
         else:
             plt.axis([0,1000,0,1000])
             # plt.axis([-1000,2000,-979400.4498015114,20000])
@@ -949,5 +955,10 @@ def getConvex(**kw):
     return polygons
 
 if __name__ == '__main__':
-    tryNFP()
+    # tryNFP()
     # polygonFuncCheck()
+    PltFunc.addPolygonColor(((480, 200), (480, 380), (200, 380), (200, 760), (1e+08, 760), (1e+08, 200), (480, 200)))
+    PltFunc.addPolygon(((480, 580), (200, 580), (200, 760), (1000, 760), (1000, 200), (480, 200), (480, 580)))
+
+    PltFunc.addPolygon(((0, 200), (480, 200), (480, 580), (0, 580), (0, 200)))
+    PltFunc.showPlt()
