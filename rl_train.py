@@ -41,18 +41,25 @@ class Preload(object):
         return polys_new.tolist()
 
 class PolygonsDataset(Dataset):
-    def __init__(self,size,max_point_num,path=None):
+    def __init__(self,size,max_point_num,path=None,full_size=0):
         '''
-        size: 数据集容量
+        size: 选取的数据集容量
         max_point_num: 最大点的个数
         path: 从文件加载
+        full_size：数据集完整容量 若为0则对全数据集进行shuffle
         '''
         x=[]
+        self.choice=False if full_size==0 else True
         if not path:
             print('Warning: No load path')
         else:
             data=np.load(path,allow_pickle=True)
-            for i in range(size):
+            if not self.choice:
+                choice=range(size)
+            else:
+                choice=np.random.sample(np.array(range(full_size)),size)
+                print(choice)
+            for i in choice:
                 polys=data[i]
                 polys=polys.T
                 x.append(polys)
@@ -63,7 +70,7 @@ class PolygonsDataset(Dataset):
         np.random.shuffle(self.shuffle)
 
     def __getitem__(self, index):
-        real_index=self.getRealIndex(index)
+        real_index=index if self.choice else self.getRealIndex(index)
         inputs=self.input[real_index]
         return inputs
 
