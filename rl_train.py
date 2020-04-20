@@ -57,8 +57,9 @@ class PolygonsDataset(Dataset):
             if not self.choice:
                 choice=range(size)
             else:
-                choice=np.random.sample(np.array(range(full_size)),size)
-                print(choice)
+                choice=np.random.choice(np.array(range(full_size)),size,replace=False)
+                print('Choose {} samples in total {}'.format(size,full_size))
+                print('Samples like: ',choice)
             for i in choice:
                 polys=data[i]
                 polys=polys.T
@@ -253,15 +254,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0417', help='')
+    parser.add_argument('--task', default='0418', help='')
     parser.add_argument('--run_name', type=str, default='oct10000')
     parser.add_argument('--val_name', type=str, default='fu1000')
-    parser.add_argument('--train_size', default=9996, help='')
+    parser.add_argument('--train_size', default=3336, help='')
     parser.add_argument('--val_size', default=500, help='')
     parser.add_argument('--is_train', type=str2bool, default=True, help='')
 
     '''多边形参数'''
-    parser.add_argument('--width', default=800, help='Width of BottomLeftFill')
+    parser.add_argument('--width', default=760, help='Width of BottomLeftFill')
     parser.add_argument('--max_point_num', default=4, help='')
 
     '''网络设计'''  
@@ -276,10 +277,10 @@ if __name__ == "__main__":
     parser.add_argument('--beam_size', default=1, help='Beam width for beam search')
 
     '''训练设置'''
-    parser.add_argument('--batch_size', default=16, help='')
+    parser.add_argument('--batch_size', default=8, help='')
     parser.add_argument('--actor_net_lr', default=1.5e-4, help="Set the learning rate for the actor network")
     parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=5000, help='')
+    parser.add_argument('--actor_lr_decay_step', default=4000, help='')
     parser.add_argument('--critic_lr_decay_step', default=5000, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
@@ -318,7 +319,7 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
     input_dim = 128
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']),full_size=9996)
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
@@ -531,6 +532,8 @@ if __name__ == "__main__":
             torch.save(model, os.path.join(save_dir, 'epoch-{}.pt'.format(i)))
 
             # If the task requires generating new data after each epoch, do that here!
+            training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']),full_size=9996)
+            training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
             training_dataset.updateRealIndex()
             val_dataset.updateRealIndex()
 
