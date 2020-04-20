@@ -32,6 +32,54 @@ typedef model::linestring<Point> LineString;
 //read_wkt(
 //    "POLYGON((4.0 -0.5 , 3.5 1.0 , 2.0 1.5 , 3.5 2.0 , 4.0 3.5 , 4.5 2.0 , 6.0 1.5 , 4.5 1.0 , 4.0 -0.5))", blue);
 
+// 封装获得全部点的函数
+template <typename Point>
+class AllPoint{
+private :
+    VectorPoints *temp_all_points;
+public :
+    AllPoint(VectorPoints *all_points){
+        temp_all_points=all_points;
+    };
+    inline void operator()(Point& pt)
+    {
+        vector<double> new_pt={get<0>(pt),get<1>(pt)};
+        (*temp_all_points).push_back(new_pt);
+    }
+};
+
+//主要包含注册多边形、转化多边形
+class GeometryProcess{
+public:
+    /*
+     数组转化为多边形
+     */
+    static void convertPoly(vector<vector<double>> poly, Polygon &Poly){
+        // 首先全部转化为wkt格式
+        string wkt_poly="POLYGON((";
+        for (int i = 0; i < poly.size();i++)
+        {
+            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1])+",";
+        };
+        wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1])+"))";
+        // 然后读取到Poly中
+        read_wkt(wkt_poly, Poly);
+    };
+    /*
+     通过for each point遍历
+     */
+    static void getAllPoints(list<Polygon> all_polys,VectorPoints &all_points){
+        for(auto poly:all_polys){
+            VectorPoints temp_points;
+            getGemotryPoints(poly,temp_points);
+            all_points.insert(all_points.end(),temp_points.begin(),temp_points.end());
+        }
+    };
+    static void getGemotryPoints(Polygon poly,VectorPoints &temp_points){
+        for_each_point(poly, AllPoint<Point>(&temp_points));
+    }
+};
+
 // 包含处理函数
 class PackingAssistant{
 public:
@@ -156,6 +204,32 @@ public:
             }
         };
     };
+    // 判断两个多边形是否重叠
+    static bool judgeOverlap(VectorPoints poly1,VectorPoints poly2){
+        Polygon Poly1,Poly2;
+        GeometryProcess::convertPoly(poly1,Poly1);
+        GeometryProcess::convertPoly(poly2,Poly2);
+        return intersects(Poly1, Poly2);
+    };
+    // 获得两个多边形的重叠情况
+    static double overlapArea(VectorPoints ooly1,VectorPoints poly2){
+        double overlap_area=0;
+        
+        Polygon Poly1,Poly2;
+        GeometryProcess::convertPoly(poly1,Poly1);
+        GeometryProcess::convertPoly(poly2,Poly2);
+        
+        // 获得重叠情况
+        deque<Polygon> output;
+        intersection(Poly1, Poly2, output);
+        
+        // 遍历计算重叠面积
+        BOOST_FOREACH(Polygon const& p, output)
+        {
+            overlap_area+=area(p);
+        }
+        return overlap_area;
+    }
 };
 
 // 获得NFP
@@ -200,54 +274,6 @@ public:
     }
 };
 
-// 封装获得全部点的函数
-template <typename Point>
-class AllPoint{
-private :
-    VectorPoints *temp_all_points;
-public :
-    AllPoint(VectorPoints *all_points){
-        temp_all_points=all_points;
-    };
-    inline void operator()(Point& pt)
-    {
-        vector<double> new_pt={get<0>(pt),get<1>(pt)};
-        (*temp_all_points).push_back(new_pt);
-    }
-};
-
-//主要包含注册多边形、转化多边形
-class GeometryProcess{
-public:
-    /*
-     数组转化为多边形
-     */
-    static void convertPoly(vector<vector<double>> poly, Polygon &Poly){
-        // 首先全部转化为wkt格式
-        string wkt_poly="POLYGON((";
-        for (int i = 0; i < poly.size();i++)
-        {
-            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1])+",";
-        };
-        wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1])+"))";
-        // 然后读取到Poly中
-        read_wkt(wkt_poly, Poly);
-    };
-    /*
-     通过for each point遍历
-     */
-    static void getAllPoints(list<Polygon> all_polys,VectorPoints &all_points){
-        for(auto poly:all_polys){
-            VectorPoints temp_points;
-            getGemotryPoints(poly,temp_points);
-            all_points.insert(all_points.end(),temp_points.begin(),temp_points.end());
-        }
-    };
-    static void getGemotryPoints(Polygon poly,VectorPoints &temp_points){
-        for_each_point(poly, AllPoint<Point>(&temp_points));
-    }
-};
-
 // 处理多个多边形的关系
 class PolygonsOperator{
 public:
@@ -258,9 +284,6 @@ public:
         for(auto region_item:feasible_region){
             // 计算差集
             list<Polygon> output;
-//            cout<<endl<<"region_item:"<<dsv(region_item)<<endl;
-//            cout<<"nfp_poly:"<<dsv(nfp_poly)<<endl<<endl;
-
             difference(region_item, nfp_poly, output);
             DataAssistant::appendList(new_feasible_region,output);
 //            for(auto item:output){
@@ -270,12 +293,6 @@ public:
         // 将新的Output全部输入进去
         feasible_region.clear();
         copy(new_feasible_region.begin(), new_feasible_region.end(), back_inserter(feasible_region));
-    }
-    // 获得两条直线的交点
-    int getIntersection(){
-        model::d2::point_xy<int> p1(1, 1), p2(2, 2);
-        cout << "Distance p1-p2 is: " << distance(p1, p2) << endl;
-        return 0;
     }
     // 判断多边形是否相交
     void polysIntersects(){
@@ -287,22 +304,6 @@ public:
         bool b = intersects(line1, line2);
 
         cout << "Intersects: " << (b ? "YES" : "NO") << endl;
-    }
-    // 计算多边形的差集
-    void polysIntersection(){
-        // 测试基础
-        Polygon green, blue;
-
-        deque<Polygon> output;
-        intersection(green, blue, output);
-
-        int i = 0;
-        cout << "green && blue:" << endl;
-        BOOST_FOREACH(Polygon const& p, output)
-        {
-            cout << i++ << ": " << area(p) << endl;
-        }
-
     }
     // 计算多边形的交集
     void polysUnion(){

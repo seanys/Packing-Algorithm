@@ -69,17 +69,51 @@ public:
         }
     };
     /*
+     加载某个形状的全部方向
+     */
+    static void readAllPolygon(vector<vector <VectorPoints>> all_polygons){
+        // 初步读取
+        csv::Reader foo;
+        foo.read("/Users/sean/Documents/Projects/Data/fu_orientation.csv");
+        // 加载全部形状
+        int row_index=0;
+        while(foo.busy()) {
+            if (foo.ready()) {
+                // 下一行（默认跳过第一行）
+                auto row = foo.next_row();
+                // 设置本轮读取
+                vector <string> all_lines={"clock_o_0","clock_o_1","clock_o_2","clock_o_3"};
+                all_polygons.push_back({});
+                // 加载每个角度对应的形状
+                for(auto line:all_lines){
+                    vector<vector<double>> new_poly;
+                    load2DVector(row[line],new_poly);
+                    all_polygons[row_index].push_back(new_poly);
+                }
+            }
+        }
+    };
+    /*
      读取BLF某一行的结果，包括宽度、方向、总面积、位置和形状
      */
-    static void readBLF(int index,PolysArrange blf_result){
+    static void readBLF(int index,PolysArrange &blf_result){
         csv::Reader foo;
         foo.read("/Users/sean/Documents/Projects/Packing-Algorithm/record/c_blf.csv");
         auto rows = foo.rows();
-        blf_result.width=stod(rows[index]["width"]);
+        // 加载宽度和总面积
+        blf_result.width=stod(rows[index]["width"]);;
         blf_result.total_area=stod(rows[index]["total_area"]);
+        // 所有方向/位置/形状
         load1DVector(rows[index]["polys_orientation"],blf_result.polys_orientation);
         load2DVector(rows[index]["polys_position"],blf_result.polys_position);
         load3DVector(rows[index]["polys"],blf_result.polys);
+        // 设置形状总数和类型总数——后续存储好
+        blf_result.total_num=(int)blf_result.polys_orientation.size();
+        blf_result.type_num=(int)blf_result.polys_orientation.size();
+        // 暂时采用全部不一致的情况，后续增加该列即可
+        for(int i=0;i<blf_result.polys_orientation.size();i++){
+            blf_result.polys_type.push_back(i);
+        }
     };
     /*
      Push新的Vector

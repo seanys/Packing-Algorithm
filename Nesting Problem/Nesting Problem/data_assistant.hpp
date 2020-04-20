@@ -21,11 +21,12 @@ struct PolysArrange{
     int type_num=0; // 形状类别总数
     int total_num=0; // 总形状数目
     double width; // 宽度
+    double length; // 形状的长度
     double total_area; // 总面积
     vector<vector<vector<double>>> polys; // 所有形状的情况
-    vector<double> polys_type; // 形状对应的关系
     vector<vector<double>> polys_position; // 所有形状的顶点位置
-    vector<double> polys_orientation; // 所有形状的方向
+    vector<int> polys_type; // 形状对应的关系
+    vector<int> polys_orientation; // 所有形状的方向
 };
 
 // 输出数组的函数集合

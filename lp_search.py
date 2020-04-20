@@ -367,15 +367,8 @@ class LPSearch(object):
     # 获得当前选择形状和其他形状对的深度（调整后），需要确认二者是重叠的！
     def getPairDepenetration(self,pt,choose_index,target_index):
         min_value=999999999
-        for item in self.all_points_target[target_index]:
+        for item in self.all_points_target[target_index]+self.all_edges_target[target_index]:
             value=abs(pt[0]-item[0])+abs(pt[1]-item[1])
-            if value<bias:
-                min_value=0
-                break
-            if value<min_value:
-                min_value=value
-        for item in self.all_edges_target[target_index]:
-            value=abs(pt[0]*item[0]+pt[1]*item[1]+item[2])
             if value<bias:
                 min_value=0
                 break
