@@ -228,7 +228,10 @@ public:
         {
             overlap_area+=area(p);
         }
-        return overlap_area;
+        if overlap_area>BIAS:
+            return overlap_area;
+        else:
+            return 0;
     }
 };
 

@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <csv/reader.hpp>
 #include "geometry.cpp"
-#include "plot.cpp"
+//#include "plot.cpp"
 #include <time.h>
 
 class BLF{
@@ -76,7 +76,7 @@ protected:
     VectorPoints cur_ifr; // 获得当前的IFR
     double poly_num;
     vector<VectorPoints> all_nfps; // 获得当前全部NFP
-    vector<vector<double>> all_target_funs; // 获得全部的目标函数（直线和点）
+    vector<vector<vector<double>>> edges_target_funs,points_target_funs; // 分别获得直线和点的目标函数
     
     PolysArrange best_solution,cur_solution; // 最佳解和当前解，不需要用指针
     vector<VectorPoints> best_polys,polys; // 暂存当前的全部形状
@@ -113,9 +113,10 @@ public:
     };
     // 输入序列形状，每次处理一个序列
     void minimizeOverlap(){
-        
+        initial2DVector(1,poly_num,miu); // 初始化Miu的值
         
     };
+    
     // 获得某个形状的全部NFP和IFR
     void getNFPIFR(int j){
         // 获得全部的NFP
@@ -135,14 +136,62 @@ public:
         cur_ifr={};
         PackingAssistant::getIFR(cur_solution.polys[j], width, cur_length, cur_ifr);
     };
+    
     // 在获得NFP和IFR之后获得目所有目标函数
     void getTargetFunc(){
+        for(int i=0;i<poly_num;i++){
+            // 初始化添加
+            edges_target_funs.push_back({});
+            points_target_funs.push_back({});
+            // 如果相同则跳过
+            if(i==choosed_index){
+                continue;
+            }
+            // 首先计算全部的直线
+            vector<VectorPoints> all_edges;
+            getAllEdges(all_nfps[i], all_edges);
+            for(auto edge:all_edges){
+                vector<double> coeff;
+                getEdgeCoeff(coeff,edge);
+                edges_target_funs[i].push_back(coeff);
+            }
+            // 其次遍历所有的点（其实不用封装也OK）
+            for(auto pt:all_nfps[i]){
+                points_target_funs[i].push_back({pt[0],pt[1]});
+            }
+        }
+    };
+    
+    // 获得某个位置的最低的Depth（点可以直接遍历所有的点即可）
+    void getPolyDepth(vector<double> pt){
         
     };
+    
+    // 更新权重参数Miu
+    void updateMiu(){
+        // 寻找最大的重叠
+        double _max=0;
+        for(auto line:poly_overlap){
+            for(auto item:line){
+                if(item>_max){
+                    _max=item;
+                }
+            }
+        }
+        // 更新全部的Miu
+        for(int i=0;i<poly_num;i++){
+            for(int j=0;j<poly_num;j++){
+                miu[i][j]+=poly_overlap[i][j]/_max;
+                miu[j][i]+=poly_overlap[j][i]/_max;
+            }
+        }
+    };
+    
     // 获得最小的Penetration Depth的位置
     void searchForBestPosition(){
         
     };
+    
     // 获得NFP的重叠情况
     void getNFPOverlapPair(){
         for(int i=0;i<poly_num;i++){
@@ -161,15 +210,7 @@ public:
             }
         }
     };
-    // 初始化Miu全部更新为1
-    void initialMiu(){
-        for(int i=0;i<poly_num;i++){
-            miu.push_back({});
-            for(int j=0;j<poly_num;j++){
-                miu[i].push_back(1);
-            }
-        }
-    };
+    
     // 增加获得全部重叠，用于比较情况
     double getTotalOverlap(){
         double total_overlap=0;
@@ -183,26 +224,31 @@ public:
         }
         return total_overlap;
     };
-    // 初始化当前的整个重叠
+    
+    // 初始化当前的整个重叠（两两间的重叠）
     void initialPolyOverlap(){
-        for(int i=0;i<poly_num;i++){
-            poly_overlap.push_back({});
-            for(int j=0;j<poly_num;j++){
-                if(i==j){
-                    continue;
-                }
-//                total_overlap+=PackingAssistant::overlapArea(polys[i],polys[j]);
+        initial2DVector(0,poly_num,poly_overlap);
+        for(int i=0;i<poly_num-1;i++){
+            for(int j=i+1;j<poly_num;j++){
+                double overlap=PackingAssistant::overlapArea(polys[i], polys[j]);
+                poly_overlap[i][j]=overlap;
+                poly_overlap[j][i]=overlap;
             }
         }
     };
+    
     // 更新多边形的重叠情况（单独更新某个形状）
-    void updatePolyOverlap(int index){
-        
+    void updatePolyOverlap(int i){
+        for(int j=0;j<poly_num;j++){
+            if(i==j){
+                continue;
+            }
+            double overlap=PackingAssistant::overlapArea(polys[i], polys[j]);
+            poly_overlap[j][i]=overlap;
+            poly_overlap[i][j]=overlap;
+        }
     };
-    // 遍历全部目标函数，获得最小的解
-    void getPolyDepth(){
-        
-    };
+    
     // 平移多边形到内部
     void slideToContainer(){
         
@@ -212,21 +258,41 @@ public:
      以下函数可以封装到PackingAssistant中！
      */
     
-    // 判断当前解是否可行
+    // 判断当前解是否可行（获得重叠）
     bool judgeFeasible(){
-        
+        for(int i=0;i<poly_num-1;i++){
+            for(int j=i+1;j<poly_num;j++){
+                if(poly_overlap[i][j]>0){
+                    return false;
+                }
+            }
+        }
         return true;
     };
+    
     // 获得某个多边形所有的边
     void getAllEdges(VectorPoints poly,vector<VectorPoints> &all_edges){
-        
+        for(int i=0;i<poly_num;i++){
+            if(i==poly_num-1){
+                all_edges.push_back({poly[i],poly[0]});
+            }else{
+                all_edges.push_back({poly[i],poly[i+1]});
+            }
+        }
     };
+    
     // 获得点到直线的距离的系数参数
-    void getPointEdegCoeff(vector<double> coeff, VectorPoints edge, vector<double> point){
-        
+    void getEdgeCoeff(vector<double> coeff, VectorPoints edge){
+        double A=edge[0][1]-edge[1][1];
+        double B=edge[1][0]-edge[0][0];
+        double C=edge[0][0]*edge[1][1]-edge[1][0]*edge[0][1];
+        double D=sqrt(A*A+B*B);
+        coeff={A/D,B/D,C/D};
     };
+    
     // 初始化二维数组
-    void intial2DVector(double initial_value,double initial_size,vector<vector<double>> target){
+    void initial2DVector(double initial_value,double initial_size,vector<vector<double>> target){
+        target={};
         for(int i=0;i<initial_size;i++){
             target.push_back({});
             for(int j=0;j<initial_size;j++){
@@ -234,6 +300,7 @@ public:
             }
         }
     };
+    
 };
 
 int main(int argc, const char * argv[]) {

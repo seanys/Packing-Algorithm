@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
+#include <math.h>
 
 using namespace std;
 
