@@ -26,6 +26,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		14134B7D24502F7300FB5365 /* tools */ = {isa = PBXFileReference; lastKnownFileType = folder; path = tools; sourceTree = "<group>"; };
 		1426104E244AC16D00A2440D /* data_assistant.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = data_assistant.hpp; sourceTree = "<group>"; };
 		14BE2F852444ABB00049BA76 /* Nesting Problem */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Nesting Problem"; sourceTree = BUILT_PRODUCTS_DIR; };
 		14BE2F882444ABB00049BA76 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -48,6 +49,7 @@
 		14BE2F7C2444ABB00049BA76 = {
 			isa = PBXGroup;
 			children = (
+				14134B7D24502F7300FB5365 /* tools */,
 				14BE2F872444ABB00049BA76 /* Nesting Problem */,
 				14BE2F862444ABB00049BA76 /* Products */,
 			);
@@ -190,8 +192,14 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"HEADER_SEARCH_PATHS[arch=*]" = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/;
-				"LIBRARY_SEARCH_PATHS[arch=*]" = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/;
+				"HEADER_SEARCH_PATHS[arch=*]" = (
+					/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m,
+					"/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages/numpy/core/include",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=*]" = (
+					/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m,
+					"/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages/numpy/core/include",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -245,8 +253,14 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"HEADER_SEARCH_PATHS[arch=*]" = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/;
-				"LIBRARY_SEARCH_PATHS[arch=*]" = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/;
+				"HEADER_SEARCH_PATHS[arch=*]" = (
+					/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m,
+					"/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages/numpy/core/include",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=*]" = (
+					/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m,
+					"/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages/numpy/core/include",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

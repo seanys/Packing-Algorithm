@@ -144,6 +144,19 @@ public:
         };
     };
     /*
+     仅仅获得最右侧点，同样为逆时针处理（用于判断是逗超出界限）
+     */
+    static void getRightPt(VectorPoints polygon,vector<double> &right_pt){
+        right_pt={-9999999999,0};
+        int poly_size=(int)polygon.size();
+        for(int i=poly_size-1;i>=0;i--){
+            if(polygon[i][0]>right_pt[0]){
+                right_pt[0]=polygon[i][0];
+                right_pt[1]=polygon[i][1];
+            }
+        }
+    };
+    /*
      仅仅获得参考点，是第一个Top位置，需要逆时针处理（NFP为逆时针）
      */
     static void getReferPt(VectorPoints polygon,vector<double> &refer_pt){
@@ -212,7 +225,7 @@ public:
         return intersects(Poly1, Poly2);
     };
     // 获得两个多边形的重叠情况
-    static double overlapArea(VectorPoints ooly1,VectorPoints poly2){
+    static double overlapArea(VectorPoints poly1,VectorPoints poly2){
         double overlap_area=0;
         
         Polygon Poly1,Poly2;
@@ -228,11 +241,21 @@ public:
         {
             overlap_area+=area(p);
         }
-        if overlap_area>BIAS:
+        if(overlap_area>BIAS){
             return overlap_area;
-        else:
+        }else{
             return 0;
-    }
+        }
+    };
+    // 获得List对象的全部重叠
+    static double totalArea(list<Polygon> poly_list){
+        double total_area=0;
+        BOOST_FOREACH(Polygon const& p, poly_list)
+        {
+            total_area+=area(p);
+        }
+        return total_area;
+    };
 };
 
 // 获得NFP
@@ -248,7 +271,6 @@ public:
      */
     NFPAssistant(string _path,int poly_num,int orientation_num){
         nfp_result.read(_path);
-//        nfp_result.read("/Users/sean/Documents/Projects/Data/fu.csv");
         this->poly_num=poly_num;
         this->orientation_num=orientation_num;
         cout<<"加载全部NFP"<<endl;
