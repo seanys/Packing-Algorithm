@@ -10,11 +10,22 @@
 //  Give up this parts temporarily
 
 #include <iostream>
+//#include <matplotlibcpp.h>
+#include "../tools/matplotlib.h"
+#include <vector>
+
+namespace plt = matplotlibcpp;
+using namespace std;
 
 class PltFunc{
 public:
-    double pltTest(){
-
+    static double pltTest(){
+//        PyObject * listObj;
+        vector<double> x = {1, 2, 3, 4};
+        vector<double> y = {1, 4, 9, 16};
+        plt::plot(x, y);
+        plt::show();
+//        plt::savefig("minimal.pdf");
         
         return 0;
     }

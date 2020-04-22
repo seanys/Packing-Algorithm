@@ -31,8 +31,8 @@ class LPSearch(object):
     def __init__(self,width,original_polys):
         self.width=width
         self.polys=copy.deepcopy(original_polys)
-        self.fu=pd.read_csv("/Users/sean/Documents/Projects/Data/fu_orientation.csv",header=None)
-        self.fu_pre=pd.read_csv("/Users/sean/Documents/Projects/Data/fu_simplify.csv")
+        self.fu=pd.read_csv("/Users/sean/Documents/Projects/Data/fu_orientation.csv")
+        self.fu_pre=pd.read_csv("/Users/sean/Documents/Projects/Data/fu.csv")
         self.NFPAssistant=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
         self.getAllPolygons()
@@ -140,6 +140,7 @@ class LPSearch(object):
                 original_position=self.poly_status[choose_index][1]
                 best_position,best_orientation,best_depth=self.poly_status[choose_index][1],self.poly_status[choose_index][2],cur_min_depth
                 # print("当前最低高度:",best_depth)
+
                 print("测试第",i,"个形状")
                 # 遍历四个角度的最优值
                 for orientation in [0,1,2,3]:
@@ -200,7 +201,7 @@ class LPSearch(object):
         self.all_polygons=[]
         for i in range(self.fu.shape[0]):
             polygons=[]
-            for j in [0,1,2,3]:
+            for j in ["o_0","o_1","o_2","o_3"]:
                 polygons.append(json.loads(self.fu[j][i]))
             self.all_polygons.append(polygons)
         
@@ -353,6 +354,7 @@ class LPSearch(object):
                     if depth<min_depth:
                         min_depth=depth
                         best_position=[pt[0],pt[1]]
+        print("共检索",len(searched_points),"个位置")
         return best_position,min_depth
     
     # 获得当前选择对象的重叠（对应的Overlap）
