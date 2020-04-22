@@ -1,5 +1,4 @@
 .vscode*
-euro_data/dighe1:2.png
 outputs*
 logs*
 history*
@@ -8,4 +7,5 @@ record*
 *.npy
 .VSCodeCounter*
 *.pt
-*.csv
+*/.DS_Store
+.DS_Store
