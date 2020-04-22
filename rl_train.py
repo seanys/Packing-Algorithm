@@ -278,7 +278,7 @@ if __name__ == "__main__":
 
     '''训练设置'''
     parser.add_argument('--batch_size', default=8, help='')
-    parser.add_argument('--actor_net_lr', default=1.5e-4, help="Set the learning rate for the actor network")
+    parser.add_argument('--actor_net_lr', default=1.2e-4, help="Set the learning rate for the actor network")
     parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
     parser.add_argument('--actor_lr_decay_step', default=4000, help='')
     parser.add_argument('--critic_lr_decay_step', default=5000, help='')
@@ -323,6 +323,8 @@ if __name__ == "__main__":
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
+    args['load_path']='outputs/0417/oct10000/epoch-37.pt'
+
 
     # for xxx in range(149):
     #     args['load_path']='outputs/0414/fu1500/epoch-{}.pt'.format(xxx)
