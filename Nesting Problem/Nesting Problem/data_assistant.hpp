@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
+#include <math.h>
 
 using namespace std;
 
@@ -21,11 +22,12 @@ struct PolysArrange{
     int type_num=0; // 形状类别总数
     int total_num=0; // 总形状数目
     double width; // 宽度
+    double length; // 形状的长度
     double total_area; // 总面积
     vector<vector<vector<double>>> polys; // 所有形状的情况
-    vector<double> polys_type; // 形状对应的关系
     vector<vector<double>> polys_position; // 所有形状的顶点位置
-    vector<double> polys_orientation; // 所有形状的方向
+    vector<int> polys_type; // 形状对应的关系
+    vector<int> polys_orientation; // 所有形状的方向
 };
 
 // 输出数组的函数集合
@@ -37,12 +39,14 @@ public:
     template <typename T>
     static void print1DVector (vector<T> &vec, bool with_endle)
     {
-        vector<double>::iterator ite = vec.begin();
         cout<<"[";
-        for (; ite != vec.end(); ite++){
-            cout << *ite << ",";
+        for (int i=0;i<vec.size();i++){
+            cout<<vec[i];
+            if(i<(int)vec.size()-1){
+                cout<<",";
+            }
         }
-        cout<<"],";
+        cout<<"]";
         if(with_endle==true){
             cout<<endl;
         }
@@ -53,12 +57,14 @@ public:
     template <typename T>
     static void print2DVector (vector<vector<T>> &vec,bool with_endle)
     {
-        vector<vector<double>>::iterator ite = vec.begin();
-        cout<<"[";
-        for (; ite != vec.end(); ite++){
-            print1DVector(*ite,false);
+        cout<<"\"[";
+        for (int i=0;i<vec.size();i++){
+            print1DVector(vec[i],false);
+            if(i<(int)vec.size()-1){
+                cout<<",";
+            }
         }
-        cout<<"]";
+        cout<<"]\"";
         if(with_endle==true){
             cout<<endl;
         }
@@ -69,10 +75,9 @@ public:
     template <typename T>
     static void print3DVector (vector<vector<vector<T>>> &vec,bool with_endle)
     {
-        vector<vector<vector <double>>>::iterator ite = vec.begin();
         cout<<"[";
-        for (; ite != vec.end(); ite++){
-            print2DVector(*ite,false);
+        for (int i=0;i<vec.size();i++){
+            print2DVector(vec[i],false);
         }
         cout<<"]";
         if(with_endle==true){

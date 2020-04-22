@@ -74,7 +74,7 @@ class LPSearch(object):
         while time.time()-start_time<max_time:
             # 最小化重叠
             self.minimizeOverlap()
-            if LPAssistant.judegeFeasible(self.polys)==True:
+            if LPAssistant.judgeFeasible(self.polys)==True:
                 # 更新全部状态
                 self.length=self.cur_length
                 self.use_ratio.append(self.total_area/(self.length*self.width))

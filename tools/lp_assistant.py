@@ -242,7 +242,7 @@ class LPAssistant(object):
         return _max
 
     @staticmethod
-    def judegeFeasible(polys):
+    def judgeFeasible(polys):
         for i in range(len(polys)-1):
             for j in range(i+1,len(polys)):
                 P1,P2=Polygon(polys[i]),Polygon(polys[j])
