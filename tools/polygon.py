@@ -559,6 +559,18 @@ class RatotionPoly():
             pass
             # print("不允许旋转")
 
+    def rotation_specific(self,poly,angle=0):
+        '''
+        旋转特定角度
+        '''
+        Poly=Polygon(poly)
+        if angle==0: angle=self.angle
+        new_Poly=affinity.rotate(Poly,angle)
+        mapping_res=mapping(new_Poly)
+        new_poly=mapping_res["coordinates"][0]
+        for index in range(0,len(poly)):
+            poly[index]=[new_poly[index][0],new_poly[index][1]]
+
 class NFPArc(object):
     '''
     基于Arc的NFP计算
