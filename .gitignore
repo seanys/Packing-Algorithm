@@ -7,4 +7,5 @@ record*
 *.npy
 .VSCodeCounter*
 *.pt
+.DS_Store
 */.DS_Store
