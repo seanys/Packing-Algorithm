@@ -67,18 +67,18 @@ class BottomLeftFill(object):
                 nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
             else:
                 nfp=self.NFPAssistant.getDirectNFP(main,adjoin)
-                if len(nfp)<3:
-                    print('NFP failure, areas of polygons are:')
-                    self.showAll()
-                    for poly in main,adjoin:
-                        print(Polygon(poly).area)
-                    self.showPolys([main]+[adjoin])
-                    print('NFP loaded from: ',self.NFPAssistant.history_path)
-                    nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
-            differ_region=differ_region.difference(Polygon(nfp))
+            nfp_poly=Polygon(nfp)
+            try:
+                differ_region=differ_region.difference(nfp_poly)
+            except:
+                print('NFP failure, areas of polygons are:')
+                self.showAll()
+                for poly in main,adjoin:
+                    print(Polygon(poly).area)
+                self.showPolys([main]+[adjoin]+[nfp])
+                print('NFP loaded from: ',self.NFPAssistant.history_path)
 
         differ=GeoFunc.polyToArr(differ_region)
-
         differ_index=self.getBottomLeft(differ)
         refer_pt_index=GeoFunc.checkTop(adjoin)
         GeoFunc.slideToPoint(self.polygons[index],adjoin[refer_pt_index],differ[differ_index])        
@@ -129,8 +129,9 @@ class BottomLeftFill(object):
         PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width),minus=100)    
 
     def showPolys(self,polys):
-        for i in range(0,len(polys)):
+        for i in range(0,len(polys)-1):
             PltFunc.addPolygon(polys[i])
+        PltFunc.addPolygonColor(polys[len(polys)-1])
         length=max(self.width,self.contain_length)
         PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width),minus=200)    
 

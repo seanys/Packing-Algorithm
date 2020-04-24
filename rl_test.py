@@ -30,7 +30,6 @@ def getAllNFP(data_source,save_name):
     p.join()
 
 def NFPcheck(dataset_name,new_name):
-    files=os.listdir('record/{}'.format(dataset_name))
     os.makedirs('record/{}'.format(new_name))
     print('Files with wrong NFPs are listed below:')
     xy=np.load('{}_xy.npy'.format(dataset_name),allow_pickle=True)
@@ -38,22 +37,23 @@ def NFPcheck(dataset_name,new_name):
     xy_new=[]
     vec_new=[]
     index_new=0
-    for f in tqdm(files):
-        if not '.csv' in f:
+    for i,polys in enumerate(tqdm(xy)):
+        valid=False
+        nfp_path='record/{}/{}.csv'.format(dataset_name,i)
+        if not os.path.exists(nfp_path):
             continue
-        index=int(f.split('.csv')[0])
-        path='record/{}/{}'.format(dataset_name,f)
-        df = pd.read_csv(path,header=None)
-        valid=True
-        for line in range(df.shape[0]):
-            nfp=json.loads(df[2][line])
-            if len(nfp)<3:
-                print(f)
-                valid=False
+        df = pd.read_csv(nfp_path,header=None)
+        try:
+            for line in range(df.shape[0]):
+                nfp=json.loads(df[2][line])
+                differ=Polygon([[-1000,-1000],[3000,-1000],[3000,3000],[-1000,3000]]).difference(Polygon(nfp))
+            valid=True
+        except:
+            print(i)
         if valid:
-            xy_new.append(xy[index])
-            vec_new.append(vec[index])
-            copyfile(path,'record/{}/{}.csv'.format(new_name,index_new))
+            xy_new.append(xy[i])
+            vec_new.append(vec[i])
+            copyfile('record/{}/{}.csv'.format(dataset_name,i),'record/{}/{}.csv'.format(new_name,index_new))
             index_new=index_new+1
     print('数据集有效容量 {}'.format(len(vec_new)))
     np.save('{}_xy.npy'.format(new_name),np.array(xy_new))
@@ -313,7 +313,6 @@ class GenerateData_vector(object):
                 RatotionPoly(360).rotation_specific(poly,angle=[0,90])
             elif point_num==8:
                 RatotionPoly(360).rotation_specific(poly,angle=[0,45/2])
-        PltFunc.showPolys([poly])
         return poly
     
     @staticmethod
@@ -443,11 +442,13 @@ class GetBestSeq(object):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-    GenerateData_vector.generatePolygon(8,False)
-    #NFPcheck('oct1000','oct10000')
+    #GenerateData_vector.generatePolygon(8,False)
+    NFPcheck('reg997_val','reg9999_val')
     #print(GenerateData_vector.generateData_fu(5))
-    #GenerateData_vector.generateTestData('oct10000',10000)
-    #getAllNFP('oct10000_xy.npy','oct10000')
+    #GenerateData_vector.generateTestData('reg1000_val',1000)
+    #getAllNFP('reg1000_val_xy.npy','reg1000_val')
+    #GenerateData_vector.generateTestData('reg10000',10000)
+    #getAllNFP('reg10000_xy.npy','reg10000')
     #GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
     #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
     #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')

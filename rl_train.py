@@ -41,12 +41,13 @@ class Preload(object):
         return polys_new.tolist()
 
 class PolygonsDataset(Dataset):
-    def __init__(self,size,max_point_num,path=None,full_size=0):
+    def __init__(self,size,max_point_num,path=None,full_size=0,norm=True):
         '''
         size: 选取的数据集容量
         max_point_num: 最大点的个数
         path: 从文件加载
         full_size：数据集完整容量 若为0则对全数据集进行shuffle
+        norm: 是否进行归一化
         '''
         x=[]
         self.choice=False if full_size==0 else True
@@ -62,6 +63,7 @@ class PolygonsDataset(Dataset):
                 print('Samples like: ',choice)
             for i in choice:
                 polys=data[i]
+                if norm: polys=polys/np.max(polys)
                 polys=polys.T
                 x.append(polys)
             self.x=np.array(x)
@@ -174,7 +176,7 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
-    #blf.showAll()
+    # blf.showAll()
     return blf.getLength()
         
 def getGA(width,poly,nfp_asst,generations=10):
@@ -196,7 +198,7 @@ def reward(sample_solution, USE_CUDA=False):
         sequences.append(sample.numpy())
     sequences=np.array(sequences)
     if trainning:
-        if batch_size>2:
+        if batch_size>20:
             p=Pool() # 多进程计算BLF
             res=[]
             for index in range(batch_size):
@@ -254,11 +256,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0418', help='')
-    parser.add_argument('--run_name', type=str, default='oct10000')
-    parser.add_argument('--val_name', type=str, default='fu1000')
-    parser.add_argument('--train_size', default=3336, help='')
-    parser.add_argument('--val_size', default=500, help='')
+    parser.add_argument('--task', default='0421', help='')
+    parser.add_argument('--run_name', type=str, default='reg3515')
+    parser.add_argument('--val_name', type=str, default='reg812')
+    parser.add_argument('--train_size', default=3515, help='')
+    parser.add_argument('--val_size', default=812, help='')
     parser.add_argument('--is_train', type=str2bool, default=True, help='')
 
     '''多边形参数'''
@@ -277,10 +279,10 @@ if __name__ == "__main__":
     parser.add_argument('--beam_size', default=1, help='Beam width for beam search')
 
     '''训练设置'''
-    parser.add_argument('--batch_size', default=8, help='')
-    parser.add_argument('--actor_net_lr', default=1.2e-4, help="Set the learning rate for the actor network")
+    parser.add_argument('--batch_size', default=16, help='')
+    parser.add_argument('--actor_net_lr', default=1.05e-4, help="Set the learning rate for the actor network")
     parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=4000, help='')
+    parser.add_argument('--actor_lr_decay_step', default=10000, help='')
     parser.add_argument('--critic_lr_decay_step', default=5000, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
@@ -319,15 +321,14 @@ if __name__ == "__main__":
     size = 10 # 解码器长度（序列长度）
     input_dim = 128
     reward_fn = reward  # 奖励函数
-    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']),full_size=9996)
+    training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']))
     val_dataset = PolygonsDataset(args['val_size'],args['max_point_num'],path='{}_val.npy'.format(args['val_name']))
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
-    args['load_path']='outputs/0417/oct10000/epoch-37.pt'
 
 
-    # for xxx in range(149):
-    #     args['load_path']='outputs/0414/fu1500/epoch-{}.pt'.format(xxx)
+    # for xxx in range(285):
+    #     args['load_path']='outputs/0419/reg3515/epoch-{}.pt'.format(xxx)
     '''初始化网络/测试已有网络'''
     if args['load_path'] == '':
         model = NeuralCombOptRL(
@@ -534,8 +535,8 @@ if __name__ == "__main__":
             torch.save(model, os.path.join(save_dir, 'epoch-{}.pt'.format(i)))
 
             # If the task requires generating new data after each epoch, do that here!
-            training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']),full_size=9996)
-            training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
+            # training_dataset = PolygonsDataset(args['train_size'],args['max_point_num'],path='{}.npy'.format(args['run_name']),full_size=9996)
+            # training_dataloader = DataLoader(training_dataset, batch_size=int(args['batch_size']),shuffle=False, num_workers=4)
             training_dataset.updateRealIndex()
             val_dataset.updateRealIndex()
 
