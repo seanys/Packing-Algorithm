@@ -77,7 +77,7 @@ public:
     };
     static void getGemotryPoints(Polygon poly,VectorPoints &temp_points){
         for_each_point(poly, AllPoint<Point>(&temp_points));
-    }
+    };
 };
 
 // 包含处理函数
@@ -303,32 +303,50 @@ public:
 class PolygonsOperator{
 public:
     // 计算多边形的差集合
-    static void polysDifference(list<Polygon> &feasible_region, Polygon nfp_poly){
+    static void polysDifference(list<Polygon> &feasible_region, Polygon sub_region){
         // 逐一遍历求解重叠
         list<Polygon> new_feasible_region;
         for(auto region_item:feasible_region){
-            // 计算差集
             list<Polygon> output;
-            difference(region_item, nfp_poly, output);
+            difference(region_item, sub_region, output);
             DataAssistant::appendList(new_feasible_region,output);
-//            for(auto item:output){
-//                cout<<"output:"<<dsv(item)<<endl;
-//            };
         };
         // 将新的Output全部输入进去
         feasible_region.clear();
         copy(new_feasible_region.begin(), new_feasible_region.end(), back_inserter(feasible_region));
     }
-    // 判断多边形是否相交
-    void polysIntersects(){
-        LineString line1, line2;
-
-        read_wkt("linestring(1 1,2 2,3 3)", line1);
-        read_wkt("linestring(2 1,1 2,4 0)", line2);
-
-        bool b = intersects(line1, line2);
-
-        cout << "Intersects: " << (b ? "YES" : "NO") << endl;
+    // 逐一遍历求差集
+    static void polyListDifference(list<Polygon> &feasible_region, list<Polygon> sub_region){
+        for(auto region_item:sub_region){
+            polysDifference(feasible_region,region_item);
+        }
+    }
+    // 单一的多边形交集
+    static void polysIntersection(list<Polygon> region_list, Polygon region, list<Polygon> &inter_region){
+        for(auto region_item:region_list){
+            list<Polygon> output;
+            intersection(region_item, region, output);
+            DataAssistant::appendList(inter_region,output);
+        }
+    }
+    // 逐一计算交集
+    static void polyListIntersection(list<Polygon> region1, list<Polygon> region2, list<Polygon> &inter_region){
+        for(auto region_item1:region1){
+            for(auto region_item2:region2){
+                list<Polygon> output;
+                intersection(region_item1, region_item2, output);
+                DataAssistant::appendList(inter_region,output);
+            }
+        }
+    }
+    // 判断某个List是否为空
+    static bool judgeListEmpty(list<Polygon> poly_list){
+        for(auto item:poly_list){
+            if(area(item)>BIAS){
+                return false;
+            }
+        }
+        return true;
     }
     // 计算多边形的交集
     void polysUnion(){

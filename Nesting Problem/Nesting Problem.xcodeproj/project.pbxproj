@@ -26,7 +26,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		14134B7D24502F7300FB5365 /* tools */ = {isa = PBXFileReference; lastKnownFileType = folder; path = tools; sourceTree = "<group>"; };
 		1426104E244AC16D00A2440D /* data_assistant.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = data_assistant.hpp; sourceTree = "<group>"; };
 		14BE2F852444ABB00049BA76 /* Nesting Problem */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Nesting Problem"; sourceTree = BUILT_PRODUCTS_DIR; };
 		14BE2F882444ABB00049BA76 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -49,7 +48,6 @@
 		14BE2F7C2444ABB00049BA76 = {
 			isa = PBXGroup;
 			children = (
-				14134B7D24502F7300FB5365 /* tools */,
 				14BE2F872444ABB00049BA76 /* Nesting Problem */,
 				14BE2F862444ABB00049BA76 /* Products */,
 			);

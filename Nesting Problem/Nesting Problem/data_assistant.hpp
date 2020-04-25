@@ -15,6 +15,7 @@ using namespace std;
 
 // 基础定义
 typedef vector<vector<double>> VectorPoints;
+typedef vector<vector<vector<double>>> ServalPolygons;
 
 // 形状排样的结果
 struct PolysArrange{

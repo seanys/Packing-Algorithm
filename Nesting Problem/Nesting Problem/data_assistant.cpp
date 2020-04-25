@@ -12,6 +12,7 @@
 
 #include "data_assistant.hpp"
 #include <algorithm>
+#include <algorithm>
 #include <csv/reader.hpp>
 #include <csv/writer.hpp>
 #include <x2struct/x2struct.hpp>
@@ -115,6 +116,7 @@ public:
             blf_result.polys_type.push_back(i);
         }
     };
+    
     /*
      Push新的Vector
      */
@@ -124,6 +126,7 @@ public:
         }
         PrintAssistant::print2DVector(poly,false);
     };
+    
     /*
      标准化数据（扩大或者缩小倍数）
      */
@@ -133,6 +136,7 @@ public:
             (*poly)[i][1]=(*poly)[i][1]*multiplier;
         }
     };
+    
     /*
      加载一维的数组向量并返回
      */
@@ -141,6 +145,7 @@ public:
         str.erase(remove(str.begin(), str.end(), '\"'), str.end());
         X::loadjson(str, vec, false);
     };
+    
     /*
      加载二维数组
      */
@@ -149,6 +154,7 @@ public:
         str.erase(remove(str.begin(), str.end(), '\"'), str.end());
         X::loadjson(str, vec, false);
     };
+    
     /*
      加载三维数组
      */
@@ -157,6 +163,7 @@ public:
         str.erase(remove(str.begin(), str.end(), '\"'), str.end());
         X::loadjson(str, vec, false);
     };
+    
     /*
      List数组的增长
      */
@@ -170,19 +177,24 @@ public:
 
 class WriterAssistant{
 public:
-    // 写入CSV
+    /*
+     csv文件的重写
+     */
     static void writeCSV(){
         csv::Writer foo("/Users/sean/Documents/Projects/Packing-Algorithm/record/test.csv");
+        // 设置头文件
         foo.configure_dialect()
           .delimiter(", ")
           .column_names("a", "b", "c");
         
         // 需要现转化为String再写入
-        for (long i = 0; i < 3000000; i++) {
-            foo.write_row("1", "2", "3");                                     // parameter packing
+        for (long i = 0; i < 10; i++) {
+            // 可以直接写入
+            foo.write_row("1", "2", "3");
+            // 也可以按mapping写入
             foo.write_row(map<string, string>{
               {"a", "7"}, {"b", "8"}, {"c", "9"} });
         }
         foo.close();
-    }
+    };
 };
