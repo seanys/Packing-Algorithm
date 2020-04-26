@@ -7,6 +7,7 @@ import time
 import multiprocessing
 import os
 import json
+import itertools
 from shutil import copyfile
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -389,40 +390,83 @@ class GenerateData_vector(object):
             data_new.append(line_new)
         np.save(save_name,data_new)
 
-class GetBestSeq(object):
-    def __init__(self,width,polys,criteria='area'):
+class InitSeq(object):
+    def __init__(self,width,polys,nfp_load=None):
         self.polys=polys
         self.width=width
-        self.criteria=criteria
+        if nfp_load!=None:
+            self.NFPAssistant=NFPAssistant(polys,load_history=True,history_path=nfp_load)
+        else:
+            self.NFPAssistant=None
         
     # 获得面积/长度/高度降序排列的形状结果
-    def getDrease(self):
+    def getDrease(self,criteria):
         poly_list=[]
         for poly in self.polys:
-            if self.criteria=='length':
+            if criteria=='length':
                 left,bottom,right,top=GeoFunc.checkBoundValue(poly)          
                 poly_list.append([poly,right-left])
-            elif self.criteria=='height':
+            elif criteria=='height':
                 left,bottom,right,top=GeoFunc.checkBoundValue(poly)    
                 poly_list.append([poly,top-bottom])
             else:
                 poly_list.append([poly,Polygon(poly).area])
         poly_list=sorted(poly_list, key = lambda item:item[1], reverse = True) # 排序，包含index
-        # print(poly_list)
         dec_polys=[]
         for item in poly_list:
-            dec_polys.append(item[0])
+            dec_polys.append(item)
         return dec_polys
 
-    # 从所有的排列中选择出最合适的
-    def chooseFromAll(self):
-        self.NFPAssistant=NFPAssistant(self.polys)
+    # 获得所有降序排列方案的最优解
+    def getBest(self):
+        min_height=999999999
+        best_criteria=''
+        for criteria in ['area','length','height']:
+            init_list=self.getDrease(criteria)
+            # 获得全部聚类结果
+            clustering,now_clustering,last_value=[],[],init_list[0][1]
+            for item in init_list:
+                if item[1]==last_value:
+                    now_clustering.append(item)
+                else:
+                    clustering.append(now_clustering)
+                    last_value=item[1]
+                    now_clustering=[item]
+            clustering.append(now_clustering)
+            # 获得全部序列
+            one_lists=[]
+            for item in clustering:
+                one_list=list(itertools.permutations(item))
+                one_lists.append(one_list)
+            all_lists=itertools.product(*one_lists)
+            lists=[]
+            for cur_lists in all_lists:
+                cur_list=[]
+                for polys in cur_lists:
+                    for poly in polys:
+                        cur_list.append(poly)
+                lists.append(cur_list)
+            for item in lists:
+                polys_final=[]
+                for poly in item:
+                    polys_final.append(poly[0])
+                blf=BottomLeftFill(self.width,polys_final,NFPAssistant=self.NFPAssistant)
+                height=blf.getLength()
+                #print(height,criteria)
+                if height<min_height:
+                    min_height=height
+                    best_criteria=criteria
+        print(min_height,best_criteria)
+
+
+    # 枚举所有序列并选择最优
+    def getAll(self):
         all_com=list(itertools.permutations([(i) for i in range(len(self.polys))]))
         min_height=999999999
         best_order=[]
         for item in all_com:
             seq=self.getPolys(item)
-            height=BottomLeftFill(self.width,seq,NFPAssistant=self.NFPAssistant).contain_height
+            height=BottomLeftFill(self.width,seq,NFPAssistant=self.NFPAssistant).getLength()
             if height<min_height:
                 best_order=item
                 min_height=height
@@ -442,8 +486,9 @@ class GetBestSeq(object):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
+    data=np.load('fu_10_val_xy.npy',allow_pickle=True)[0]
     #GenerateData_vector.generatePolygon(8,False)
-    NFPcheck('reg997_val','reg9999_val')
+    #NFPcheck('reg997_val','reg9999_val')
     #print(GenerateData_vector.generateData_fu(5))
     #GenerateData_vector.generateTestData('reg1000_val',1000)
     #getAllNFP('reg1000_val_xy.npy','reg1000_val')
@@ -452,6 +497,7 @@ if __name__ == "__main__":
     #GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
     #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
     #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
-    #getBenchmark('fu1000_val_xy.npy')
+    #getBenchmark(,single=True)
+    InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()
     end=time.time()
     print('Running time:',end-start)

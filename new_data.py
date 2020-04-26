@@ -219,7 +219,7 @@ def showLPResult():
     PltFunc.showPlt()
 
 if __name__ == '__main__':
-    # initialResult(getData())
+    initialResult(getData())
     # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
     # ReverseFunction()
     # testCPlusResult()
