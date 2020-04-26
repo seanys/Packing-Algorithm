@@ -361,34 +361,19 @@ class GenerateData_vector(object):
         np.save(save_name,vectors)
 
     @staticmethod
-    def xy2vector(source,save_name):
-        data=np.load(source,allow_pickle=True)
+    def exportDataset(index,export_name):
+        data=[]
         vectors=[]
-        for index,line in enumerate(tqdm(data)):
-            line=line.T
-            vector=[]
-            for poly in line:
-                poly=poly.reshape(4,2).tolist()
-                poly=[poly]
-                poly=GenerateData_xy.drop0(poly)
-                vector.append(vectorFunc(poly[0],cut_nums=128).vector)
-            vectors.append(vector)
+        polys=getData(index)
+        data.append(polys)
+        vector=[]
+        for poly in polys:
+            vector.append(vectorFunc(poly,cut_nums=128).vector)
+        vectors.append(vector)
+        data=np.array(data)
         vectors=np.array(vectors)
-        np.save(save_name,vectors)
-
-    @staticmethod
-    def xy2poly(source,save_name):
-        data=np.load(source,allow_pickle=True)
-        data_new=[]
-        for index,line in enumerate(tqdm(data)):
-            line=line.T
-            line_new=[]
-            for poly in line:
-                poly=poly.reshape(4,2).tolist()
-                line_new.append(poly)
-            line_new=GenerateData_xy.drop0(line_new)
-            data_new.append(line_new)
-        np.save(save_name,data_new)
+        np.save('{}_xy'.format(export_name),data)
+        np.save('{}'.format(export_name),vectors)
 
 class InitSeq(object):
     def __init__(self,width,polys,nfp_load=None):
@@ -420,6 +405,7 @@ class InitSeq(object):
     # 获得所有降序排列方案的最优解
     def getBest(self):
         min_height=999999999
+        heights=[]
         best_criteria=''
         for criteria in ['area','length','height']:
             init_list=self.getDrease(criteria)
@@ -452,11 +438,17 @@ class InitSeq(object):
                     polys_final.append(poly[0])
                 blf=BottomLeftFill(self.width,polys_final,NFPAssistant=self.NFPAssistant)
                 height=blf.getLength()
-                #print(height,criteria)
+                heights.append(height)
                 if height<min_height:
                     min_height=height
                     best_criteria=criteria
+        # print(sorted(heights,reverse=False))
         print(min_height,best_criteria)
+        area=0
+        for poly in self.polys:
+            area=area+Polygon(poly).area
+        use_ratio=area/(self.width*min_height)
+        print(area,use_ratio)
 
 
     # 枚举所有序列并选择最优
@@ -486,18 +478,16 @@ class InitSeq(object):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-    data=np.load('fu_10_val_xy.npy',allow_pickle=True)[0]
-    #GenerateData_vector.generatePolygon(8,False)
+    GenerateData_vector.exportDataset(4,'dighe1')
+    GenerateData_vector.exportDataset(5,'dighe2')
     #NFPcheck('reg997_val','reg9999_val')
     #print(GenerateData_vector.generateData_fu(5))
     #GenerateData_vector.generateTestData('reg1000_val',1000)
     #getAllNFP('reg1000_val_xy.npy','reg1000_val')
     #GenerateData_vector.generateTestData('reg10000',10000)
     #getAllNFP('reg10000_xy.npy','reg10000')
-    #GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
-    #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
-    #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
     #getBenchmark(,single=True)
-    InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()
+    # data=np.load('fu_val_xy.npy',allow_pickle=True)[0]
+    # InitSeq(760,data,nfp_load='record/fu_val/0.csv').getBest()
     end=time.time()
     print('Running time:',end-start)
