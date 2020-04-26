@@ -2,6 +2,7 @@
 outputs*
 logs*
 history*
+result*
 **/*.pyc
 record*
 *.npy
