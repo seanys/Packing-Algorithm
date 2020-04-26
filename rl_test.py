@@ -293,9 +293,11 @@ class GenerateData_vector(object):
         point_num: 点的个数
         is_regular: 是否正多边形
         '''
+        r_max=80
+        r_min=50
         poly=[]
         angle=360/point_num # 根据边数划分角度区域
-        r=100+(160-100)*np.random.random()
+        r=r_min+(r_max-r_min)*np.random.random()
         for j in range(point_num):
             theta_min=angle*j
             theta_max=angle*(j+1)
@@ -303,7 +305,7 @@ class GenerateData_vector(object):
             theta=theta*np.pi/180 # 角度转弧度
             #max_r=min(np.math.fabs(500/np.math.cos(theta)),np.math.fabs(500/np.math.sin(theta)))
             if not is_regular:
-                r=100+(160-100)*np.random.random()
+                r=r_min+(r_max-r_min)*np.random.random()
             x=r*np.math.cos(theta)
             y=r*np.math.sin(theta)
             poly.append([x,y])
@@ -329,7 +331,7 @@ class GenerateData_vector(object):
                     if dice<0.4:
                         shape=np.random.randint(1,6)
                         poly=GenerateData_vector.generateSpecialPolygon(shape)
-                    elif dice<0.8:
+                    elif dice<0.7:
                         point_num=np.random.randint(3,9)
                         poly=GenerateData_vector.generatePolygon(point_num,True)
                     else:
@@ -486,18 +488,15 @@ class InitSeq(object):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-    data=np.load('fu_10_val_xy.npy',allow_pickle=True)[0]
+    #data=np.load('fu_10_val_xy.npy',allow_pickle=True)[0]
     #GenerateData_vector.generatePolygon(8,False)
     #NFPcheck('reg997_val','reg9999_val')
     #print(GenerateData_vector.generateData_fu(5))
     #GenerateData_vector.generateTestData('reg1000_val',1000)
     #getAllNFP('reg1000_val_xy.npy','reg1000_val')
     #GenerateData_vector.generateTestData('reg10000',10000)
-    #getAllNFP('reg10000_xy.npy','reg10000')
-    #GenerateData_vector.poly2vector('fu1000_val_xy.npy','fu1000_val')
-    #GenerateData_vector.poly2vector('fu1500_xy.npy','fu1500_8')
-    #GenerateData_vector.xy2poly('fu1500_val_old.npy','fu1500_val_xy')
+    #getAllNFP('fu_val_xy.npy','fu_val')
     #getBenchmark(,single=True)
-    InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()
+    #InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()
     end=time.time()
     print('Running time:',end-start)
