@@ -72,7 +72,7 @@ public:
     /*
      加载某个形状的全部方向
      */
-    static void readAllPolygon(vector<vector <VectorPoints>> all_polygons){
+    static void readAllPolygon(vector<vector <VectorPoints>> &all_polygons){
         // 初步读取
         csv::Reader foo;
         foo.read("/Users/sean/Documents/Projects/Data/fu_orientation.csv");
@@ -91,6 +91,7 @@ public:
                     load2DVector(row[line],new_poly);
                     all_polygons[row_index].push_back(new_poly);
                 }
+                row_index++;
             }
         }
     };
@@ -106,7 +107,6 @@ public:
         blf_result.total_area=stod(rows[index]["total_area"]);
         // 所有方向/位置/形状
         load1DVector(rows[index]["polys_orientation"],blf_result.polys_orientation);
-        load2DVector(rows[index]["polys_position"],blf_result.polys_position);
         load3DVector(rows[index]["polys"],blf_result.polys);
         // 设置形状总数和类型总数——后续存储好
         blf_result.total_num=(int)blf_result.polys_orientation.size();

@@ -55,13 +55,19 @@ public:
      数组转化为多边形
      */
     static void convertPoly(vector<vector<double>> poly, Polygon &Poly){
+        // 空集的情况
+        if(poly.size()==0){
+            read_wkt("POLYGON(())", Poly);
+            return;
+        }
         // 首先全部转化为wkt格式
         string wkt_poly="POLYGON((";
-        for (int i = 0; i < poly.size();i++)
-        {
-            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1])+",";
+        for (int i = 0; i < poly.size();i++){
+            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1]) + ",";
+            if(i==poly.size()-1){
+                wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1]) + "))";
+            }
         };
-        wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1])+"))";
         // 然后读取到Poly中
         read_wkt(wkt_poly, Poly);
     };
@@ -69,12 +75,23 @@ public:
      通过for each point遍历
      */
     static void getAllPoints(list<Polygon> all_polys,VectorPoints &all_points){
-        for(auto poly:all_polys){
+        for(auto poly_item:all_polys){
             VectorPoints temp_points;
-            getGemotryPoints(poly,temp_points);
+            getGemotryPoints(poly_item,temp_points);
             all_points.insert(all_points.end(),temp_points.begin(),temp_points.end());
         }
     };
+    // 获得vector<list<VectorPoints>>的多边形（并非全部点）
+    static void getListPolys(vector<list<Polygon>> list_polys,vector<VectorPoints> &all_polys){
+        for(auto _list:list_polys){
+            for(Polygon poly_item:_list){
+                VectorPoints poly_points;
+                getGemotryPoints(poly_item,poly_points);
+                all_polys.push_back(poly_points);
+            }
+        }
+    }
+    // 获得某个集合对象的全部点
     static void getGemotryPoints(Polygon poly,VectorPoints &temp_points){
         for_each_point(poly, AllPoint<Point>(&temp_points));
     };
@@ -182,6 +199,7 @@ public:
             }
         }
     };
+    
     /*
      获得多边形的边界四个点，border_points有left bottom right top四个点
      暂时不考虑参考点，参考点统一逆时针旋转第一个最上方的点
@@ -217,6 +235,7 @@ public:
             }
         };
     };
+    
     // 判断两个多边形是否重叠
     static bool judgeOverlap(VectorPoints poly1,VectorPoints poly2){
         Polygon Poly1,Poly2;
@@ -224,6 +243,7 @@ public:
         GeometryProcess::convertPoly(poly2,Poly2);
         return intersects(Poly1, Poly2);
     };
+    
     // 获得两个多边形的重叠情况
     static double overlapArea(VectorPoints poly1,VectorPoints poly2){
         double overlap_area=0;
@@ -256,6 +276,18 @@ public:
         }
         return total_area;
     };
+    // 获得当前排样的宽度
+    static double arrangetLenth(vector<VectorPoints> all_polys){
+        double length=0;
+        for(VectorPoints poly:all_polys){
+            vector<double> pt;
+            getRightPt(poly,pt);
+            if(pt[0]>length){
+                length=pt[0];
+            }
+        }
+        return length;
+    }
 };
 
 // 获得NFP
@@ -321,16 +353,16 @@ public:
             polysDifference(feasible_region,region_item);
         }
     }
-    // 单一的多边形交集
-    static void polysIntersection(list<Polygon> region_list, Polygon region, list<Polygon> &inter_region){
+    // List和一个Poly的差集
+    static void listToPolyIntersection(list<Polygon> region_list, Polygon region, list<Polygon> &inter_region){
         for(auto region_item:region_list){
             list<Polygon> output;
             intersection(region_item, region, output);
             DataAssistant::appendList(inter_region,output);
         }
     }
-    // 逐一计算交集
-    static void polyListIntersection(list<Polygon> region1, list<Polygon> region2, list<Polygon> &inter_region){
+    // List和List之间的交集
+    static void listToListIntersection(list<Polygon> region1, list<Polygon> region2, list<Polygon> &inter_region){
         for(auto region_item1:region1){
             for(auto region_item2:region2){
                 list<Polygon> output;

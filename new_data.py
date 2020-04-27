@@ -182,19 +182,18 @@ class ReverseFunction(object):
         self.main()
 
     def main(self):
-        fu = pd.read_csv("/Users/sean/Documents/Projects/Data/fu.csv")
+        fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/c_blf.csv")
         _len= fu.shape[0]
         
         for i in range(_len):
-            # polygon=json.loads(fu["polygon"][i])
-            # clock_polygon=self.getReverse(polygon)
-            nfp=self.getReverse(json.loads(fu["nfp"][i]))
-            new_poly_i=self.getReverse(json.loads(fu["new_poly_i"][i]))
-            new_poly_j=self.getReverse(json.loads(fu["new_poly_j"][i]))
-            with open("/Users/sean/Documents/Projects/Data/fu_clock.csv","a+") as csvfile:
+            polys=json.loads(fu["polys"][i])
+            clock_polys=[]
+            for poly in polys:
+                new_poly=self.getReverse(poly)
+                clock_polys.append(new_poly)
+            with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/new_c_blf.csv","a+") as csvfile:
                 writer = csv.writer(csvfile)
-                # writer.writerows([[fu["num"][i],polygon,clock_polygon]])
-                writer.writerows([[fu["i"][i],fu["j"][i],fu["oi"][i],fu["oj"][i],new_poly_i,new_poly_j,nfp]])
+                writer.writerows([[fu["index"][i],fu["descript"][i],fu["width"][i],fu["total_area"][i],fu["overlap"][i],fu["polys_orientation"][i],clock_polys]])
 
     def getReverse(self,polys):
         i=len(polys)-1

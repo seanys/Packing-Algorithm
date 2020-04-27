@@ -52,10 +52,32 @@ public:
 };
 
 class PltFunc{
+private:
+    vector<vector<vector<double>>> polys; // 全部的形状
+    vector<string> colors; // 形状的颜色
 public:
-    static void pltShow(vector<vector<vector<double>>> all_polys){
+    // 后续修改为初始化，可以增加形状
+    PltFunc(){
+        polys={};
+        colors={};
+    };
+    // 增加一个形状
+    void addPolygon(vector<vector<double>> poly,string color){
+        polys.push_back(poly);
+        colors.push_back(color);
+    };
+    void showAll(){
+        
+    };
+    // 多个形状的加载
+    static void polysShow(vector<vector<vector<double>>> all_polys){
         string _path="/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv";
         FileAssistant::recordPolys(_path,all_polys);
         system("/Library/Frameworks/Python.framework/Versions/3.7/bin/python3.7 /Users/sean/Documents/Projects/Packing-Algorithm/new_data.py");
+    };
+    // 单个形状的加载
+    static void polyShow(vector<vector<double>> poly){
+        vector<vector<vector<double>>> all_polys={poly};
+        polysShow(all_polys);
     }
 };
