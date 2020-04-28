@@ -23,6 +23,7 @@ def getNFP(polys,save_name,index):
     NFPAssistant(polys,get_all_nfp=True,store_nfp=True,store_path='record/{}/{}.csv'.format(save_name,index))
 
 def getAllNFP(data_source,save_name):
+    os.makedirs('record/{}'.format(save_name))
     data=np.load(data_source,allow_pickle=True)
     p=Pool()
     for index,polys in enumerate(data):
@@ -264,15 +265,15 @@ class GenerateData_vector(object):
     @staticmethod
     def generateSpecialPolygon(shape):
         # shape: 1 直角三角形 2 等腰三角形 3 矩形 4 直角梯形 5 菱形
-        b=160
-        a=100
+        b=240
+        a=120
         x=a+(b-a)*np.random.random()
         y=a+(b-a)*np.random.random()
         if shape==1:
             poly=np.array([0,0,x,0,0,y]).reshape(3,2).tolist()
             RatotionPoly(90).rotation(poly)
         elif shape==2:
-            poly=np.array([0,0,2*x,0,x,y]).reshape(3,2).tolist()
+            poly=np.array([0,0,x,0,x/2,y]).reshape(3,2).tolist()
             RatotionPoly(90).rotation(poly)
         elif shape==3:
             poly=np.array([0,0,x,0,x,y,0,y]).reshape(4,2).tolist()
@@ -282,7 +283,7 @@ class GenerateData_vector(object):
             poly=np.array([0,0,x2,0,x,y,0,y]).reshape(4,2).tolist()
             RatotionPoly(90).rotation(poly)
         elif shape==5:
-            poly=np.array([0,0,x/2,-y,x,0,x/2,y]).reshape(4,2).tolist()
+            poly=np.array([0,0,x/2,-y/2,x,0,x/2,y/2]).reshape(4,2).tolist()
             RatotionPoly(90).rotation(poly)
         return poly
     
@@ -293,8 +294,8 @@ class GenerateData_vector(object):
         point_num: 点的个数
         is_regular: 是否正多边形
         '''
-        r_max=80
-        r_min=50
+        r_max=120
+        r_min=60
         poly=[]
         angle=360/point_num # 根据边数划分角度区域
         r=r_min+(r_max-r_min)*np.random.random()
@@ -324,7 +325,7 @@ class GenerateData_vector(object):
         vectors=[]
         for i in tqdm(range(size)):
             polys=[]
-            for j in range(10):
+            for j in range(12):
                 polyCheck=False
                 while not polyCheck:
                     dice=np.random.random()
@@ -337,9 +338,11 @@ class GenerateData_vector(object):
                     else:
                         point_num=np.random.randint(3,9)
                         poly=GenerateData_vector.generatePolygon(point_num,False)
-                    if Polygon(poly).area>10000: # 面积过小会导致无法计算NFP
+                    if Polygon(poly).area>5000: # 面积过小会导致无法计算NFP
                         polyCheck=True
                 polys.append(poly)
+            # blf=BottomLeftFill(760,polys)
+            # blf.showAll()
             data.append(polys)
             vector=[]
             for poly in polys:
@@ -480,14 +483,16 @@ class InitSeq(object):
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-    GenerateData_vector.exportDataset(4,'dighe1')
-    GenerateData_vector.exportDataset(5,'dighe2')
-    #NFPcheck('reg997_val','reg9999_val')
+    # GenerateData_vector.exportDataset(4,'dighe1')
+    # GenerateData_vector.exportDataset(5,'dighe2')
+    # getAllNFP('dighe1_xy.npy','dighe1')
+    # getAllNFP('dighe2_xy.npy','dighe2')
+    NFPcheck('reg10000','reg9999_val')
     #print(GenerateData_vector.generateData_fu(5))
-    #GenerateData_vector.generateTestData('reg1000_val',1000)
-    #getAllNFP('reg1000_val_xy.npy','reg1000_val')
-    #GenerateData_vector.generateTestData('reg10000',10000)
-    #getAllNFP('reg10000_xy.npy','reg10000')
+    # GenerateData_vector.generateTestData('reg1000_val',1000)
+    # getAllNFP('reg1000_val_xy.npy','reg1000_val')
+    # GenerateData_vector.generateTestData('reg10000',10000)
+    # getAllNFP('reg10000_xy.npy','reg10000')
     #getBenchmark(,single=True)
     # data=np.load('fu_val_xy.npy',allow_pickle=True)[0]
     # InitSeq(760,data,nfp_load='record/fu_val/0.csv').getBest()
