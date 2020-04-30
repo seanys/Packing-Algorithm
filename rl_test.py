@@ -265,8 +265,8 @@ class GenerateData_vector(object):
     @staticmethod
     def generateSpecialPolygon(shape):
         # shape: 1 直角三角形 2 等腰三角形 3 矩形 4 直角梯形 5 菱形
-        b=240
-        a=120
+        b=250
+        a=100
         x=a+(b-a)*np.random.random()
         y=a+(b-a)*np.random.random()
         if shape==1:
@@ -294,7 +294,7 @@ class GenerateData_vector(object):
         point_num: 点的个数
         is_regular: 是否正多边形
         '''
-        r_max=120
+        r_max=140
         r_min=60
         poly=[]
         angle=360/point_num # 根据边数划分角度区域
@@ -329,7 +329,7 @@ class GenerateData_vector(object):
                 polyCheck=False
                 while not polyCheck:
                     dice=np.random.random()
-                    if dice<0.4:
+                    if dice<1:
                         shape=np.random.randint(1,6)
                         poly=GenerateData_vector.generateSpecialPolygon(shape)
                     elif dice<0.7:
@@ -485,19 +485,14 @@ if __name__ == "__main__":
     start=time.time()
     # GenerateData_vector.exportDataset(4,'dighe1')
     # GenerateData_vector.exportDataset(5,'dighe2')
-    # getAllNFP('dighe1_xy.npy','dighe1')
-    # getAllNFP('dighe2_xy.npy','dighe2')
-    NFPcheck('reg10000','reg9999_val')
-    #print(GenerateData_vector.generateData_fu(5))
-    # GenerateData_vector.generateTestData('reg1000_val',1000)
-    # getAllNFP('reg1000_val_xy.npy','reg1000_val')
+    NFPcheck('fu999_val','reg9999_val')
+    GenerateData_vector.generateTestData('fu999_val',999)
+    # getAllNFP('fu999_val_xy.npy','fu999_val')
     # GenerateData_vector.generateTestData('reg10000',10000)
     # getAllNFP('reg10000_xy.npy','reg10000')
-    #getBenchmark(,single=True)
+    # getBenchmark(,single=True)
     # data=np.load('fu_val_xy.npy',allow_pickle=True)[0]
     # InitSeq(760,data,nfp_load='record/fu_val/0.csv').getBest()
-    #getAllNFP('fu_val_xy.npy','fu_val')
-    #getBenchmark(,single=True)
     #InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()
     end=time.time()
     print('Running time:',end-start)
