@@ -10,8 +10,8 @@
 #include <vector>
 #include <stdbool.h>
 #include <csv/reader.hpp>
-#include "geometry.cpp"
 #include "plot.cpp"
+#include "geometry.cpp"
 #include <time.h>
 #include <algorithm>
 
@@ -203,6 +203,7 @@ public:
         for(int orientation=0;orientation<4;orientation++){
             // 获得对应的NFP和IFR
             getNFPIFR(choosed_index,orientation);
+            PrintAssistant::print2DVector(cur_ifr,true);
             
             // 判断IFR除去NFP之后是否还有空隙，若有，则更新并返回
             list<Polygon> ifr_sub_nfp;
@@ -281,7 +282,7 @@ public:
         }
         // 获得IFR形状
         cur_ifr={};
-        PackingAssistant::getIFR(cur_solution.polys[j], width, cur_length, cur_ifr);
+        PackingAssistant::getIFR(all_polygons[j][oj], width, cur_length, cur_ifr);
     };
     
     // 在获得NFP和IFR之后获得目所有目标函数（4.26测试）
@@ -330,7 +331,7 @@ public:
                 }
             }
         }
-        return 0;
+        return min_depth;
     };
     
     // 获得某个位置与某个形状的最低高度（返回的结果调整过）
@@ -435,7 +436,7 @@ public:
             target_indexs.push_back({});
             // 获得每个阶段上一个的最后一个index的匹配结果
             for(int i=0;i<nfp_sub_ifr_phase[pair_num-2].size();i++){
-                auto target_father=target_indexs[pair_num-2][i][target_indexs[pair_num-2][i].size()-1];
+                auto target_father = target_indexs[pair_num-2][i][target_indexs[pair_num-2][i].size()-1];
                 for(int j:nfp_overlap_list[target_father]){
                     list<Polygon> inter_region;
                     PolygonsOperator::listToPolyIntersection(nfp_sub_ifr_phase[pair_num-2][i],all_nfps_poly[j],inter_region);

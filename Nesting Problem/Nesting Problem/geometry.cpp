@@ -90,7 +90,7 @@ public:
                 all_polys.push_back(poly_points);
             }
         }
-    }
+    };
     // 获得某个集合对象的全部点
     static void getGemotryPoints(Polygon poly,VectorPoints &temp_points){
         for_each_point(poly, AllPoint<Point>(&temp_points));
@@ -133,6 +133,10 @@ public:
     static void slideToPosition(VectorPoints &polygon,vector<double> target_pt){
         vector<double> refer_pt;
         getReferPt(polygon,refer_pt);
+        cout<<"多边形";
+        PrintAssistant::print2DVector(polygon,true);
+        cout<<"参考点:"<<refer_pt[0]<<","<<refer_pt[1]<<endl;
+        cout<<"目标点:"<<target_pt[0]<<","<<target_pt[1]<<endl;
         double delta_x=target_pt[0]-refer_pt[0];
         double delta_y=target_pt[1]-refer_pt[1];
         for(int i=0;i<polygon.size();i++){
@@ -393,6 +397,57 @@ public:
         BOOST_FOREACH(Polygon const& p, output)
         {
             cout << i++ << ": " << area(p) << endl;
+        }
+    }
+    /*
+     List数组的增长
+     */
+    static void appendPolyList(list<Polygon> &old_list,list<Polygon> &new_list){
+        for(auto item:new_list){
+            if(area(item)>BIAS){
+                Polygon new_item;
+                PolygonsOperator::convertToFeasible(new_item,item);
+                old_list.push_back(new_item);
+            }
+        }
+    }
+    /*
+     将不可行转化为可行
+     */
+    static void convertToFeasible(Polygon new_item,Polygon item){
+        // 确认所有的点
+        VectorPoints all_points;
+        VectorPoints new_all_points;
+        GeometryProcess::getGemotryPoints(item,all_points);
+        // 判断点是否重叠了
+        for(int i = 0; i < all_points.size(); i++){
+            VectorPoints line1, line2;
+            line1 = {all_points[i], all_points[i+1]};
+            if(i == all_points.size() - 1){
+                line2 = {all_points[0], all_points[1]};
+            }else if (i == all_points.size() - 2){
+                line2 = {all_points[i+1], all_points[0]};
+            }else{
+                line2 = {all_points[i+1], all_points[i+2]};
+            }
+            // 首先判断垂直情况
+            double delta_x1, delta_y1, delta_x2, delta_y2;
+            delta_x1 = line1[1][0] - line1[0][0];
+            delta_y1 = line1[1][1] - line1[0][1];
+            delta_x2 = line2[1][0] - line2[0][0];
+            delta_y2 = line2[1][1] - line2[0][1];
+            if(delta_x1 < BIAS && delta_x2 < BIAS){
+                continue;
+            }else if(delta_x1 < BIAS || delta_x2 < BIAS){
+                new_all_points.push_back(all_points[i+1]);
+            }else{
+                // 判断非垂直情况
+                double k1 = delta_y1/delta_x1;
+                double k2 = delta_y2/delta_x2;
+                if(abs(abs(k1) - abs(k2)) < BIAS){
+                    continue;
+                }
+            }
         }
     }
 };

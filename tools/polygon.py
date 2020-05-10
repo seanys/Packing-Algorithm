@@ -559,12 +559,13 @@ class RatotionPoly():
             pass
             # print("不允许旋转")
 
-    def rotation_specific(self,poly,angle=-1):
+    def rotation_specific(self, poly, angle = -1):
         '''
         旋转特定角度
         '''
         Poly=Polygon(poly)
-        if angle==-1: angle=self.angle
+        if angle == -1: 
+            angle = self.angle
         elif len(angle)>0:
             angle=np.random.choice(angle)
             # print('旋转{}°'.format(angle))
@@ -976,7 +977,7 @@ if __name__ == '__main__':
     # PltFunc.addPolygon(((248.47, 860), (448.47, 940), (648.47, 940), (648.47, 560), (248.47, 560)))
 
     # PltFunc.addPolygon(((604.326, 180), (200, 180), (200, 760), (604.326, 760), (604.326, 180)))
-    PltFunc.addPolygonColor([[274.326,285.674],[380,285.674],[380,427.943],[404.326,437.674],[404.326,285.674],[274.326,285.674]])
+    # PltFunc.addPolygonColor([[234.286,560],[360,560],[380,560],[380,723.959],[380,723.959],[380,460],[234.286,460],[234.286,560]])
     # PltFunc.addPolygon([[-80,580,],[200,580,],[200,400,],[-80,400,]])
     # PltFunc.addPolygon(((480, 200), (480, 380), (200, 380), (200, 760), (1e+08, 760), (1e+08, 200), (480, 200)))
     PltFunc.showPlt()

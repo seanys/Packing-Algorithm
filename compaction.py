@@ -284,7 +284,7 @@ def searchOneLength(polys,poly_status,width,length,_type):
     return final_polys,final_poly_status,last_value
 
 if __name__ == "__main__":
-    blf = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/blf.csv")
+    blf = pd.read_csv("record/blf.csv")
     index=7
     polys,poly_status,width=json.loads(blf["polys"][index]),json.loads(blf["poly_status"][index]),int(blf["width"][index])
 
