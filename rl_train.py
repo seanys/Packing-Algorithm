@@ -63,7 +63,12 @@ class PolygonsDataset(Dataset):
                 print('Samples like: ',choice)
             for i in choice:
                 polys=data[i]
-                if norm: polys=polys/np.max(polys)
+                if norm: 
+                    _max=np.max(polys)
+                    _min=np.min(polys)
+                    med=(_max+_min)/2
+                    ran=(_max-_min)
+                    polys=2*(polys-med)/ran
                 polys=polys.T
                 x.append(polys)
             self.x=np.array(x)
@@ -176,7 +181,7 @@ def str2bool(v):
 
 def getBLF(width,poly,nfp_asst):
     blf=BottomLeftFill(width,poly,NFPAssistant=nfp_asst)
-    # blf.showAll()
+    #blf.showAll()
     return blf.getLength()
         
 def getGA(width,poly,nfp_asst,generations=10):
@@ -256,10 +261,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Neural Combinatorial Optimization with RL")
 
     '''数据加载'''
-    parser.add_argument('--task', default='0422', help='')
-    parser.add_argument('--run_name', type=str, default='reg3515')
+    parser.add_argument('--task', default='0430', help='')
+    parser.add_argument('--run_name', type=str, default='reg2379')
     parser.add_argument('--val_name', type=str, default='fu')
-    parser.add_argument('--train_size', default=3515, help='')
+    parser.add_argument('--train_size', default=2379, help='')
     parser.add_argument('--val_size', default=1, help='')
     parser.add_argument('--is_train', type=str2bool, default=False, help='')
 
@@ -279,10 +284,10 @@ if __name__ == "__main__":
     parser.add_argument('--beam_size', default=1, help='Beam width for beam search')
 
     '''训练设置'''
-    parser.add_argument('--batch_size', default=16, help='')
-    parser.add_argument('--actor_net_lr', default=1.05e-4, help="Set the learning rate for the actor network")
+    parser.add_argument('--batch_size', default=8, help='')
+    parser.add_argument('--actor_net_lr', default=1e-4, help="Set the learning rate for the actor network")
     parser.add_argument('--critic_net_lr', default=1e-3, help="Set the learning rate for the critic network")
-    parser.add_argument('--actor_lr_decay_step', default=10000, help='')
+    parser.add_argument('--actor_lr_decay_step', default=15000, help='')
     parser.add_argument('--critic_lr_decay_step', default=5000, help='')
     parser.add_argument('--actor_lr_decay_rate', default=0.96, help='')
     parser.add_argument('--critic_lr_decay_rate', default=0.96, help='')
@@ -326,9 +331,8 @@ if __name__ == "__main__":
     train_preload = Preload('{}_xy.npy'.format(args['run_name']))
     val_preload = Preload('{}_val_xy.npy'.format(args['val_name']))
 
-
-    for xxx in range(393):
-        args['load_path']='outputs/0421/reg3515/epoch-{}.pt'.format(xxx)
+    for xxx in range(0,403):
+        args['load_path']='outputs/0429/reg2379/epoch-{}.pt'.format(xxx)
         '''初始化网络/测试已有网络'''
         if args['load_path'] == '':
             model = NeuralCombOptRL(
@@ -524,7 +528,7 @@ if __name__ == "__main__":
                 
             print('Validation overall avg_reward: {}'.format(np.mean(avg_reward)))
             print('Validation overall reward var: {}'.format(np.var(avg_reward)))
-            # writer.add_scalar('val_avg_reward', np.mean(avg_reward), i)
+            #writer.add_scalar('val_avg_reward', np.mean(avg_reward), i)
             writer.add_scalar('val_avg_reward', np.mean(avg_reward), xxx)
             # with open('rewards_val.csv',"a+") as csvfile:
             #     csvfile.write(str(i)+' '+str(np.mean(avg_reward).tolist())+' '+str(np.var(avg_reward).tolist())+'\n')

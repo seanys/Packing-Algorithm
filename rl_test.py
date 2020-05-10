@@ -18,116 +18,6 @@ from tools.packing import NFPAssistant,PolyListProcessor
 from tools.polygon import getData,GeoFunc,PltFunc
 from tools.vectorization import vectorFunc
 
-def getNFP(polys,save_name,index):
-    # print('record/{}/{}.csv'.format(save_name,index))
-    NFPAssistant(polys,get_all_nfp=True,store_nfp=True,store_path='record/{}/{}.csv'.format(save_name,index))
-
-def getAllNFP(data_source,save_name):
-    data=np.load(data_source,allow_pickle=True)
-    p=Pool()
-    for index,polys in enumerate(data):
-        p.apply_async(getNFP,args=(polys,save_name,index))
-    p.close()
-    p.join()
-
-def NFPcheck(dataset_name,new_name):
-    os.makedirs('record/{}'.format(new_name))
-    print('Files with wrong NFPs are listed below:')
-    xy=np.load('{}_xy.npy'.format(dataset_name),allow_pickle=True)
-    vec=np.load('{}.npy'.format(dataset_name),allow_pickle=True)
-    xy_new=[]
-    vec_new=[]
-    index_new=0
-    for i,polys in enumerate(tqdm(xy)):
-        valid=False
-        nfp_path='record/{}/{}.csv'.format(dataset_name,i)
-        if not os.path.exists(nfp_path):
-            continue
-        df = pd.read_csv(nfp_path,header=None)
-        try:
-            for line in range(df.shape[0]):
-                nfp=json.loads(df[2][line])
-                differ=Polygon([[-1000,-1000],[3000,-1000],[3000,3000],[-1000,3000]]).difference(Polygon(nfp))
-            valid=True
-        except:
-            print(i)
-        if valid:
-            xy_new.append(xy[i])
-            vec_new.append(vec[i])
-            copyfile('record/{}/{}.csv'.format(dataset_name,i),'record/{}/{}.csv'.format(new_name,index_new))
-            index_new=index_new+1
-    print('数据集有效容量 {}'.format(len(vec_new)))
-    np.save('{}_xy.npy'.format(new_name),np.array(xy_new))
-    np.save('{}.npy'.format(new_name),np.array(vec_new))
-
-def BLFwithSequence(test_path,width=760,seq_path=None,decrease=None,GA_algo=False):
-    if seq_path!=None:
-        f=open(seq_path,'r')
-        seqs=f.readlines()
-    data=np.load(test_path,allow_pickle=True)
-    size=data.shape[0]
-    height=[]
-    if GA_algo: p=Pool()
-    multi_res=[]
-    for i,line in enumerate(tqdm(data)):
-        polys_final=[]
-        if seq_path!=None: # 指定序列
-            seq=seqs[i].split(' ')
-        else: # 随机序列
-            seq=np.array(range(len(line)))
-            np.random.shuffle(seq)
-        for j in range(len(line)):
-            if seq_path!=None:
-                index=int(seq[j])
-            else:
-                index=seq[j]
-            polys_final.append(line[index])
-        if decrease!=None: # 降序
-            polys_final=GetBestSeq(width,polys_final,criteria=decrease).getDrease()            
-        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/fu1000_val/{}.csv'.format(i))
-        #nfp_asst=None
-        if GA_algo==True: # 遗传算法
-            polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
-            multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
-        else:
-            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
-            #blf.showAll()
-            height.append(blf.getLength())
-    if GA_algo:
-        p.close()
-        p.join()
-        for i in range(size):
-            height.append(multi_res[i].get().global_lowest_length)
-    return height
-
-def getBenchmark(source,single=False):
-    random=BLFwithSequence(source)
-    if single:  print('random',random)
-    else:
-        random=np.array(random)
-        np.savetxt('random.CSV',random)
-        print('random...OK')
-
-    for criteria in ['area','length','height']:
-        decrease=BLFwithSequence(source,decrease=criteria)
-        if single:  print(criteria,decrease)
-        else:
-            decrease=np.array(decrease)
-            np.savetxt('{}.CSV'.format(criteria),decrease)
-            print('{}...OK'.format(criteria))
-
-    # predict=BLFwithSequence(source,seq_path='outputs/0406/fu1500/sequence-0.csv')
-    # predict=np.array(predict)
-    # np.savetxt('predict.CSV',predict)
-    # print('predict...OK')
-
-    # ga=BLFwithSequence(source,decrease=None,GA_algo=True)
-    # if single:  print('GA',ga)
-    # else:
-    #     ga=np.array(ga)
-    #     np.savetxt('GA.CSV',ga)
-    #     print('GA...OK')
-
 class GenerateData_xy(object):
     '''
     04/09后采用vector方法生成 弃用此类
@@ -264,7 +154,7 @@ class GenerateData_vector(object):
     @staticmethod
     def generateSpecialPolygon(shape):
         # shape: 1 直角三角形 2 等腰三角形 3 矩形 4 直角梯形 5 菱形
-        b=160
+        b=250
         a=100
         x=a+(b-a)*np.random.random()
         y=a+(b-a)*np.random.random()
@@ -272,7 +162,7 @@ class GenerateData_vector(object):
             poly=np.array([0,0,x,0,0,y]).reshape(3,2).tolist()
             RatotionPoly(90).rotation(poly)
         elif shape==2:
-            poly=np.array([0,0,2*x,0,x,y]).reshape(3,2).tolist()
+            poly=np.array([0,0,x,0,x/2,y]).reshape(3,2).tolist()
             RatotionPoly(90).rotation(poly)
         elif shape==3:
             poly=np.array([0,0,x,0,x,y,0,y]).reshape(4,2).tolist()
@@ -282,7 +172,7 @@ class GenerateData_vector(object):
             poly=np.array([0,0,x2,0,x,y,0,y]).reshape(4,2).tolist()
             RatotionPoly(90).rotation(poly)
         elif shape==5:
-            poly=np.array([0,0,x/2,-y,x,0,x/2,y]).reshape(4,2).tolist()
+            poly=np.array([0,0,x/2,-y/2,x,0,x/2,y/2]).reshape(4,2).tolist()
             RatotionPoly(90).rotation(poly)
         return poly
     
@@ -293,8 +183,8 @@ class GenerateData_vector(object):
         point_num: 点的个数
         is_regular: 是否正多边形
         '''
-        r_max=80
-        r_min=50
+        r_max=140
+        r_min=60
         poly=[]
         angle=360/point_num # 根据边数划分角度区域
         r=r_min+(r_max-r_min)*np.random.random()
@@ -324,11 +214,11 @@ class GenerateData_vector(object):
         vectors=[]
         for i in tqdm(range(size)):
             polys=[]
-            for j in range(10):
+            for j in range(12):
                 polyCheck=False
                 while not polyCheck:
                     dice=np.random.random()
-                    if dice<0.4:
+                    if dice<1:
                         shape=np.random.randint(1,6)
                         poly=GenerateData_vector.generateSpecialPolygon(shape)
                     elif dice<0.7:
@@ -337,9 +227,11 @@ class GenerateData_vector(object):
                     else:
                         point_num=np.random.randint(3,9)
                         poly=GenerateData_vector.generatePolygon(point_num,False)
-                    if Polygon(poly).area>10000: # 面积过小会导致无法计算NFP
+                    if Polygon(poly).area>5000: # 面积过小会导致无法计算NFP
                         polyCheck=True
                 polys.append(poly)
+            # blf=BottomLeftFill(760,polys)
+            # blf.showAll()
             data.append(polys)
             vector=[]
             for poly in polys:
@@ -445,12 +337,13 @@ class InitSeq(object):
                     min_height=height
                     best_criteria=criteria
         # print(sorted(heights,reverse=False))
-        print(min_height,best_criteria)
+        # print(min_height,best_criteria)
         area=0
         for poly in self.polys:
             area=area+Polygon(poly).area
         use_ratio=area/(self.width*min_height)
-        print(area,use_ratio)
+        # print(area,use_ratio)
+        return min_height
 
 
     # 枚举所有序列并选择最优
@@ -476,23 +369,129 @@ class InitSeq(object):
             seq_polys.append(self.polys[i])
         return seq_polys
 
+def getNFP(polys,save_name,index):
+    # print('record/{}/{}.csv'.format(save_name,index))
+    NFPAssistant(polys,get_all_nfp=True,store_nfp=True,store_path='record/{}/{}.csv'.format(save_name,index))
+
+def getAllNFP(data_source,save_name):
+    os.makedirs('record/{}'.format(save_name))
+    data=np.load(data_source,allow_pickle=True)
+    p=Pool()
+    for index,polys in enumerate(data):
+        p.apply_async(getNFP,args=(polys,save_name,index))
+    p.close()
+    p.join()
+
+def NFPcheck(dataset_name,new_name):
+    os.makedirs('record/{}'.format(new_name))
+    print('Files with wrong NFPs are listed below:')
+    xy=np.load('{}_xy.npy'.format(dataset_name),allow_pickle=True)
+    vec=np.load('{}.npy'.format(dataset_name),allow_pickle=True)
+    xy_new=[]
+    vec_new=[]
+    index_new=0
+    for i,polys in enumerate(tqdm(xy)):
+        valid=False
+        nfp_path='record/{}/{}.csv'.format(dataset_name,i)
+        if not os.path.exists(nfp_path):
+            continue
+        df = pd.read_csv(nfp_path,header=None)
+        try:
+            for line in range(df.shape[0]):
+                nfp=json.loads(df[2][line])
+                differ=Polygon([[-1000,-1000],[3000,-1000],[3000,3000],[-1000,3000]]).difference(Polygon(nfp))
+            valid=True
+        except:
+            print(i)
+        if valid:
+            xy_new.append(xy[i])
+            vec_new.append(vec[i])
+            copyfile('record/{}/{}.csv'.format(dataset_name,i),'record/{}/{}.csv'.format(new_name,index_new))
+            index_new=index_new+1
+    print('数据集有效容量 {}'.format(len(vec_new)))
+    np.save('{}_xy.npy'.format(new_name),np.array(xy_new))
+    np.save('{}.npy'.format(new_name),np.array(vec_new))
+
+def BLFwithSequence(test_path,width,seq_path=None,GA_algo=False):
+    if seq_path!=None:
+        f=open(seq_path,'r')
+        seqs=f.readlines()
+    data=np.load(test_path,allow_pickle=True)
+    test_name=test_path.split('_xy')[0]
+    height=[]
+    if GA_algo: p=Pool()
+    multi_res=[]
+    for i,line in enumerate(tqdm(data)):
+        polys_final=[]
+        if seq_path!=None: # 指定序列
+            seq=seqs[i].split(' ')
+        else: # 随机序列
+            seq=np.array(range(len(line)))
+            np.random.shuffle(seq)
+        for j in range(len(line)):
+            if seq_path!=None:
+                index=int(seq[j])
+            else:
+                index=seq[j]
+            polys_final.append(line[index])           
+        nfp_asst=NFPAssistant(polys_final,load_history=True,history_path='record/{}/{}.csv'.format(test_name,i))
+        #nfp_asst=None
+        if GA_algo==True: # 遗传算法
+            polys_GA=PolyListProcessor.getPolyObjectList(polys_final,[0])
+            multi_res.append(p.apply_async(GA,args=(width,polys_GA,nfp_asst)))
+        else:
+            blf=BottomLeftFill(width,polys_final,NFPAssistant=nfp_asst)
+            #blf.showAll()
+            height.append(blf.getLength())
+    if GA_algo:
+        p.close()
+        p.join()
+        for res in multi_res:
+            height.append(res.get().global_lowest_length)
+    return height
+
+def getBenchmark(source,width=760):
+    random=BLFwithSequence(source,width)
+    random=np.array(random)
+    # np.savetxt('random.CSV',random)
+    print('random...OK',np.mean(random))
+
+    # 与现有启发式比较
+    data=np.load(source,allow_pickle=True)
+    test_name=source.split('_xy')[0]
+    height=[]
+    for i,line in enumerate(tqdm(data)):
+        nfp_path='record/{}/{}.csv'.format(test_name,i)
+        min_height=InitSeq(width,line,nfp_load=nfp_path).getBest()
+        height.append(min_height)
+    decrease=np.array(height)
+    print('heuristic...OK',np.mean(decrease))
+
+    # predict=BLFwithSequence(source,seq_path='outputs/0406/fu1500/sequence-0.csv')
+    # predict=np.array(predict)
+    # np.savetxt('predict.CSV',predict)
+    # print('predict...OK')
+
+    # ga=BLFwithSequence(source,decrease=None,GA_algo=True)
+    # if single:  print('GA',ga)
+    # else:
+    #     ga=np.array(ga)
+    #     np.savetxt('GA.CSV',ga)
+    #     print('GA...OK')
 
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
-    GenerateData_vector.exportDataset(4,'dighe1')
-    GenerateData_vector.exportDataset(5,'dighe2')
-    #NFPcheck('reg997_val','reg9999_val')
-    #print(GenerateData_vector.generateData_fu(5))
-    #GenerateData_vector.generateTestData('reg1000_val',1000)
-    #getAllNFP('reg1000_val_xy.npy','reg1000_val')
-    #GenerateData_vector.generateTestData('reg10000',10000)
-    #getAllNFP('reg10000_xy.npy','reg10000')
-    #getBenchmark(,single=True)
+    # GenerateData_vector.exportDataset(4,'dighe1')
+    # GenerateData_vector.exportDataset(5,'dighe2')
+    # NFPcheck('fu999_val','reg9999_val')
+    # GenerateData_vector.generateTestData('fu999_val',999)
+    # getAllNFP('fu999_val_xy.npy','fu999_val')
+    # GenerateData_vector.generateTestData('reg10000',10000)
+    # getAllNFP('reg10000_xy.npy','reg10000')
+    getBenchmark('reg2379_xy.npy')
     # data=np.load('fu_val_xy.npy',allow_pickle=True)[0]
     # InitSeq(760,data,nfp_load='record/fu_val/0.csv').getBest()
-    #getAllNFP('fu_val_xy.npy','fu_val')
-    #getBenchmark(,single=True)
     #InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()
     end=time.time()
     print('Running time:',end-start)

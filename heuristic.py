@@ -23,7 +23,7 @@ class BottomLeftFill(object):
         self.choose_nfp=False
         self.width=width
         self.length=150000 # 代表长度
-        self.contain_length=2000
+        self.contain_length=3000
         self.polygons=original_polygons
         self.placeFirstPoly()
         self.NFPAssistant=None
@@ -71,10 +71,10 @@ class BottomLeftFill(object):
             try:
                 differ_region=differ_region.difference(nfp_poly)
             except:
-                print('NFP failure, areas of polygons are:')
+                print('NFP failure, polys and nfp are:')
+                print([main,adjoin])
+                print(nfp)
                 self.showAll()
-                for poly in main,adjoin:
-                    print(Polygon(poly).area)
                 self.showPolys([main]+[adjoin]+[nfp])
                 print('NFP loaded from: ',self.NFPAssistant.history_path)
 
