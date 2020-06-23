@@ -2,7 +2,6 @@
 封装部分协助进行LP计算的函数
 '''
 from shapely.geometry import Polygon,Point,mapping,LineString
-from tools.polygon import GeoFunc
 import math
 
 bias=0.0000001
@@ -220,17 +219,6 @@ class LPAssistant(object):
             if existing==False:
                 new_list.append(item)
         return new_list
-
-    @staticmethod
-    def processRegion(region):
-        area=[]
-        if region.geom_type=="Polygon":
-            area=GeoFunc.polyToArr(region)  # 最终结果只和顶点相关
-        else:
-            for shapely_item in list(region):
-                if shapely_item.area>bias:
-                    area=area+GeoFunc.polyToArr(shapely_item)
-        return area    
 
     @staticmethod
     def getLength(polys):

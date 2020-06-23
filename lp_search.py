@@ -438,8 +438,8 @@ class LPSearch(object):
     # 直接读取目标情况-带方向
     def getPrerequisite(self,i,orientation,**kw):
         # 获得全部NFP以及拆分情况
-        self.all_nfps,self.all_points_target,self.all_edges_target=[],[],[]
-        offline=kw['offline']
+        self.all_nfps,self.all_points_target,self.all_edges_target = [],[],[]
+        offline = kw['offline']
         for j,item in enumerate(self.polys):
             # 两个相等的情况，跳过否则会计算错误
             if j == i:
@@ -448,14 +448,14 @@ class LPSearch(object):
                 self.all_edges_target.append([])
                 continue
             # 预处理的情况
-            points_target,edges_target,nfp=[],[],[]
-            if offline==True:
-                row=j*192+i*16+self.poly_status[j][2]*4+orientation
-                bottom_pt=LPAssistant.getBottomPoint(self.polys[j])
-                delta_x,delta_y=bottom_pt[0],bottom_pt[1]
-                nfp=GeoFunc.getSlide(json.loads(self.fu_pre["nfp"][row]),delta_x,delta_y)
+            points_target,edges_target,nfp = [],[],[]
+            if offline == True:
+                row = j*192+i*16+self.poly_status[j][2]*4+orientation
+                bottom_pt = LPAssistant.getBottomPoint(self.polys[j])
+                delta_x,delta_y = bottom_pt[0],bottom_pt[1]
+                nfp = GeoFunc.getSlide(json.loads(self.fu_pre["nfp"][row]),delta_x,delta_y)
             else:
-                nfp=LPAssistant.deleteOnline(self.NFPAssistant.getDirectNFP(self.polys[j],self.polys[i])) # NFP可能有同一直线上的点
+                nfp = LPAssistant.deleteOnline(self.NFPAssistant.getDirectNFP(self.polys[j],self.polys[i])) # NFP可能有同一直线上的点
             # 计算对应目标函数
             for pt_index in range(len(nfp)):
                 edges_target.append(LPAssistant.getTargetFunction([nfp[pt_index-1],nfp[pt_index]]))
@@ -466,10 +466,10 @@ class LPSearch(object):
             self.all_points_target.append(points_target)
 
         # 获取IFR
-        self.target_poly=self.all_polygons[i][orientation]
-        self.ifr=PackingUtil.getInnerFitRectangle(self.target_poly,self.cur_length,self.width)
-        self.IFR=Polygon(self.ifr)
-        self.final_IFR=Polygon(self.ifr)
+        self.target_poly = self.all_polygons[i][orientation]
+        self.ifr = PackingUtil.getInnerFitRectangle(self.target_poly,self.cur_length,self.width)
+        self.IFR = Polygon(self.ifr)
+        self.final_IFR = Polygon(self.ifr)
 
     @staticmethod
     def plotRecord(name,data):
