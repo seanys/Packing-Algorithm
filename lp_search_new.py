@@ -231,12 +231,10 @@ class GSMPD(object):
             basic_nfps.append(self.getNFP(i, j, oi, self.orientation[j])) # 添加NFP
             cur_NFP = Polygon(basic_nfps[j]) # 获得NFP的Polygon格式，进行切除和相交计算
             feasible_IFR = feasible_IFR.difference(cur_NFP) # 求解可行区域
-            cutted_res = cur_NFP.difference(IFR)
-            if cutted_res.area > bias:
-                cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
-            else:
-                cutted_NFPs.append(Polygon([])) # 否则添加空的
+            cutted_res = cur_NFP.intersection(IFR)
+            cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
         
+        '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR)
             random_index = random.randint(0, len(potential_points) - 1)
@@ -245,15 +243,57 @@ class GSMPD(object):
         '''计算各个阶段的NFP情况'''
         NFP_stages.append(copy.deepcopy(cutted_NFPs)) # 计算第一次Cut掉的结果
         nfp_neighbor = self.getNFPNeighbor(cutted_NFPs,i) # 获得邻接NFP
-        index_stages.append([[i] for i in range(len(NFPs))]) # 第一阶段各个对应的区域
+        index_stages.append([[i] for i in range(len(cutted_NFPs))]) # 每个阶段对应的重叠区域
         stage_index = 1 # 阶段情况
+        print(nfp_neighbor)
         while True:
             NFP_stages.append([]) # 增加新的阶段
-            indep_stages = [] # 存储上一个阶段的切除后的情况
-            for n in range(len(NFP_stages[stage_index-1])): # 枚举上一阶段所有内容，将其与对应的NFP计算交集
-                for m in index_stages[stage_index-1][n][-1]: # 枚举上一阶段最后的
-                    pass
-        
+            index_stages.append([])
+            new_last_stage = copy.deepcopy(NFP_stages[stage_index-1]) # 记录上一阶段的结果
+            '''枚举上一阶段NFP交集'''
+            for k,inter_nfp in enumerate(NFP_stages[stage_index-1]):
+                '''获得重叠目标区域，分三种情况'''
+                if stage_index == 1:
+                    target_indexs = [i for i in range(len(self.polys))]
+                    target_indexs.remove(k)
+                elif stage_index == 2:
+                    # 二阶段需要考虑第1/2两个形状的邻接，切需要去除冗余
+                    index1, index2 = index_stages[stage_index-1][k][0], index_stages[stage_index-1][k][1]
+                    target_indexs = list(set(nfp_neighbor[index1][1:] + nfp_neighbor[index2][1:]))
+                    target_indexs.remove(index2)
+                else:
+                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][-1]][1:] # 考虑最新加入全部形状
+                '''1. 求切除后的差集，可能为Polygon、MultiPolygon等
+                   2. 求解和新的形状的交集，并记录在NFP_stages'''
+                for poly_index in target_indexs:
+                    new_last_stage[k] = new_last_stage[k].difference(cutted_NFPs[poly_index]) # 计算上一阶段的差集
+                    inter_region = NFP_stages[stage_index-1][k].intersection(cutted_NFPs[poly_index]) # 计算当前的交集
+                    if inter_region.area > 0 and k < poly_index: # 如果不是空集
+                        NFP_stages[stage_index].append(inter_region) # 记录到各阶段的NFP
+                        index_stages[stage_index].append(index_stages[stage_index-1][k] + [poly_index]) # 记录到各阶段的NFP
+                NFP_stages[stage_index-1] = copy.deepcopy(new_last_stage) # 更新上一阶段结果
+            '''结束条件'''
+            if stage_index == 2:
+                break
+            stage_index = stage_index + 1
+        self.showPolys()
+        return
+        '''检验某阶段的值'''
+        for k,item in enumerate(NFP_stages[2]):
+            if item.is_empty == False:
+                if item.geom_type == "Polygon":
+                    PltFunc.addPolygon(mapping(item)["coordinates"][0])
+                    PltFunc.showPlt()
+                elif item.geom_type == "MultiPolygon":
+                    self.outputAttention(item)
+                    for w,sub_item in enumerate(mapping(item)["coordinates"]):
+                        PltFunc.addPolygon(sub_item[0])
+                        PltFunc.showPlt()
+                else:
+                    self.outputWarning("出现未知几何类型")
+        # PltFunc.showPlt()
+        return
+
         '''计算每个NFP用于计算深度的参数'''
         pd_coef = []
         for j in range(len(self.polys)):
@@ -280,12 +320,6 @@ class GSMPD(object):
         '''根据顶点和nfp计算PD'''
         pass
 
-    def getOverlapStatus(self):
-        self.overlap_status = []
-        for i in range(len(self.polys)):
-            for j in range(i + 1, len(self.polys)):
-                
-
     def slideToContainer(self):
         '''将超出的多边形左移'''
         for index,poly in enumerate(self.polys):
@@ -294,15 +328,16 @@ class GSMPD(object):
                 delta_x = self.cur_length-right_pt[0]
                 GeometryAssistant.slidePoly(poly,delta_x,0)
     
-    def getNFPNeighbor(NFPs, index):
+    def getNFPNeighbor(self, NFPs, index):
         '''获得NFP之间的重叠列表，只存比自己序列更大的'''
         nfp_neighbor = [[] for _ in range(len(NFPs))]
         for i in range(len(NFPs)):
             for j in range(i, len(NFPs)):
                 if i == index or j == index:
                     continue
-                if NFPs[i].intersection(NFPs[j]).area > bias:
-                    nfp_neighbor[i].append(j)                
+                if NFPs[i].intersects(NFPs[j]) == True:
+                    nfp_neighbor[i].append(j)     
+        return nfp_neighbor
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
@@ -351,7 +386,12 @@ class GSMPD(object):
         PltFunc.addPolygonColor([[0,0],[self.cur_length,0],[self.cur_length,self.width],[0,self.width]])
         PltFunc.showPlt(width=1000,height=1000)
 
+    def outputWarning(self,_str):
+        print("\033[0;31m%s\033[0m" % _str)
+
+    def outputAttention(self,_str):
+        print("\033[0;32m%s\033[0m" % _str)
+
 if __name__=='__main__':
     polys=getData()
     GSMPD(760,polys)
-    # print()
