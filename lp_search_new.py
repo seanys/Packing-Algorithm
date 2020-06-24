@@ -245,7 +245,6 @@ class GSMPD(object):
         nfp_neighbor = self.getNFPNeighbor(cutted_NFPs,i) # 获得邻接NFP
         index_stages.append([[i] for i in range(len(cutted_NFPs))]) # 每个阶段对应的重叠区域
         stage_index = 1 # 阶段情况
-        print(nfp_neighbor)
         while True:
             NFP_stages.append([]) # 增加新的阶段
             index_stages.append([])
@@ -253,16 +252,15 @@ class GSMPD(object):
             '''枚举上一阶段NFP交集'''
             for k,inter_nfp in enumerate(NFP_stages[stage_index-1]):
                 '''获得重叠目标区域，分三种情况'''
+                target_indexs = [i for i in range(len(self.polys))]
                 if stage_index == 1:
-                    target_indexs = [i for i in range(len(self.polys))]
                     target_indexs.remove(k)
                 elif stage_index == 2:
-                    # 二阶段需要考虑第1/2两个形状的邻接，切需要去除冗余
-                    index1, index2 = index_stages[stage_index-1][k][0], index_stages[stage_index-1][k][1]
-                    target_indexs = list(set(nfp_neighbor[index1][1:] + nfp_neighbor[index2][1:]))
-                    target_indexs.remove(index2)
+                    target_indexs.remove(index_stages[stage_index-1][k][0])
+                    target_indexs.remove(index_stages[stage_index-1][k][1])
+                    print(index_stages[stage_index-1][k],":",target_indexs)
                 else:
-                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][-1]][1:] # 考虑最新加入全部形状
+                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][-1]] # 考虑最新加入全部形状
                 '''1. 求切除后的差集，可能为Polygon、MultiPolygon等
                    2. 求解和新的形状的交集，并记录在NFP_stages'''
                 for poly_index in target_indexs:
@@ -276,10 +274,9 @@ class GSMPD(object):
             if stage_index == 2:
                 break
             stage_index = stage_index + 1
-        self.showPolys()
-        return
+
         '''检验某阶段的值'''
-        for k,item in enumerate(NFP_stages[2]):
+        for k,item in enumerate(NFP_stages[1]):
             if item.is_empty == False:
                 if item.geom_type == "Polygon":
                     PltFunc.addPolygon(mapping(item)["coordinates"][0])
@@ -332,7 +329,7 @@ class GSMPD(object):
         '''获得NFP之间的重叠列表，只存比自己序列更大的'''
         nfp_neighbor = [[] for _ in range(len(NFPs))]
         for i in range(len(NFPs)):
-            for j in range(i, len(NFPs)):
+            for j in range(i+1, len(NFPs)):
                 if i == index or j == index:
                     continue
                 if NFPs[i].intersects(NFPs[j]) == True:
