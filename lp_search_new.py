@@ -252,58 +252,39 @@ class GSMPD(object):
             '''枚举上一阶段NFP交集'''
             for k,inter_nfp in enumerate(NFP_stages[stage_index-1]):
                 '''获得重叠目标区域，分三种情况'''
-                target_indexs = [i for i in range(len(self.polys))]
                 if stage_index == 1:
-                    target_indexs.remove(k)
+                    # 第一轮对应邻接多边形
+                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][0]]
                 elif stage_index == 2:
+                    # 第二轮对应两个的邻接多边形
+                    target_indexs = list(set(nfp_neighbor[index_stages[stage_index-1][k][0]] + nfp_neighbor[index_stages[stage_index-1][k][1]]))
                     target_indexs.remove(index_stages[stage_index-1][k][0])
                     target_indexs.remove(index_stages[stage_index-1][k][1])
-                    print(index_stages[stage_index-1][k],":",target_indexs)
                 else:
-                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][-1]] # 考虑最新加入全部形状
+                    # 考虑最新加入全部形状
+                    target_indexs = []
+                    for w in nfp_neighbor[index_stages[stage_index-1][k][-1]]:
+                        if w not in index_stages[stage_index-1][k]:
+                            target_indexs.append(w)
                 '''1. 求切除后的差集，可能为Polygon、MultiPolygon等
                    2. 求解和新的形状的交集，并记录在NFP_stages'''
                 for poly_index in target_indexs:
                     new_last_stage[k] = new_last_stage[k].difference(cutted_NFPs[poly_index]) # 计算上一阶段的差集
                     inter_region = NFP_stages[stage_index-1][k].intersection(cutted_NFPs[poly_index]) # 计算当前的交集
-                    if inter_region.area > 0 and k < poly_index: # 如果不是空集
+                    if inter_region.area > 0 and index_stages[stage_index-1][k][-1] < poly_index: # 如果不是空集
                         NFP_stages[stage_index].append(inter_region) # 记录到各阶段的NFP
                         index_stages[stage_index].append(index_stages[stage_index-1][k] + [poly_index]) # 记录到各阶段的NFP
                 NFP_stages[stage_index-1] = copy.deepcopy(new_last_stage) # 更新上一阶段结果
             '''结束条件'''
-            if stage_index == 2:
+            if len(NFP_stages[stage_index]) == 0:
                 break
             stage_index = stage_index + 1
+        
+        """遍历全部的点计算最佳情况"""
+        for k,stage in enumerate(NFP_stages):
+            for w,item in enumerate(stage):
+                print(index_stages[k][w])
 
-        '''检验某阶段的值'''
-        for k,item in enumerate(NFP_stages[1]):
-            if item.is_empty == False:
-                if item.geom_type == "Polygon":
-                    PltFunc.addPolygon(mapping(item)["coordinates"][0])
-                    PltFunc.showPlt()
-                elif item.geom_type == "MultiPolygon":
-                    self.outputAttention(item)
-                    for w,sub_item in enumerate(mapping(item)["coordinates"]):
-                        PltFunc.addPolygon(sub_item[0])
-                        PltFunc.showPlt()
-                else:
-                    self.outputWarning("出现未知几何类型")
-        # PltFunc.showPlt()
-        return
-
-        '''计算每个NFP用于计算深度的参数'''
-        pd_coef = []
-        for j in range(len(self.polys)):
-            if j == i:
-                pd_coef.append([])
-                continue
-            edges = GeometryAssistant.getPolyEdges(basic_nfps[j])
-            # 首先计算所有的边
-            for k,edge in enumerate(edges):
-                pass
-            # 然后计算所有的顶点
-            for k,edge in enumerate(edges):
-                pass
 
     def getAllPD(self):
         '''获得当前全部形状间的PD'''
@@ -334,6 +315,7 @@ class GSMPD(object):
                     continue
                 if NFPs[i].intersects(NFPs[j]) == True:
                     nfp_neighbor[i].append(j)     
+                    nfp_neighbor[j].append(i)     
         return nfp_neighbor
 
     def getNFP(self, i, j, oi, oj):
