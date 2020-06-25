@@ -33,49 +33,79 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(1) # 获得全部
+        self.initialProblem(7) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.main()
 
     def main(self):
         '''核心算法部分'''
-        self.cur_length = self.best_length*(1 - self.ration_dec) # 当前的宽度
-        self.slideToContainer() # 把突出去的移进来
+        # self.showPolys()
+        print("初始利用率为：",433200/(self.cur_length*self.width))
+        # self.shrinkBorder() # 平移边界并更新宽度
+        self.extendBorder()
 
-        self.minimizeOverlap() 
-
-        pass
+        start_time = time.time()
+        while time.time() - start_time < 2000:
+            feasible = self.minimizeOverlap()
+            if feasible == True:
+                print("当前利用率为：",433200/(self.cur_length*self.width))
+                self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
+                self.best_polys = copy.deepcopy(self.polys) # 更新形状
+                self.best_length = self.cur_length # 更新最佳高度
+                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])
+                self.shrinkBorder() # 收缩边界并平移形状到内部来
+            else:
+                self.outputWarning("结果不可行，重新进行检索")
+                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])        
+                self.extendBorder() # 扩大边界并进行下一次检索
+            
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
         self.miu = [[1]*len(self.polys) for _ in range(len(self.polys))] # 计算重叠权重调整（每次都会更新）
         N,it = 50,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
+        self.pair_pd_record = [[0]*len(self.polys) for _ in range(len(self.polys))] # 记录两两之间的关系
         while it < N:
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
-            # permutation = [4,7,2,8,3,1,10,0,6,5,9,11]
             for i in range(len(self.polys)):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
                 cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
                 if cur_pd < bias: # 如果没有重叠就直接退出
                     continue
-                final_pt, final_pd = copy.deepcopy(top_pt), cur_pd # 记录最佳情况
-                for ori in [0]: # 测试全部的方向
+                final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况
+                for ori in [0,1,2,3]: # 测试全部的方向
                     min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
                     if min_pd < final_pd:
-                        final_pd,final_pt = min_pd,copy.deepcopy(best_pt) # 更新高度和计算位置
+                        final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
+                    self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
+                    self.orientation[choose_index] = final_ori # 更新方向
             total_pd,pd_pair,max_pair_pd = self.getAllPD() # 更新整个计算结果
             if total_pd < bias:
-                return
+                # self.showPolys()
+                self.outputWarning("结果可行")                
+                return True
             elif total_pd < Fitness:
                 Fitness = total_pd
                 it = 0
+                self.outputAttention("Update fitness")
+                print("综合PD:",total_pd)
+
             self.updateMiu(max_pair_pd,pd_pair)
+            print("第",it,"轮")
+            print("total_pd:",total_pd)
+            # print("pd_pair:",pd_pair)
+            # print("更新miu:",self.miu)
             it = it + 1
+        return False
 
     def lpSearch(self, i, oi):
         '''
@@ -156,7 +186,7 @@ class GSMPD(object):
                     total_pd = 0 # 初始的值
                     for poly_index in index_stages[k][w]:
                         pd = self.getPtNFPPD(pt,basic_nfps[poly_index])
-                        total_pd = total_pd + pd*self.miu[i][poly_index] # 计算全部的pd
+                        total_pd = total_pd + pd * self.miu[i][poly_index] # 计算全部的pd
                     if total_pd < min_pd:
                         min_pd = total_pd
                         best_pt = [pt[0],pt[1]] # 更新最佳位置
@@ -166,7 +196,7 @@ class GSMPD(object):
         return min_pd,best_pt
 
     def getAllPD(self):
-        '''获得当前全部形状间的PD'''
+        '''获得当前全部形状间的PD，无需调整'''
         total_pd,pd_pair,max_pair_pd = 0,[[0]*len(self.polys) for _ in range(len(self.polys))],0 # 两两之间的pd和总的pd
         for i in range(len(self.polys)-1):
             for j in range(i+1,len(self.polys)):
@@ -178,7 +208,7 @@ class GSMPD(object):
         return total_pd,pd_pair,max_pair_pd
 
     def getPolysPD(self, i, j):
-        '''获得两个形状间的PD，根据点计算'''
+        '''获得两个形状间的PD，根据点计算，无需调整'''
         top_pt = GeometryAssistant.getTopPoint(self.polys[i])
         nfp = self.getNFP(i, j, self.orientation[i], self.orientation[j])
         if Polygon(nfp).contains(Point(top_pt)) == True:
@@ -187,12 +217,12 @@ class GSMPD(object):
             return 0
 
     def getIndexPD(self,i,top_pt,oi):
-        '''获得某个形状的PD'''
+        '''获得某个形状的全部PD，是调整后的结果'''
         total_pd,target = 0, [j for j in range(len(self.polys)) if j != i] # 获得全部的NFP基础
         for j in target:
             nfp = self.getNFP(i, j, oi, self.orientation[j]) # 获得NFP结果
             if Polygon(nfp).contains(Point(top_pt)) == True: # 包含的情况下才计算
-                total_pd = total_pd + self.getPtNFPPD(top_pt,nfp) # 计算PD，比较简单
+                total_pd = total_pd + self.getPtNFPPD(top_pt,nfp)*self.miu[i][j] # 计算PD，比较简单
         return total_pd
 
     def getPtNFPPD(self, pt, nfp):
@@ -237,19 +267,29 @@ class GSMPD(object):
             self.addTuplePoly(all_pts,mapping(item)["coordinates"][0])
         elif item.geom_type == "MultiPolygon":
             for w,sub_item in enumerate(mapping(item)["coordinates"]):
-                self.addTuplePoly(all_pts,sub_item[0])                    
+                self.addTuplePoly(all_pts,sub_item[0])
+        elif item.geom_type == "GeometryCollection":
+            for w,sub_item in enumerate(mapping(item)["geometries"]):
+                if sub_item["type"] == "Polygon":
+                    self.addTuplePoly(all_pts,sub_item[0])
         else:
             self.outputWarning("出现未知几何类型")
+            print(item)
         return all_pts
 
-    def slideToContainer(self):
-        '''将超出的多边形左移'''
+    def shrinkBorder(self):
+        '''收缩边界，将超出的多边形左移'''
+        self.cur_length = self.best_length*(1 - self.ration_dec)
         for index,poly in enumerate(self.polys):
             right_pt = GeometryAssistant.getRightPoint(poly)
             if right_pt[0] > self.cur_length:
                 delta_x = self.cur_length-right_pt[0]
                 GeometryAssistant.slidePoly(poly,delta_x,0)
     
+    def extendBorder(self):
+        '''扩大边界'''
+        self.cur_length = self.best_length*(1 - self.ration_inc)
+
     def getNFPNeighbor(self, NFPs, index):
         '''获得NFP之间的重叠列表，只存比自己序列更大的'''
         nfp_neighbor = [[] for _ in range(len(NFPs))]
@@ -264,7 +304,7 @@ class GSMPD(object):
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
-        row = j*192 + i*16 + oi*4 + oj # i为移动形状，j为固定位置
+        row = j*192 + i*16 + oj*4 + oi # i为移动形状，j为固定位置
         bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return GeometryAssistant.deleteOnline(nfp) # 需要删除同直线的情况
