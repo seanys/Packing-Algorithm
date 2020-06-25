@@ -40,7 +40,6 @@ class GSMPD(object):
     def main(self):
         '''核心算法部分'''
         self.cur_length = self.best_length*(1 - self.ration_dec) # 当前的宽度
-        # self.cur_length = self.best_length
         self.slideToContainer() # 把突出去的移进来
 
         self.minimizeOverlap()
@@ -48,17 +47,14 @@ class GSMPD(object):
         pass
 
     def minimizeOverlap(self):
-        '''
-        最小化某个重叠情况
-        '''
-        self.miu = [[1]*12]*12 # 计算重叠权重调整（每次都会更新）
+        '''最小化某个重叠情况'''
+        self.miu = [[1]*len(self.polys) for _ in range(len(self.polys))] # 计算重叠权重调整（每次都会更新）
         N,it = 1,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
-        pd_pair = self.getAllPD() # 获得当前全部的PD作为记录
         while it < N:
-            # permutation = np.arange(len(self.polys))
-            # np.random.shuffle(permutation)
-            permutation = [4,7,2,8,3,1,10,0,6,5,9,11]
+            permutation = np.arange(len(self.polys))
+            np.random.shuffle(permutation)
+            # permutation = [4,7,2,8,3,1,10,0,6,5,9,11]
             for i in range(len(self.polys)):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
@@ -72,6 +68,13 @@ class GSMPD(object):
                         final_pd,final_pt = min_pd,copy.deepcopy(best_pt) # 更新高度和计算位置
                 if final_pd < cur_pd: # 更新最佳情况
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
+            total_pd,pd_pair,max_pair_pd = self.getAllPD() # 更新整个计算结果
+            if total_pd < bias:
+                return
+            elif total_pd < Fitness:
+                Fitness = total_pd
+                it = 0
+            self.updateMiu(max_pair_pd,pd_pair)
             it = it + 1
 
     def lpSearch(self, i, oi):
@@ -164,8 +167,24 @@ class GSMPD(object):
 
     def getAllPD(self):
         '''获得当前全部形状间的PD'''
-        pd_pair,total_pd = 0,0
-        return pd_pair
+        total_pd,pd_pair,max_pair_pd = 0,[[0]*len(self.polys) for _ in range(len(self.polys))],0 # 两两之间的pd和总的pd
+        for i in range(len(self.polys)-1):
+            for j in range(i+1,len(self.polys)):
+                pd = self.getPolysPD(i,j)
+                pd_pair[i][j],pd_pair[j][i] = pd,pd # 更新对应的pd
+                total_pd = total_pd + pd # 更新总的pd
+                if pd > max_pair_pd: # 更新最大的值
+                    max_pair_pd = pd
+        return total_pd,pd_pair,max_pair_pd
+
+    def getPolysPD(self, i, j):
+        '''获得两个形状间的PD，根据点计算'''
+        top_pt = GeometryAssistant.getTopPoint(self.polys[i])
+        nfp = self.getNFP(i, j, self.orientation[i], self.orientation[j])
+        if Polygon(nfp).contains(Point(top_pt)) == True:
+            return self.getPtNFPPD(top_pt,nfp)
+        else:
+            return 0
 
     def getIndexPD(self,i,top_pt,oi):
         '''获得某个形状的PD'''
@@ -175,10 +194,6 @@ class GSMPD(object):
             if Polygon(nfp).contains(Point(top_pt)) == True: # 包含的情况下才计算
                 total_pd = total_pd + self.getPtNFPPD(top_pt,nfp) # 计算PD，比较简单
         return total_pd
-
-    def getPolysPD(self, i, j):
-        '''获得两个形状间的PD，根据点计算'''
-        pass
 
     def getPtNFPPD(self, pt, nfp):
         '''根据顶点和nfp计算PD'''
@@ -194,9 +209,12 @@ class GSMPD(object):
                 min_pd,min_edge = abs(a*pt[0] + b*pt[1] + c),copy.deepcopy(edge)
         return min_pd
 
-    def updateMiu(self):
+    def updateMiu(self,max_pair_pd,pd_pair):
         """寻找到更优位置之后更新"""
-        pass
+        for i in range(len(self.polys)-1):
+            for j in range(i+1,len(self.polys)):
+                self.miu[i][j] = self.miu[i][j] + pd_pair[i][j]/max_pair_pd
+                self.miu[j][i] = self.miu[j][i] + pd_pair[j][i]/max_pair_pd
     
     def removeItmes(self,input_list,del_target):
         '''删除中间的元素，不考虑计算速度'''
@@ -235,7 +253,7 @@ class GSMPD(object):
     def getNFPNeighbor(self, NFPs, index):
         '''获得NFP之间的重叠列表，只存比自己序列更大的'''
         nfp_neighbor = [[] for _ in range(len(NFPs))]
-        for i in range(len(NFPs)):
+        for i in range(len(NFPs)-1):
             for j in range(i+1, len(NFPs)):
                 if i == index or j == index:
                     continue
