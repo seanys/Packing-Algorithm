@@ -17,6 +17,7 @@ import datetime
 import time
 import csv # 写csv
 import numpy as np
+import operator
 
 bias=0.0000001
 
@@ -33,20 +34,21 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(8) # 获得全部
+        self.initialProblem(10) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
+        # self.showPolys()
         self.main()
 
     def main(self):
         '''核心算法部分'''
         print("初始利用率为：",433200/(self.cur_length*self.width))
-        self.shrinkBorder() # 平移边界并更新宽度
+        # self.shrinkBorder() # 平移边界并更新宽度
         # self.extendBorder()
 
         max_time = 2000
         if self.TEST_MODEL == True:
-            max_time = 0
+            max_time = 3
 
         start_time = time.time()
         while time.time() - start_time < max_time:
@@ -61,13 +63,13 @@ class GSMPD(object):
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
+                break
             else:
                 self.outputWarning("结果不可行，重新进行检索")
                 with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])        
                 self.extendBorder() # 扩大边界并进行下一次检索
-            
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
@@ -76,7 +78,9 @@ class GSMPD(object):
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 1
+        self.changed_status = True # True表示修改过，False表示没有修改过
         while it < N:
+            # changed = False # 该参数表示是否修改过
             print("第",it,"轮")
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
@@ -88,7 +92,10 @@ class GSMPD(object):
                     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况
                 for ori in [0,1,2,3]: # 测试全部的方向
-                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
+                    if self.changed_status == True:
+                        min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
+                    else:
+                        min_pd,best_pt = self.lpSearchRecord(choose_index,ori) # 采用简易版算法检索
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
@@ -97,21 +104,39 @@ class GSMPD(object):
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
+                    # self.changed_status,changed = True,True
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < bias:
-                self.showPolys()
                 self.outputWarning("结果可行")                
                 return True
             elif total_pd < Fitness:
                 Fitness = total_pd
                 it = 0
-                self.outputAttention("Update fitness")
-                print("综合PD:",total_pd)
+                _str = "更新最少重叠:" + str(total_pd)
+                self.outputAttention(_str)
 
-            self.updateMiu(max_pair_pd)
-            print("total_pd:",total_pd)
-            it = it + 1
+            # self.changed_status = changed # 记录该轮是否修改了
+            self.updateMiu(max_pair_pd) # 更新参数
+            it = it + 1 # 更新计数次数
+
+            _str = "当前全部重叠:" + str(total_pd)
+            self.outputInfo(_str) # 输出当前重叠情况
         return False
+    
+    def lpSearchRecord(self, i, oi):
+        '''基于历史情况进行更新'''
+        print("快捷检索:",i,oi)
+        pt_to_polys = self.pt_to_polys_record[i][oi] # 该形状所有的点对应的形状编号
+        min_pd,total_num_pt,best_pt = 99999999999,0,[]
+        for target in pt_to_polys:
+            total_pd = 0
+            for target_index in target[2]:
+                pd = self.pd_pt_poly_record[i][oi][target_index] # 与多边形的情况
+                total_pd = total_pd + pd * self.miu[i][poly_index] # 计算目标形状与其他形状调整后的全部的pd
+            if total_pd < min_pd:
+                min_pd = total_pd
+                best_pt = [target[0],target[1]] # 更新最佳位置
+        return min_pd,best_pt
 
     def lpSearch(self, i, oi):
         '''
@@ -179,26 +204,31 @@ class GSMPD(object):
                 break
             stage_index = stage_index + 1
         
-        """遍历全部的点计算最佳情况"""
-        min_pd,total_num_pt,best_pt = 99999999999,0,[]
+        '''遍历和记录全部的点及其对应区域'''
+        all_search_targets = []
         for k,stage in enumerate(NFP_stages):
             for w,item in enumerate(stage):
                 if item.is_empty == True: # 判断空集
                     continue
-                '''获得全部的参考点，并寻找最佳位置'''
-                all_pts = self.getAllPoint(item)
-                '''计算当前的pd'''
-                for pt in all_pts:
-                    total_pd = 0 # 初始的值
-                    for poly_index in index_stages[k][w]:
-                        pd = self.getPtNFPPD(pt,basic_nfps[poly_index])
-                        total_pd = total_pd + pd * self.miu[i][poly_index] # 计算全部的pd
-                    if total_pd < min_pd:
-                        min_pd = total_pd
-                        best_pt = [pt[0],pt[1]] # 更新最佳位置
-                    total_num_pt = total_num_pt + 1 # 增加检索位置
-        # GeometryAssistant.slideToPoint(self.polys[i],best_pt) # 平移到目标区域
-        # self.showPolys()
+                new_pts = self.getAllPoint(item) # 获得全部的点
+                for pt in new_pts: # 增加记录全部情况
+                    all_search_targets.append([pt[0],pt[1],index_stages[k][w]])
+        all_search_targets = sorted(all_search_targets, key=operator.itemgetter(0, 1)) # 按照升序进行排列
+        
+        '''求解出全部的点的最佳情况'''
+        min_pd,total_num_pt,best_pt = 99999999999,0,[]
+        for k,target in enumerate(all_search_targets):
+            if target[0] == all_search_targets[k-1][0] and target[1] == all_search_targets[k-1][1]:
+                continue
+            total_pd = 0 # 初始的值
+            for poly_index in target[2]:
+                pd = self.getPtNFPPD([target[0],target[1]],basic_nfps[poly_index])
+                total_pd = total_pd + pd * self.miu[i][poly_index] # 计算目标形状与其他形状调整后的全部的pd
+            if total_pd < min_pd:
+                min_pd = total_pd
+                best_pt = [target[0],target[1]] # 更新最佳位置
+            total_num_pt = total_num_pt + 1
+
         return min_pd,best_pt
 
     def updatePD(self,choose_index):
@@ -240,7 +270,7 @@ class GSMPD(object):
         '''获得某个形状的全部PD，是调整后的结果'''
         total_pd = 0 # 获得全部的NFP基础
         for j in range(len(self.polys)):
-            total_pd = total_pd + self.pair_pd_record[i][j] # 计算PD，比较简单
+            total_pd = total_pd + self.pair_pd_record[i][j]*self.miu[i][j] # 计算PD，比较简单
         return total_pd
 
     def getPtNFPPD(self, pt, nfp):
@@ -285,14 +315,19 @@ class GSMPD(object):
             self.addTuplePoly(all_pts,mapping(item)["coordinates"][0])
         elif item.geom_type == "MultiPolygon":
             for w,sub_item in enumerate(mapping(item)["coordinates"]):
-                self.addTuplePoly(all_pts,sub_item[0])
-        elif item.geom_type == "GeometryCollection":
-            for w,sub_item in enumerate(mapping(item)["geometries"]):
-                if sub_item["type"] == "Polygon":
+                try: # 可能会报错
                     self.addTuplePoly(all_pts,sub_item[0])
+                except BaseException:
+                    print(sub_item)
+        elif item.geom_type == "GeometryCollection":
+            try: # 可能会报错
+                for w,sub_item in enumerate(mapping(item)["geometries"]):
+                    if sub_item["type"] == "Polygon":
+                        self.addTuplePoly(all_pts,sub_item[0])
+            except BaseException:
+                print(sub_item)
         else:
-            self.outputWarning("出现未知几何类型")
-            print(item)
+            pass # 只有直线一种情况，不影响计算结果
         return all_pts
 
     def shrinkBorder(self):
@@ -362,10 +397,16 @@ class GSMPD(object):
         PltFunc.showPlt(width=1000, height=1000)
 
     def outputWarning(self,_str):
-        print("\033[0;31m%s\033[0m" % _str)
+        '''输出红色字体'''
+        print("\033[0;31m",_str,"\033[0m")
 
     def outputAttention(self,_str):
-        print("\033[0;32m%s\033[0m" % _str)
+        '''输出绿色字体'''
+        print("\033[0;32m",_str,"\033[0m")
+
+    def outputInfo(self,_str):
+        '''输出浅黄色字体'''
+        print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':
     polys=getData()
