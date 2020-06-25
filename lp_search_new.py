@@ -6,6 +6,7 @@ Created on Wed June 10, 2020
 -----------------------------------
 """
 from tools.polygon import PltFunc,getData
+from tools.geo_assistant import GeometryAssistant
 from shapely.geometry import Polygon,Point,mapping,LineString
 import pandas as pd
 import json
@@ -50,9 +51,28 @@ class GSMPD(object):
         '''
         最小化某个重叠情况
         '''
-        self.miu = [[1]*12]*12 # 计算重叠权重调整
-        pt = self.lpSearch(11,0) # 为某个形状寻找更优的位置
-        # self.showPolys()
+        self.miu = [[1]*12]*12 # 计算重叠权重调整（每次都会更新）
+        N,it = 1,0 # 记录计算次数
+        Fitness = 9999999999999 # 记录Fitness即全部的PD
+        pd_pair = self.getAllPD() # 获得当前全部的PD作为记录
+        while it < N:
+            # permutation = np.arange(len(self.polys))
+            # np.random.shuffle(permutation)
+            permutation = [4,7,2,8,3,1,10,0,6,5,9,11]
+            for i in range(len(self.polys)):
+                choose_index = permutation[i] # 选择形状位置
+                top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
+                cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
+                if cur_pd < bias: # 如果没有重叠就直接退出
+                    continue
+                final_pt, final_pd = copy.deepcopy(top_pt), cur_pd # 记录最佳情况
+                for ori in [0]: # 测试全部的方向
+                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
+                    if min_pd < final_pd:
+                        final_pd,final_pt = min_pd,copy.deepcopy(best_pt) # 更新高度和计算位置
+                if final_pd < cur_pd: # 更新最佳情况
+                    GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
+            it = it + 1
 
     def lpSearch(self, i, oi):
         '''
@@ -83,9 +103,9 @@ class GSMPD(object):
         
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
-            potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR)
+            potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
             random_index = random.randint(0, len(potential_points) - 1)
-            return potential_points[random_index]
+            return 0,potential_points[random_index]
         
         '''计算各个阶段的NFP情况'''
         NFP_stages.append(copy.deepcopy(cutted_NFPs)) # 计算第一次Cut掉的结果
@@ -138,11 +158,23 @@ class GSMPD(object):
                         min_pd = total_pd
                         best_pt = [pt[0],pt[1]] # 更新最佳位置
                     total_num_pt = total_num_pt + 1 # 增加检索位置
-        GeometryAssistant.slideToPoint(self.polys[i],best_pt)
+        # GeometryAssistant.slideToPoint(self.polys[i],best_pt) # 平移到目标区域
+        # self.showPolys()
+        return min_pd,best_pt
 
     def getAllPD(self):
         '''获得当前全部形状间的PD'''
-        pass
+        pd_pair,total_pd = 0,0
+        return pd_pair
+
+    def getIndexPD(self,i,top_pt,oi):
+        '''获得某个形状的PD'''
+        total_pd,target = 0, [j for j in range(len(self.polys)) if j != i] # 获得全部的NFP基础
+        for j in target:
+            nfp = self.getNFP(i, j, oi, self.orientation[j]) # 获得NFP结果
+            if Polygon(nfp).contains(Point(top_pt)) == True: # 包含的情况下才计算
+                total_pd = total_pd + self.getPtNFPPD(top_pt,nfp) # 计算PD，比较简单
+        return total_pd
 
     def getPolysPD(self, i, j):
         '''获得两个形状间的PD，根据点计算'''
@@ -253,180 +285,11 @@ class GSMPD(object):
         PltFunc.addPolygonColor([[0,0], [self.cur_length,0], [self.cur_length,self.width], [0,self.width]])
         PltFunc.showPlt(width=1000, height=1000)
 
-    def showPolys(self):
-        for poly in self.polys:
-            PltFunc.addPolygon(poly)
-        PltFunc.addPolygonColor([[0,0],[self.cur_length,0],[self.cur_length,self.width],[0,self.width]])
-        PltFunc.showPlt(width=1000,height=1000)
-
     def outputWarning(self,_str):
         print("\033[0;31m%s\033[0m" % _str)
 
     def outputAttention(self,_str):
         print("\033[0;32m%s\033[0m" % _str)
-
-class GeometryAssistant(object):
-    '''
-    几何相关的算法重新统一
-    '''
-    @staticmethod
-    def getPolysRight(polys):
-        _max=0
-        for i in range(0,len(polys)):
-            [x,y] = GeometryAssistant.getRightPoint(polys[i])
-            if x>_max:
-                _max=x
-        return _max
-    
-    @staticmethod
-    def kwtGroupToArray(kwt_group, judge_area):
-        '''将几何对象转化为数组，以及是否判断面积大小'''
-        array = []
-        if kwt_group.geom_type == "Polygon":
-            array = GeometryAssistant.kwtItemToArray(region, judge_area)  # 最终结果只和顶点相关
-        else:
-            for shapely_item in list(kwt_group):
-                array = array + GeometryAssistant.kwtItemToArray(shapely_item)
-        return area   
-
-    @staticmethod
-    def kwtItemToArray(kwt_item, judge_area):
-        '''将一个kwt对象转化为数组（比如Polygon）'''
-        if judge_area == True and kwt_item.area < bias:
-            return []
-        res = mapping(kwt_item)
-        _arr = []
-        # 去除重叠点的情况
-        if res["coordinates"][0][0] == res["coordinates"][0][-1]:
-            for point in res["coordinates"][0][0:-1]:
-                _arr.append([point[0],point[1]])
-        else:
-            for point in res["coordinates"][0]:
-                _arr.append([point[0],point[1]])
-        return _arr
-
-    @staticmethod
-    def getPolyEdges(poly):
-        edges = []
-        for index,point in enumerate(poly):
-            if index < len(poly)-1:
-                edges.append([poly[index],poly[index+1]])
-            else:
-                edges.append([poly[index],poly[0]])
-        return edges
-
-    @staticmethod
-    def getInnerFitRectangle(poly,x,y):
-        left_pt, bottom_pt, right_pt, top_pt = GeometryAssistant.getBoundPoint(poly) # 获得全部边界点
-        intial_pt = [top_pt[0] - left_pt[0], top_pt[1] - bottom_pt[1]] # 计算IFR初始的位置
-        ifr_width = x - right_pt[0] + left_pt[0]  # 获得IFR的宽度
-        ifr = [[intial_pt[0], intial_pt[1]], [intial_pt[0] + ifr_width, intial_pt[1]], [intial_pt[0] + ifr_width, y], [intial_pt[0], y]]
-        return ifr
-    
-    @staticmethod
-    def getSlide(poly,x,y):
-        '''获得平移后的情况'''
-        new_vertex=[]
-        for point in poly:
-            new_point = [point[0]+x,point[1]+y]
-            new_vertex.append(new_point)
-        return new_vertex
-
-    @staticmethod
-    def slidePoly(poly,x,y):
-        '''将对象平移'''
-        for point in poly:
-            point[0] = point[0] + x
-            point[1] = point[1] + y
-    
-    @staticmethod
-    def slideToPoint(poly,pt):
-        '''将对象平移'''
-        top_pt = GeometryAssistant.getTopPoint(poly)
-        x,y = pt[0]-top_pt[0], pt[1]-top_pt[1]
-        for point in poly:
-            point[0] = point[0] + x
-            point[1] = point[1] + y
-
-    @staticmethod
-    def getDirectionalVector(vec):
-        _len=math.sqrt(vec[0]*vec[0]+vec[1]*vec[1])
-        return [vec[0]/_len,vec[1]/_len]
-
-    @staticmethod
-    def deleteOnline(poly):
-        '''删除两条直线在一个延长线情况'''
-        new_poly=[]
-        for i in range(-2,len(poly)-2):
-            vec1 = GeometryAssistant.getDirectionalVector([poly[i+1][0]-poly[i][0],poly[i+1][1]-poly[i][1]])
-            vec2 = GeometryAssistant.getDirectionalVector([poly[i+2][0]-poly[i+1][0],poly[i+2][1]-poly[i+1][1]])
-            if abs(vec1[0]-vec2[0])>bias or abs(vec1[1]-vec2[1])>bias:
-                new_poly.append(poly[i+1])
-        return new_poly
-
-    @staticmethod
-    def getTopPoint(poly):
-        top_pt,max_y=[],-999999999
-        for pt in poly:
-            if pt[1]>max_y:
-                max_y=pt[1]
-                top_pt=[pt[0],pt[1]]
-        return top_pt
-
-    @staticmethod
-    def getBottomPoint(poly):
-        bottom_pt,min_y=[],999999999
-        for pt in poly:
-            if pt[1]<min_y:
-                min_y=pt[1]
-                bottom_pt=[pt[0],pt[1]]
-        return bottom_pt
-
-    @staticmethod
-    def getRightPoint(poly):
-        right_pt,max_x=[],-999999999
-        for pt in poly:
-            if pt[0]>max_x:
-                max_x=pt[0]
-                right_pt=[pt[0],pt[1]]
-        return right_pt
-
-    @staticmethod
-    def getLeftPoint(poly):
-        left_pt,min_x=[],999999999
-        for pt in poly:
-            if pt[0]<min_x:
-                min_x=pt[0]
-                left_pt=[pt[0],pt[1]]
-        return left_pt
-
-    @staticmethod
-    def getBottomLeftPoint(poly):
-        bottom_left_pt,min_x,min_y=[],999999999,999999999
-        for pt in poly:
-            if pt[0]<=min_x and pt[1]<=min_y:
-                min_x,min_y=pt[0],pt[1]
-                bottom_left_pt=[pt[0],pt[1]]
-        return bottom_left_pt
-
-    @staticmethod
-    def getBoundPoint(poly):
-        left_pt,bottom_pt,right_pt,top_pt=[],[],[],[]
-        min_x,min_y,max_x,max_y=999999999,999999999,-999999999,-999999999
-        for pt in poly:
-            if pt[0]<min_x:
-                min_x=pt[0]
-                left_pt=[pt[0],pt[1]]
-            if pt[0]>max_x:
-                max_x=pt[0]
-                right_pt=[pt[0],pt[1]]
-            if pt[1]>max_y:
-                max_y=pt[1]
-                top_pt=[pt[0],pt[1]]
-            if pt[1]<min_y:
-                min_y=pt[1]
-                bottom_pt=[pt[0],pt[1]]
-        return left_pt,bottom_pt,right_pt,top_pt
 
 if __name__=='__main__':
     polys=getData()
