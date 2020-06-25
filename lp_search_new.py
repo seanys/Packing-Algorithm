@@ -42,14 +42,14 @@ class GSMPD(object):
         self.cur_length = self.best_length*(1 - self.ration_dec) # 当前的宽度
         self.slideToContainer() # 把突出去的移进来
 
-        self.minimizeOverlap()
+        self.minimizeOverlap() 
 
         pass
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
         self.miu = [[1]*len(self.polys) for _ in range(len(self.polys))] # 计算重叠权重调整（每次都会更新）
-        N,it = 1,0 # 记录计算次数
+        N,it = 50,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         while it < N:
             permutation = np.arange(len(self.polys))
