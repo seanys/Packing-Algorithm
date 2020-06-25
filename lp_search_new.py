@@ -33,20 +33,25 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(7) # 获得全部
+        self.initialProblem(8) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
+        self.TEST_MODEL = False
         self.main()
 
     def main(self):
         '''核心算法部分'''
-        # self.showPolys()
         print("初始利用率为：",433200/(self.cur_length*self.width))
-        # self.shrinkBorder() # 平移边界并更新宽度
-        self.extendBorder()
+        self.shrinkBorder() # 平移边界并更新宽度
+        # self.extendBorder()
+
+        max_time = 2000
+        if self.TEST_MODEL == True:
+            max_time = 0
 
         start_time = time.time()
-        while time.time() - start_time < 2000:
-            feasible = self.minimizeOverlap()
+        while time.time() - start_time < max_time:
+            self.intialPairPD() # 初始化当前两两间的重叠
+            feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True:
                 print("当前利用率为：",433200/(self.cur_length*self.width))
                 self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
@@ -69,8 +74,10 @@ class GSMPD(object):
         self.miu = [[1]*len(self.polys) for _ in range(len(self.polys))] # 计算重叠权重调整（每次都会更新）
         N,it = 50,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
-        self.pair_pd_record = [[0]*len(self.polys) for _ in range(len(self.polys))] # 记录两两之间的关系
+        if self.TEST_MODEL == True: # 测试模式
+            N = 1
         while it < N:
+            print("第",it,"轮")
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
             for i in range(len(self.polys)):
@@ -85,12 +92,14 @@ class GSMPD(object):
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
+                    print("寻找到更优位置:",cur_pd,"->",final_pd)
                     self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
-            total_pd,pd_pair,max_pair_pd = self.getAllPD() # 更新整个计算结果
+                    self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
+            total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < bias:
-                # self.showPolys()
+                self.showPolys()
                 self.outputWarning("结果可行")                
                 return True
             elif total_pd < Fitness:
@@ -99,11 +108,8 @@ class GSMPD(object):
                 self.outputAttention("Update fitness")
                 print("综合PD:",total_pd)
 
-            self.updateMiu(max_pair_pd,pd_pair)
-            print("第",it,"轮")
+            self.updateMiu(max_pair_pd)
             print("total_pd:",total_pd)
-            # print("pd_pair:",pd_pair)
-            # print("更新miu:",self.miu)
             it = it + 1
         return False
 
@@ -195,20 +201,34 @@ class GSMPD(object):
         # self.showPolys()
         return min_pd,best_pt
 
-    def getAllPD(self):
+    def updatePD(self,choose_index):
+        '''平移某个元素后更新对应的PD'''
+        for i in range(len(self.polys)-1):
+            if i == choose_index:
+                continue
+            pd = self.getPolysPD(choose_index,i)
+            self.pair_pd_record[i][choose_index],self.pair_pd_record[choose_index ][i] = pd,pd # 更新对应的pd
+
+    def getPDStatus(self):
+        '''获得当前的最佳情况'''
+        total_pd,max_pair_pd = 0,0
+        for i in range(len(self.polys)-1):
+            for j in range(i+1,len(self.polys)):
+                total_pd = total_pd + self.pair_pd_record[i][j]
+                if self.pair_pd_record[i][j] > max_pair_pd:
+                    max_pair_pd = self.pair_pd_record[i][j]
+        return total_pd,max_pair_pd
+
+    def intialPairPD(self):
         '''获得当前全部形状间的PD，无需调整'''
-        total_pd,pd_pair,max_pair_pd = 0,[[0]*len(self.polys) for _ in range(len(self.polys))],0 # 两两之间的pd和总的pd
+        self.pair_pd_record = [[0]*len(self.polys) for _ in range(len(self.polys))] # 两两之间的pd和总的pd
         for i in range(len(self.polys)-1):
             for j in range(i+1,len(self.polys)):
                 pd = self.getPolysPD(i,j)
-                pd_pair[i][j],pd_pair[j][i] = pd,pd # 更新对应的pd
-                total_pd = total_pd + pd # 更新总的pd
-                if pd > max_pair_pd: # 更新最大的值
-                    max_pair_pd = pd
-        return total_pd,pd_pair,max_pair_pd
+                self.pair_pd_record[i][j],self.pair_pd_record[j][i] = pd,pd # 更新对应的pd
 
     def getPolysPD(self, i, j):
-        '''获得两个形状间的PD，根据点计算，无需调整'''
+        '''获得当前两个形状间的PD，根据点计算，无需调整'''
         top_pt = GeometryAssistant.getTopPoint(self.polys[i])
         nfp = self.getNFP(i, j, self.orientation[i], self.orientation[j])
         if Polygon(nfp).contains(Point(top_pt)) == True:
@@ -218,11 +238,9 @@ class GSMPD(object):
 
     def getIndexPD(self,i,top_pt,oi):
         '''获得某个形状的全部PD，是调整后的结果'''
-        total_pd,target = 0, [j for j in range(len(self.polys)) if j != i] # 获得全部的NFP基础
-        for j in target:
-            nfp = self.getNFP(i, j, oi, self.orientation[j]) # 获得NFP结果
-            if Polygon(nfp).contains(Point(top_pt)) == True: # 包含的情况下才计算
-                total_pd = total_pd + self.getPtNFPPD(top_pt,nfp)*self.miu[i][j] # 计算PD，比较简单
+        total_pd = 0 # 获得全部的NFP基础
+        for j in range(len(self.polys)):
+            total_pd = total_pd + self.pair_pd_record[i][j] # 计算PD，比较简单
         return total_pd
 
     def getPtNFPPD(self, pt, nfp):
@@ -239,12 +257,12 @@ class GSMPD(object):
                 min_pd,min_edge = abs(a*pt[0] + b*pt[1] + c),copy.deepcopy(edge)
         return min_pd
 
-    def updateMiu(self,max_pair_pd,pd_pair):
+    def updateMiu(self,max_pair_pd):
         """寻找到更优位置之后更新"""
         for i in range(len(self.polys)-1):
             for j in range(i+1,len(self.polys)):
-                self.miu[i][j] = self.miu[i][j] + pd_pair[i][j]/max_pair_pd
-                self.miu[j][i] = self.miu[j][i] + pd_pair[j][i]/max_pair_pd
+                self.miu[i][j] = self.miu[i][j] + self.pair_pd_record[i][j]/max_pair_pd
+                self.miu[j][i] = self.miu[j][i] + self.pair_pd_record[j][i]/max_pair_pd
     
     def removeItmes(self,input_list,del_target):
         '''删除中间的元素，不考虑计算速度'''
