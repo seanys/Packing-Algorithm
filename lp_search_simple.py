@@ -20,7 +20,8 @@ import numpy as np
 import operator
 import multiprocessing
 
-bias=0.0000001
+bias = 0.0000001
+max_overlap = 0.01
 
 class GSMPD(object):
     """
@@ -81,7 +82,6 @@ class GSMPD(object):
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 1
-        self.changed_status = True # True表示修改过，False表示没有修改过
         while it < N:
             # changed = False # 该参数表示是否修改过
             print("第",it,"轮")
@@ -111,7 +111,7 @@ class GSMPD(object):
                 else:
                     print(choose_index,"未寻找到更优位置")
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
-            if total_pd < bias:
+            if total_pd < max_overlap:
                 self.outputWarning("结果可行")                
                 return True
             elif total_pd < Fitness:
@@ -120,7 +120,6 @@ class GSMPD(object):
                 _str = "更新最少重叠:" + str(total_pd)
                 self.outputAttention(_str)
 
-            # self.changed_status = changed # 记录该轮是否修改了
             self.updateMiu(max_pair_pd) # 更新参数
             it = it + 1 # 更新计数次数
 
@@ -361,3 +360,7 @@ class GSMPD(object):
 if __name__=='__main__':
     polys=getData()
     GSMPD(760,polys)
+    # for i in range(100):
+    #     permutation = np.arange(10)
+    #     np.random.shuffle(permutation)
+    #     print(permutation)
