@@ -16,62 +16,6 @@
 #include <algorithm>
 
 
-class BLF{
-protected:
-    int polygons=0; // 输入形状可以考虑对应的序列
-    PolysArrange polys_arrange; // 形状的排样情况
-    NFPAssistant *nfp_assistant;
-public:
-    BLF(){
-        DataAssistant::readData(polys_arrange); // 加载数据
-        nfp_assistant=new NFPAssistant("/Users/sean/Documents/Projects/Data/fu_clock.csv",polys_arrange.type_num,4);
-        
-    };
-    void run(){
-        placeFirstPoly();
-        int _max=int(polys_arrange.polys.size());
-        for(int j=1;j<_max;j++){
-            placeNextPoly(j);
-        }
-    };
-    void placeFirstPoly(){
-        VectorPoints ifr;
-        PackingAssistant::getIFR(polys_arrange.polys[0], polys_arrange.width, 99999999, ifr);
-        PackingAssistant::slideToPosition(polys_arrange.polys[0], ifr[3]);
-        PrintAssistant::print2DVector(polys_arrange.polys[0], true);
-    };
-    void placeNextPoly(int j){
-        // 获得IFR
-        VectorPoints ifr;
-        PackingAssistant::getIFR(polys_arrange.polys[j], polys_arrange.width, 99999999, ifr);
-        // IFR转Polygon并计算差集
-        Polygon IFR;
-        GeometryProcess::convertPoly(ifr,IFR);
-        list<Polygon> feasible_region={IFR};
-//        cout<<endl<<"IFR:"<<dsv(IFR)<<endl;
-        // 逐一计算
-        for(int i=0;i<j;i++){
-            // 初步处理NFP多边形
-            VectorPoints nfp;
-            int type_i=polys_arrange.polys_type[i],type_j=polys_arrange.polys_type[j];
-            int oi=polys_arrange.polys_orientation[i],oj=polys_arrange.polys_orientation[j];
-            nfp_assistant->getNFP(type_i,type_j,oi,oj,polys_arrange.polys[i],nfp);
-            // 转化为多边形并求交集
-            Polygon nfp_poly;
-            GeometryProcess::convertPoly(nfp,nfp_poly);
-            PolygonsOperator::polysDifference(feasible_region,nfp_poly);
-        };
-        // 遍历获得所有的点
-        VectorPoints all_points;
-        GeometryProcess::getAllPoints(feasible_region,all_points);
-        // 选择最左侧的点
-        vector<double> bl_point;
-        PackingAssistant::getBottomLeft(all_points,bl_point);
-        PackingAssistant::slideToPosition(polys_arrange.polys[j],bl_point);
-        PrintAssistant::print2DVector(polys_arrange.polys[j], true);
-    }
-};
-
 class LPSearch{
 protected:
     VectorPoints cur_ifr; // 获得当前的IFR
@@ -106,12 +50,12 @@ protected:
 public:
     LPSearch(){
         DataAssistant::readAllPolygon(all_polygons); // 加载各个方向的形状
-        DataAssistant::readBLF(0,cur_solution); // 读取BLF的解
+        DataAssistant::readBLF(3,cur_solution); // 读取BLF的解
         nfp_assistant = new NFPAssistant("/Users/sean/Documents/Projects/Data/fu_clock.csv",cur_solution.type_num,4); // NFP辅助
         
         polys = cur_solution.polys; // 当前的形状，记录形状变化
         cur_orientation = cur_solution.polys_orientation; // 赋值全部形状（变化）
-        cur_length = PackingAssistant::arrangetLenth(polys)-50; // 当前长度（变化）
+        cur_length = PackingAssistant::arrangetLenth(polys); // 当前长度（变化）
         
         best_polys = cur_solution.polys; // 最佳结果存储
         best_length = cur_length; // 最佳长度（变化）
@@ -121,44 +65,59 @@ public:
         poly_num = cur_solution.total_num; // 形状总数（不变）
         polys_type = cur_solution.polys_type; // 形状类别（不变）
         
-//        PltFunc::pltShow(polys);
     };
     void run(){
         // 限制检索时间是否超过时间
-//        double ration_dec=0.04,ration_inc=0.01;
+        double ration_dec=0.04,ration_inc=0.01;
 //        double max_time=1200;
-        slideToContainer();
+        
+        shrinkBorder(ration_dec);
         
         // 执行最小化重叠后，判断解是否可行
         minimizeOverlap();
         
     };
+    // 计算收缩后的情况
+    void shrinkBorder(double ration_dec){
+        cur_length = best_length*(1 - ration_dec);
+        for(int i=0;i<poly_num;i++){
+            vector<double> right_pt;
+            PackingAssistant::getRightPt(polys[i],right_pt);
+            if(right_pt[0]>cur_length){
+                PackingAssistant::slidePoly(polys[i], cur_length-right_pt[0], 0);
+            }
+        }
+    };
+    // 扩大边界
+    void extendBorder(double ration_inc){
+        cur_length = best_length*(1 - ration_inc);
+    };
+    
+    
     // 输入序列形状，每次处理一个序列
     void minimizeOverlap(){
         initial2DVector(1,poly_num,miu); // 初始化Miu的值
         int it=0,N=1; // 循环次数限制
         double lowest_overlap=999999999; // 重叠的处理
         
-        // 选择一个形状
-        while(it<N){
+        while(it < N){
             // 生成一个序列，逐一赋值并寻找更优位置
             vector<int> search_permutation;
             randomPermutation(search_permutation);
             
             for(auto index:search_permutation){
-                // 检索该形状各个方向是否有更优解
-                cout<<"检索形状"<<index<<endl;
-                choosed_index=index;
-                searchOnePoly();
+                for(auto oi:{0,1,2,3}){
+                    lpSearch(index,oi);
+                }
             }
             
             // 获得本序列结束后的情况
-            double cur_overlap=getTotalOverlap();
+            double cur_overlap = getTotalPD();
             if(cur_overlap<BIAS){
                 cout<<"本次计算结束，没有重叠"<<endl;
                 break;
-            }else if (cur_overlap<lowest_overlap){
-                lowest_overlap=cur_overlap;
+            }else if (cur_overlap < lowest_overlap){
+                lowest_overlap = cur_overlap;
                 it=0;
             }
             // 更新Miu和循环次数，开始下一次检索
@@ -166,22 +125,19 @@ public:
             updateMiu();
             it++;
         };
-        if(N==it){
+        if(N == it){
             cout<<"超出检索次数"<<endl;
         }
         
     };
     
-    /*
-     寻找某个形状的更优位置（采用全局的choose_index）
-     1. 只有获得了NFPIFR，并获得了目标函数后，才可以求某点深度（通
-     过遍历与目标形状有重叠的NF的边和点）
-     2. 如果需要求最值点，则需要计算出NFP的拆分情况，然后分别对各个
-     点求NFP，
-     */
+    void lpSearch(int i,int oi){
+        
+    }
+
     void searchOnePoly(){
         // 初始化形状间重叠，并判断当前选择形状是否有重叠
-        initialPolyOverlap();
+        
         if(judgePositionOverlap()==false){
             cout<<"该形状不存在重叠"<<endl;
             return;
@@ -192,7 +148,6 @@ public:
         
         // 获得全部NFP和IFR，外加所有多边形的目标函数
         getNFPIFR(choosed_index,cur_orientation[choosed_index]);
-        getTargetFunc();
                 
         // 存储最佳的位置/深度/方向
         double best_depth=getInitialDepth(original_position);
@@ -218,9 +173,6 @@ public:
                 cout<<"不存在可行区域，寻找最低深度位置"<<endl;
             }
             
-            // 获得目标函数以及相交情况，检索并获得最佳位置
-            getTargetFunc();
-            getInterPoints();
             
             vector<double> new_poistion;
             double new_depth=searchForBestPosition(new_poistion);
@@ -243,7 +195,7 @@ public:
             
             polys[choosed_index]=all_polygons[choosed_index][best_orientation]; // 更新选择形状
             PackingAssistant::slideToPosition(polys[choosed_index], best_position); // 移到最佳位置
-            updatePolyOverlap(choosed_index); // 更新全部重叠
+            updatePD(choosed_index); // 更新全部重叠
             
             PltFunc::polysShow(polys);
         }
@@ -285,68 +237,23 @@ public:
         PackingAssistant::getIFR(all_polygons[j][oj], width, cur_length, cur_ifr);
     };
     
-    // 在获得NFP和IFR之后获得目所有目标函数（4.26测试）
-    void getTargetFunc(){
-        edges_target_funs={};
-        points_target_funs={};
-        for(int i=0;i<poly_num;i++){
-            // 初始化添加
-            edges_target_funs.push_back({});
-            points_target_funs.push_back({});
-            // 如果相同则跳过
-            if(i==choosed_index){
-                continue;
-            }
-            // 首先计算全部的直线
-            vector<VectorPoints> all_edges;
-            getAllEdges(all_nfps[i], all_edges);
-            for(auto edge:all_edges){
-                vector<double> coeff;
-                getEdgeCoeff(coeff,edge);
-                edges_target_funs[i].push_back(coeff);
-            }
-            // 其次遍历所有的点（其实不用封装也OK）
-            for(auto pt:all_nfps[i]){
-                points_target_funs[i].push_back({pt[0],pt[1]});
-            }
-        }
-    };
-    
     // 获得最小的Penetration Depth的位置
     double searchForBestPosition(vector<double> &position){
         double min_depth=9999999999;
-        for(int i=0;i<nfp_sub_ifr_phase.size();i++){
-            auto phase=nfp_sub_ifr_phase[i];
-            for(int j=0;j<phase.size();j++){
-                // 每个List Item都是来源相同的一个或多个多边形
-                vector<vector<double>> all_points;
-                GeometryProcess::getAllPoints(phase[j],all_points);
-                for(auto pt:all_points){
-                    // 获得这个位置与所属NFP的重叠（调整后）
-                    double depth=getPointDepth(pt, target_indexs[i][j]);
-                    if(depth<min_depth){
-                        min_depth=depth;
-                        position={pt[0],pt[1]};
-                    }
-                }
-            }
-        }
+        
+        vector<double> coeff;
+        edge = {}
+        getEdgeCoeff(coeff,edge);
+        
         return min_depth;
     };
     
     // 获得某个位置与某个形状的最低高度（返回的结果调整过）
-    double getPointPolyDepth(int poly_index,vector<double> pt){
+    double getPointPolyDepth(vector<vector<double>> poly,vector<double> pt){
         double min_depth=9999999;
         // 遍历全部的边对象 abs(ax+by+c)
         for(auto edge_target:edges_target_funs[poly_index]){
             double value=abs(edge_target[0]*pt[0]+edge_target[1]*pt[1]+edge_target[2]);
-            if(value<min_depth){
-                min_depth=value;
-            }
-        }
-        // 遍历全部的点 abs(x-x0)+abs(y-y0)
-        for(auto point_target:points_target_funs[poly_index]){
-            double value=abs(pt[0]-point_target[0])+abs(pt[1]-point_target[1]);
             if(value<min_depth){
                 min_depth=value;
             }
@@ -358,7 +265,7 @@ public:
     double getPointDepth(vector<double> pt,vector<int> all_nfp_indexs){
         double depth=0;
         for(auto nfp_index:all_nfp_indexs){
-            depth+=getPointPolyDepth(nfp_index, pt);
+            depth+=getPointPolyDepth(, pt);
         }
         return depth;
     };
@@ -383,8 +290,8 @@ public:
         GeometryProcess::convertPoly(cur_ifr, IFR);
         feasible_region={IFR};
         // 逐步遍历全部NFP求差集
-        for(int i=0;i<poly_num;i++){
-            if(i==choosed_index){
+        for(int i=0; i < poly_num; i++){
+            if(i == choosed_index){
                 continue;
             }
             auto nfp=all_nfps[i];
@@ -422,56 +329,6 @@ public:
         }
     };
     
-    // 获得全部的交点和对应的三角形（4.27测试 可能出现空的和重合的）
-    void getInterPoints(){
-        // 获得NFP重叠和切除情况
-        getNFPOverlap();
-        getNfpInterIfr();
-        
-        // 求解下一阶段以及上一阶段切除
-        int pair_num=2;
-        while(true){
-            cout<<"求"<<pair_num<<"对重叠"<<endl;
-            nfp_sub_ifr_phase.push_back({});
-            target_indexs.push_back({});
-            // 获得每个阶段上一个的最后一个index的匹配结果
-            for(int i=0;i<nfp_sub_ifr_phase[pair_num-2].size();i++){
-                auto target_father = target_indexs[pair_num-2][i][target_indexs[pair_num-2][i].size()-1];
-                for(int j:nfp_overlap_list[target_father]){
-                    list<Polygon> inter_region;
-                    PolygonsOperator::listToPolyIntersection(nfp_sub_ifr_phase[pair_num-2][i],all_nfps_poly[j],inter_region);
-                    if(PolygonsOperator::judgeListEmpty(inter_region)==false){
-                        nfp_sub_ifr_phase[pair_num-1].push_back(inter_region); // 增加目标区域
-                        auto new_target_indexs = target_indexs[pair_num-2][i]; // 获得上一阶的重叠形状
-                        new_target_indexs.push_back(j);
-                        target_indexs[pair_num-1].push_back(new_target_indexs); // 增加目标对象
-                    }
-                }
-            }
-            // 如果新的为空，则退出循环
-            if(nfp_sub_ifr_phase[pair_num-1].size()==0){
-                break;
-            }
-            // 裁剪去上一阶段组合
-            subFrontRegion(pair_num);
-            pair_num++;
-        }
-        
-    };
-    
-    // 切除上一阶段的计算结果(不考虑速度暂时)（4.27测试 可能出现空的和重合的）
-    void subFrontRegion(int pair_num){
-        for(int i=0;i<target_indexs[pair_num-2].size();i++){
-            auto front_indexs=target_indexs[pair_num-2][i];
-            for(int j=0;j<target_indexs[pair_num-1].size();j++){
-                auto cur_indexs=target_indexs[pair_num-1][j];
-                if(containIndex(cur_indexs,front_indexs)==true){
-                    PolygonsOperator::polyListDifference(nfp_sub_ifr_phase[pair_num-2][i],nfp_sub_ifr_phase[pair_num-1][j]);
-                }
-            }
-        }
-    };
-    
     static void showVectorPolyList(vector<list<Polygon>> poly_list){
         vector<VectorPoints> all_polys_to_show;
         GeometryProcess::getListPolys(poly_list,all_polys_to_show);
@@ -497,22 +354,8 @@ public:
         }
     };
     
-    // 增加获得全部重叠，用于比较情况
-    double getTotalOverlap(){
-        double total_overlap=0;
-        for(int i=0;i<poly_num-1;i++){
-            for(int j=i+1;j<poly_num;j++){
-                if(i==j){
-                    continue;
-                }
-                total_overlap+=PackingAssistant::overlapArea(polys[i],polys[j]);
-            }
-        }
-        return total_overlap;
-    };
-    
     // 初始化当前的整个重叠（两两间的重叠）（4.26测试）
-    void initialPolyOverlap(){
+    void initialPD(){
         initial2DVector(0,poly_num,poly_overlap);
         for(int i=0;i<poly_num-1;i++){
             for(int j=i+1;j<poly_num;j++){
@@ -524,7 +367,7 @@ public:
     };
     
     // 更新多边形的重叠情况（单独更新某个形状）（4.26测试）
-    void updatePolyOverlap(int i){
+    void updatePD(int i){
         for(int j=0;j<poly_num;j++){
             if(i==j){
                 continue;
@@ -534,33 +377,10 @@ public:
             poly_overlap[i][j]=overlap;
         }
     };
-    
-    // 平移多边形到内部（4.26测试）
-    void slideToContainer(){
-        for(int i=0;i<poly_num;i++){
-            vector<double> right_pt;
-            PackingAssistant::getRightPt(polys[i],right_pt);
-            if(right_pt[0]>cur_length){
-                PackingAssistant::slidePoly(polys[i], cur_length-right_pt[0], 0);
-            }
-        }
-    };
-    
+        
     /*
      以下函数可以封装到PackingAssistant中！
      */
-    
-    // 判断当前解是否可行（获得重叠）
-    bool judgeFeasible(){
-        for(int i=0;i<poly_num-1;i++){
-            for(int j=i+1;j<poly_num;j++){
-                if(poly_overlap[i][j]>0){
-                    return false;
-                }
-            }
-        }
-        return true;
-    };
     
     // 获得某个多边形所有的边（4.26测试）
     void getAllEdges(VectorPoints poly,vector<VectorPoints> &all_edges){
@@ -633,23 +453,6 @@ public:
         }
     };
 
-    // 判断是否包含上一个的全部index
-    bool containIndex(vector<int> container,vector<int> target){
-        int wrong_num=0,i=0,j=0;
-        while(i<container.size()){
-            if(container[i]!=target[j]){
-                if(wrong_num==0){
-                    wrong_num++;
-                    i++;
-                }else{
-                    return false;
-                }
-            }
-            i++; j++;
-        }
-        return true;
-    };
-    
     // IFR Sub NFP后选择第一个点
     void getFirstPoint(vector<double> &first_point,list<Polygon> poly_list){
         VectorPoints all_points;
@@ -669,14 +472,6 @@ int main(int argc, const char * argv[]) {
 //    WriterAssistant::writeCSV();
     
     
-//    BLF *blf;
-//    blf=new BLF();
-//    blf->run();
-//        clock_t start,end;
-//        start=clock();
-//        end=clock();
-//        cout<<"运行总时间"<<(double)(end-start)/CLOCKS_PER_SEC<<endl;
-
     return 0;
 }
 

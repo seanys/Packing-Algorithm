@@ -271,11 +271,11 @@ class SA(object):
 if __name__=='__main__':
     starttime = datetime.datetime.now()
     # polys=getConvex(num=5)
-    polys=getData()
+    polys = getData()
     print(len(polys))
-    poly_list=PolyListProcessor.getPolyObjectList(polys+polys+polys,[0])
+    poly_list = PolyListProcessor.getPolyObjectList(polys+polys+polys,[0])
     # TOPOS(polys,1500)
-    nfp_assistant=NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    nfp_assistant = NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
     GA(760,poly_list,nfp_asst=nfp_assistant)
     # SA(poly_list)
 

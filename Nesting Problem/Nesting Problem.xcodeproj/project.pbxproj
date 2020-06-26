@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		148A296024A6674F0033BB88 /* old_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 148A295F24A6674F0033BB88 /* old_main.cpp */; };
 		14BE2F892444ABB00049BA76 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 14BE2F882444ABB00049BA76 /* main.cpp */; };
 		14BE2F9F2445B0C80049BA76 /* data_assistant.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 14BE2F9E2445B0C80049BA76 /* data_assistant.cpp */; };
 		14BE2FA12445B0D80049BA76 /* plot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 14BE2FA02445B0D80049BA76 /* plot.cpp */; };
@@ -27,6 +28,7 @@
 
 /* Begin PBXFileReference section */
 		1426104E244AC16D00A2440D /* data_assistant.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = data_assistant.hpp; sourceTree = "<group>"; };
+		148A295F24A6674F0033BB88 /* old_main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = old_main.cpp; sourceTree = "<group>"; };
 		14BE2F852444ABB00049BA76 /* Nesting Problem */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Nesting Problem"; sourceTree = BUILT_PRODUCTS_DIR; };
 		14BE2F882444ABB00049BA76 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		14BE2F9E2445B0C80049BA76 /* data_assistant.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = data_assistant.cpp; sourceTree = "<group>"; };
@@ -69,6 +71,7 @@
 				14BE2F9E2445B0C80049BA76 /* data_assistant.cpp */,
 				14BE2F882444ABB00049BA76 /* main.cpp */,
 				14FFBA3C2445D336001C99D4 /* geometry.cpp */,
+				148A295F24A6674F0033BB88 /* old_main.cpp */,
 			);
 			path = "Nesting Problem";
 			sourceTree = "<group>";
@@ -130,6 +133,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				148A296024A6674F0033BB88 /* old_main.cpp in Sources */,
 				14BE2F892444ABB00049BA76 /* main.cpp in Sources */,
 				14FFBA3D2445D336001C99D4 /* geometry.cpp in Sources */,
 				14BE2F9F2445B0C80049BA76 /* data_assistant.cpp in Sources */,

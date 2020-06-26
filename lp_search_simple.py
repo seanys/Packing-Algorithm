@@ -21,22 +21,22 @@ import operator
 import multiprocessing
 
 bias = 0.0000001
-max_overlap = 0.01
+max_overlap = 3
 
 class GSMPD(object):
     """
     Guided Search with Modified Penetration Depth:
-    We revised penetration depth to convert searching over layout into a 
-    linear programming problem. Based on the guided search methodology, the 
-    layout of a nesting problem can be optimzated step by step. Our approach 
-    make directly finding the best position for a polygon over layout, which 
-    can save the searching time and get better result.
+    We revised penetration depth to convert searching over layout into 
+    a linear programming problem. Based on the guided search methodology, 
+    the layout of a nesting problem can be optimized step by step. Our 
+    approach makes directly finding the best position for a polygon over 
+    the layout, which can save the searching time and get a better result.
     
     Attention: This file has only adapted to convex polys
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(16) # 获得全部
+        self.initialProblem(17) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -55,10 +55,12 @@ class GSMPD(object):
             max_time = 50
 
         start_time = time.time()
+        search_status = 0
         while time.time() - start_time < max_time:
             self.intialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True:
+                search_status = 0
                 print("当前利用率为：",433200/(self.cur_length*self.width))
                 self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
                 self.best_polys = copy.deepcopy(self.polys) # 更新形状
@@ -72,8 +74,13 @@ class GSMPD(object):
                 self.outputWarning("结果不可行，重新进行检索")
                 with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])        
-                self.extendBorder() # 扩大边界并进行下一次检索
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,433200/(self.cur_length*self.width),self.orientation,self.polys]])        
+                if search_status == 1:
+                    self.shrinkBorder()
+                    search_status = 0
+                else:
+                    self.extendBorder() # 扩大边界并进行下一次检索
+                    search_status = 1            
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
@@ -82,6 +89,7 @@ class GSMPD(object):
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 1
+        unchange_times,last_pd = 0,0
         while it < N:
             # changed = False # 该参数表示是否修改过
             print("第",it,"轮")
@@ -125,6 +133,9 @@ class GSMPD(object):
 
             _str = "当前全部重叠:" + str(total_pd)
             self.outputInfo(_str) # 输出当前重叠情况
+
+            # if total_pd == last_pd:
+            #     unchange_times = unchange_times +
         return False
 
     def lpSearch(self, i, oi):
