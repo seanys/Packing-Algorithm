@@ -35,9 +35,9 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(12) # 获得全部
+        self.initialProblem(13) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
-        self.TEST_MODEL = True
+        self.TEST_MODEL = False
         # self.showPolys()
         self.main()
 
@@ -51,7 +51,7 @@ class GSMPD(object):
 
         max_time = 200000
         if self.TEST_MODEL == True:
-            max_time = 3
+            max_time = 50
 
         start_time = time.time()
         while time.time() - start_time < max_time:
@@ -102,8 +102,10 @@ class GSMPD(object):
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
                     print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
+                    # self.showPolys()
                     self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
+                    # self.showPolys()
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
@@ -158,17 +160,27 @@ class GSMPD(object):
             return 0,potential_points[random_index]
         
         '''计算各个阶段的NFP情况'''
-        nfp_neighbor,nfp_INTER,nfp_inter_indexs = self.getNFPRelation(cutted_NFPs,i) # 获得邻接NFP和交集
-
+        all_search_targets,nfp_neighbor = self.getSearchTarget(cutted_NFPs,i) # 获得邻接NFP和交集
+        all_search_targets = sorted(all_search_targets, key=operator.itemgetter(0, 1)) # 按照升序进行排列
         min_pd,total_num_pt,best_pt = 99999999999,0,[]
-        
+        for k,target in enumerate(all_search_targets):
+            total_pd = 0 
+            if target[0] == all_search_targets[k-1][0] and target[1] == all_search_targets[k-1][1]:
+                continue
+            for j in range(len(self.polys)):
+                if Polygon(basic_nfps[j]).contains(Point([target[0],target[1]])) == True:
+                    pd = self.getPtNFPPD([target[0],target[1]],basic_nfps[j])
+                    total_pd = total_pd + pd * self.miu[i][j]
+            if total_pd < min_pd:
+                min_pd = total_pd
+                best_pt = [target[0],target[1]]
+            total_num_pt = total_num_pt + 1
+
         return min_pd,best_pt
 
-    def getNFPRelation(self, NFPs, index):
+    def getSearchTarget(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''
-        nfp_neighbor = [[] for _ in range(len(NFPs))] # NFP的邻接多边形
-        nfp_INTER = [[Polygon([])]*len(NFPs) for _ in range(len(NFPs))] # NFP的重叠形状（几何对象）
-        nfp_inter_indexs = [[[] for _ in range(len(NFPs) )] for _ in range(len(NFPs))] # 记录对应的重叠区域
+        all_search_targets,nfp_neighbor = [],[[] for _ in range(len(NFPs))] # 全部的点及其对应区域，NFP的邻接多边形
         for i in range(len(NFPs)-1):
             for j in range(i+1, len(NFPs)):
                 if i == index or j == index:
@@ -176,10 +188,11 @@ class GSMPD(object):
                 INTER = NFPs[i].intersection(NFPs[j]) # 求解交集
                 if INTER.geom_type == "String" or INTER.is_empty == True: # 如果为空或者仅为直线相交
                     continue
+                new_pts = self.getAllPoint(INTER) # 获得全部的点
+                all_search_targets = all_search_targets + [[pt[0],pt[1],[i,j]] for pt in new_pts] # 记录全部的情况
                 nfp_neighbor[i].append(j) # 记录邻接情况    
                 nfp_neighbor[j].append(i) # 记录邻接情况
-                nfp_INTER[i][j],nfp_INTER[j][i] = INTER,INTER # 更新相交区域
-        return nfp_neighbor,nfp_INTER,nfp_inter_indexs
+        return all_search_targets,nfp_neighbor
 
     def updatePD(self,choose_index):
         '''平移某个元素后更新对应的PD'''
@@ -346,5 +359,5 @@ class GSMPD(object):
         print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':
-    # polys=getData()
-    # GSMPD(760,polys)
+    polys=getData()
+    GSMPD(760,polys)
