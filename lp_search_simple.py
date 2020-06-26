@@ -37,7 +37,7 @@ class GSMPD(object):
         self.width = width # 容器的宽度
         self.initialProblem(12) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
-        self.TEST_MODEL = False
+        self.TEST_MODEL = True
         # self.showPolys()
         self.main()
 
@@ -95,14 +95,7 @@ class GSMPD(object):
                 cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
                 if cur_pd < bias: # 如果没有重叠就直接退出
                     continue
-                final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况
-                
-                # tasks = [[[choose_index,ori]] for ori in [0,1,2,3]]
-                # pool = multiprocessing.Pool(4)
-                # results = pool.starmap(self.lpSearch,tasks)
-                # for [min_pd,best_pt,ori] in results:
-                #     if min_pd < final_pd:
-                #         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
+                final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
                 for ori in [0,1,2,3]: # 测试全部的方向
                     min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
                     if min_pd < final_pd:
@@ -112,10 +105,7 @@ class GSMPD(object):
                     self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
-                    # print(self.pair_pd_record)
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
-                    # print(self.pair_pd_record)
-                    # self.changed_status,changed = True,True
                 else:
                     print(choose_index,"未寻找到更优位置")
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
@@ -135,38 +125,19 @@ class GSMPD(object):
             _str = "当前全部重叠:" + str(total_pd)
             self.outputInfo(_str) # 输出当前重叠情况
         return False
-    
-    def lpSearchRecord(self, i, oi):
-        '''基于历史情况进行更新'''
-        print("快捷检索:",i,oi)
-        pt_to_polys = self.pt_to_polys_record[i][oi] # 该形状所有的点对应的形状编号
-        min_pd,total_num_pt,best_pt = 99999999999,0,[]
-        for target in pt_to_polys:
-            total_pd = 0
-            for target_index in target[2]:
-                pd = self.pd_pt_poly_record[i][oi][target_index] # 与多边形的情况
-                total_pd = total_pd + pd * self.miu[i][poly_index] # 计算目标形状与其他形状调整后的全部的pd
-            if total_pd < min_pd:
-                min_pd = total_pd
-                best_pt = [target[0],target[1]] # 更新最佳位置
-        return min_pd,best_pt
 
-    # def lpSearch(self, target_status):
     def lpSearch(self, i, oi):
         '''
-        为某个形状的某个角度寻找最佳位置：输入形状和角度，根据miu调整后的情况，
-        找到综合的穿透深度最低的位置。
-        过程：首先计算IFR和全部的NFP (1) 计算NFP切除IFR和IFR切除全部NFP后
-        的结果，如果IFR切除后仍然有空余，就随机选择一个点返回 (2)如果IFR切除
-        后没有可行点，则计算NFP切除的各个阶段的点，同时通过NFP的Point和Edge
-        计算最佳情况，寻找最佳位置
+        简化版本的LP Search
+        过程：首先求解NFP与IFR的交集，IFR减去这些NFP如果有空缺，那从对应区域随机选择一个点作为点返回，然后
+        求解NFP两两之间的相交区域。凸集：所有的相交区域的顶点，与到包含这些区域的NFP对应的PD，求解即可；凸
+        集：相对复杂，考虑点到点的欧式距离作为PD即可
         '''
         # [i, oi] = target_status
         polygon = self.getPolygon(i, oi) # 获得对应的形状
         ifr = GeometryAssistant.getInnerFitRectangle(polygon, self.cur_length, self.width)
         IFR, feasible_IFR = Polygon(ifr), Polygon(ifr) # 全部的IFR和可行的IFR
-        cutted_NFPs ,NFP_stages, index_stages = [], [], [] # 获得切除后的NFP、各个阶段的NFP（全部是几何对象）、各个阶段对应的NFP情况
-        basic_nfps = [] # 获得全部的NFP基础
+        cutted_NFPs,basic_nfps = [], [], [] # 获得切除后的NFP（几何对象）、获得全部的NFP基础（多边形）
     
         '''获得全部的NFP以及切除后的NFP情况'''
         for j in range(len(self.polys)):
@@ -188,72 +159,24 @@ class GSMPD(object):
             return 0,potential_points[random_index]
         
         '''计算各个阶段的NFP情况'''
-        NFP_stages.append(copy.deepcopy(cutted_NFPs)) # 计算第一次Cut掉的结果
         nfp_neighbor = self.getNFPNeighbor(cutted_NFPs,i) # 获得邻接NFP
-        index_stages.append([[i] for i in range(len(cutted_NFPs))]) # 每个阶段对应的重叠区域
-        stage_index = 1 # 阶段情况
-        while True:
-            NFP_stages.append([]) # 增加新的阶段
-            index_stages.append([])
-            new_last_stage = copy.deepcopy(NFP_stages[stage_index-1]) # 记录上一阶段的结果
-            '''枚举上一阶段NFP交集'''
-            for k,inter_nfp in enumerate(NFP_stages[stage_index-1]):
-                '''获得重叠目标区域，分三种情况'''
-                if stage_index > 2:
-                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][-1]] # 仅考虑最新加入的
-                elif stage_index == 2:
-                    target_indexs = list(set(nfp_neighbor[index_stages[stage_index-1][k][0]] + nfp_neighbor[index_stages[stage_index-1][k][1]]))
-                else:
-                    target_indexs = nfp_neighbor[index_stages[stage_index-1][k][0]] # 考虑首个形状的
-                target_indexs = self.removeItmes(target_indexs,index_stages[stage_index-1][k])
-                '''1. 求切除后的差集，可能为Polygon、MultiPolygon等
-                   2. 求解和新的形状的交集，并记录在NFP_stages'''
-                for poly_index in target_indexs:
-                    try:
-                        new_last_stage[k] = new_last_stage[k].difference(cutted_NFPs[poly_index]) # 计算上一阶段的差集
-                        inter_region = NFP_stages[stage_index-1][k].intersection(cutted_NFPs[poly_index]) # 计算当前的交集
-                    except BaseException:
-                        inter_region = Polygon([])
-                        self.outputWarning("出现几何计算错误")
-                    if inter_region.area > 0 and index_stages[stage_index-1][k][-1] < poly_index: # 如果不是空集
-                        NFP_stages[stage_index].append(inter_region) # 记录到各阶段的NFP
-                        index_stages[stage_index].append(index_stages[stage_index-1][k] + [poly_index]) # 记录到各阶段的NFP
-                try:
-                    NFP_stages[stage_index-1] = copy.deepcopy(new_last_stage) # 更新上一阶段结果
-                except BaseException:
-                    self.outputWarning("出现复制错误")
-            '''结束条件'''
-            if len(NFP_stages[stage_index]) == 0:
-                break
-            stage_index = stage_index + 1
-        
-        '''遍历和记录全部的点及其对应区域'''
-        all_search_targets = []
-        for k,stage in enumerate(NFP_stages):
-            for w,item in enumerate(stage):
-                if item.is_empty == True: # 判断空集
-                    continue
-                new_pts = self.getAllPoint(item) # 获得全部的点
-                for pt in new_pts: # 增加记录全部情况
-                    all_search_targets.append([pt[0],pt[1],index_stages[k][w]])
-        all_search_targets = sorted(all_search_targets, key=operator.itemgetter(0, 1)) # 按照升序进行排列
-        
-        '''求解出全部的点的最佳情况'''
+
+
         min_pd,total_num_pt,best_pt = 99999999999,0,[]
-        for k,target in enumerate(all_search_targets):
-            if target[0] == all_search_targets[k-1][0] and target[1] == all_search_targets[k-1][1]:
-                continue
-            total_pd = 0 # 初始的值
-            for poly_index in target[2]:
-                pd = self.getPtNFPPD([target[0],target[1]],basic_nfps[poly_index])
-                total_pd = total_pd + pd * self.miu[i][poly_index] # 计算目标形状与其他形状调整后的全部的pd
-            if total_pd < min_pd:
-                min_pd = total_pd
-                best_pt = [target[0],target[1]] # 更新最佳位置
-            total_num_pt = total_num_pt + 1
         
         return min_pd,best_pt
-        # return [min_pd,best_pt,oi]
+
+    def getNFPNeighbor(self, NFPs, index):
+        '''获得NFP之间的重叠列表，只存比自己序列更大的'''
+        nfp_neighbor = [[] for _ in range(len(NFPs))]
+        for i in range(len(NFPs)-1):
+            for j in range(i+1, len(NFPs)):
+                if i == index or j == index:
+                    continue
+                if NFPs[i].intersects(NFPs[j]) == True:
+                    nfp_neighbor[i].append(j)     
+                    nfp_neighbor[j].append(i)     
+        return nfp_neighbor
 
     def updatePD(self,choose_index):
         '''平移某个元素后更新对应的PD'''
@@ -367,18 +290,6 @@ class GSMPD(object):
     def extendBorder(self):
         '''扩大边界'''
         self.cur_length = self.best_length*(1 + self.ration_inc)
-
-    def getNFPNeighbor(self, NFPs, index):
-        '''获得NFP之间的重叠列表，只存比自己序列更大的'''
-        nfp_neighbor = [[] for _ in range(len(NFPs))]
-        for i in range(len(NFPs)-1):
-            for j in range(i+1, len(NFPs)):
-                if i == index or j == index:
-                    continue
-                if NFPs[i].intersects(NFPs[j]) == True:
-                    nfp_neighbor[i].append(j)     
-                    nfp_neighbor[j].append(i)     
-        return nfp_neighbor
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
