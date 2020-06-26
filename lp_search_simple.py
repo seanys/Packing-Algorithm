@@ -137,7 +137,7 @@ class GSMPD(object):
         polygon = self.getPolygon(i, oi) # 获得对应的形状
         ifr = GeometryAssistant.getInnerFitRectangle(polygon, self.cur_length, self.width)
         IFR, feasible_IFR = Polygon(ifr), Polygon(ifr) # 全部的IFR和可行的IFR
-        cutted_NFPs,basic_nfps = [], [], [] # 获得切除后的NFP（几何对象）、获得全部的NFP基础（多边形）
+        cutted_NFPs,basic_nfps = [], [] # 获得切除后的NFP（几何对象）、获得全部的NFP基础（多边形）
     
         '''获得全部的NFP以及切除后的NFP情况'''
         for j in range(len(self.polys)):
@@ -155,28 +155,31 @@ class GSMPD(object):
         if feasible_IFR.area > bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
             random_index = random.randint(0, len(potential_points) - 1)
-            # return [0,potential_points[random_index],oi]
             return 0,potential_points[random_index]
         
         '''计算各个阶段的NFP情况'''
-        nfp_neighbor = self.getNFPNeighbor(cutted_NFPs,i) # 获得邻接NFP
-
+        nfp_neighbor,nfp_INTER,nfp_inter_indexs = self.getNFPRelation(cutted_NFPs,i) # 获得邻接NFP和交集
 
         min_pd,total_num_pt,best_pt = 99999999999,0,[]
         
         return min_pd,best_pt
 
-    def getNFPNeighbor(self, NFPs, index):
-        '''获得NFP之间的重叠列表，只存比自己序列更大的'''
-        nfp_neighbor = [[] for _ in range(len(NFPs))]
+    def getNFPRelation(self, NFPs, index):
+        '''获得NFP的重叠情况和交集'''
+        nfp_neighbor = [[] for _ in range(len(NFPs))] # NFP的邻接多边形
+        nfp_INTER = [[Polygon([])]*len(NFPs) for _ in range(len(NFPs))] # NFP的重叠形状（几何对象）
+        nfp_inter_indexs = [[[] for _ in range(len(NFPs) )] for _ in range(len(NFPs))] # 记录对应的重叠区域
         for i in range(len(NFPs)-1):
             for j in range(i+1, len(NFPs)):
                 if i == index or j == index:
                     continue
-                if NFPs[i].intersects(NFPs[j]) == True:
-                    nfp_neighbor[i].append(j)     
-                    nfp_neighbor[j].append(i)     
-        return nfp_neighbor
+                INTER = NFPs[i].intersection(NFPs[j]) # 求解交集
+                if INTER.geom_type == "String" or INTER.is_empty == True: # 如果为空或者仅为直线相交
+                    continue
+                nfp_neighbor[i].append(j) # 记录邻接情况    
+                nfp_neighbor[j].append(i) # 记录邻接情况
+                nfp_INTER[i][j],nfp_INTER[j][i] = INTER,INTER # 更新相交区域
+        return nfp_neighbor,nfp_INTER,nfp_inter_indexs
 
     def updatePD(self,choose_index):
         '''平移某个元素后更新对应的PD'''
@@ -232,6 +235,9 @@ class GSMPD(object):
             a,b,c = A/D,B/D,C/D
             if abs(a*pt[0] + b*pt[1] + c) < min_pd:
                 min_pd,min_edge = abs(a*pt[0] + b*pt[1] + c),copy.deepcopy(edge)
+            if min_pd < bias:
+                min_pd = 0
+                break
         return min_pd
 
     def updateMiu(self,max_pair_pd):
@@ -241,14 +247,7 @@ class GSMPD(object):
                 self.miu[i][j] = self.miu[i][j] + self.pair_pd_record[i][j]/max_pair_pd
                 self.miu[j][i] = self.miu[j][i] + self.pair_pd_record[j][i]/max_pair_pd
         # print("miu:",self.miu)
-    
-    def removeItmes(self,input_list,del_target):
-        '''删除中间的元素，不考虑计算速度'''
-        new_input_list = copy.deepcopy(input_list)
-        for item in del_target:
-            new_input_list = [i for i in new_input_list if i != item]
-        return new_input_list
-    
+
     def addTuplePoly(self,_arr,_tuple):
         """增加tuple格式的多边形，不添加最后一个"""
         for i,pt in enumerate(_tuple):
@@ -257,8 +256,10 @@ class GSMPD(object):
             _arr.append([pt[0],pt[1]])
     
     def getAllPoint(self,item):
-        """获得某个形状对应的全部点"""
+        """获得某个几何对象对应的全部点"""
         all_pts = []
+        if item.is_empty == True:
+            return all_pts
         if item.geom_type == "Polygon":
             self.addTuplePoly(all_pts,mapping(item)["coordinates"][0])
         elif item.geom_type == "MultiPolygon":
@@ -345,5 +346,5 @@ class GSMPD(object):
         print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':
-    polys=getData()
-    GSMPD(760,polys)
+    # polys=getData()
+    # GSMPD(760,polys)
