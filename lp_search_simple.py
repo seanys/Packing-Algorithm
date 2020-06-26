@@ -35,7 +35,7 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(13) # 获得全部
+        self.initialProblem(16) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
