@@ -18,6 +18,7 @@ import time
 import csv # 写csv
 import numpy as np
 import operator
+import multiprocessing
 
 bias=0.0000001
 
@@ -34,7 +35,7 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(10) # 获得全部
+        self.initialProblem(5) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -43,10 +44,10 @@ class GSMPD(object):
     def main(self):
         '''核心算法部分'''
         print("初始利用率为：",433200/(self.cur_length*self.width))
-        # self.shrinkBorder() # 平移边界并更新宽度
+        self.shrinkBorder() # 平移边界并更新宽度
         # self.extendBorder()
 
-        max_time = 2000
+        max_time = 200000
         if self.TEST_MODEL == True:
             max_time = 3
 
@@ -62,8 +63,8 @@ class GSMPD(object):
                 with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])
+                self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
-                break
             else:
                 self.outputWarning("结果不可行，重新进行检索")
                 with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
@@ -84,6 +85,8 @@ class GSMPD(object):
             print("第",it,"轮")
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
+            # print(permutation)
+            # permutation = [7,4,2,6,10,9,0,1,3,5,11,8]
             for i in range(len(self.polys)):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
@@ -91,20 +94,28 @@ class GSMPD(object):
                 if cur_pd < bias: # 如果没有重叠就直接退出
                     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况
+                
+                # tasks = [[[choose_index,ori]] for ori in [0,1,2,3]]
+                # pool = multiprocessing.Pool()
+                # results = pool.starmap(self.lpSearch,tasks)
+                # for [min_pd,best_pt,ori] in results:
+                #     if min_pd < final_pd:
+                #         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 for ori in [0,1,2,3]: # 测试全部的方向
-                    if self.changed_status == True:
-                        min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
-                    else:
-                        min_pd,best_pt = self.lpSearchRecord(choose_index,ori) # 采用简易版算法检索
+                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
-                    print("寻找到更优位置:",cur_pd,"->",final_pd)
+                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
+                    print(self.pair_pd_record)
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
+                    print(self.pair_pd_record)
                     # self.changed_status,changed = True,True
+                else:
+                    print(choose_index,"未寻找到更优位置")
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < bias:
                 self.outputWarning("结果可行")                
@@ -138,6 +149,7 @@ class GSMPD(object):
                 best_pt = [target[0],target[1]] # 更新最佳位置
         return min_pd,best_pt
 
+    # def lpSearch(self, target_status):
     def lpSearch(self, i, oi):
         '''
         为某个形状的某个角度寻找最佳位置：输入形状和角度，根据miu调整后的情况，
@@ -147,6 +159,7 @@ class GSMPD(object):
         后没有可行点，则计算NFP切除的各个阶段的点，同时通过NFP的Point和Edge
         计算最佳情况，寻找最佳位置
         '''
+        # [i, oi] = target_status
         polygon = self.getPolygon(i, oi) # 获得对应的形状
         ifr = GeometryAssistant.getInnerFitRectangle(polygon, self.cur_length, self.width)
         IFR, feasible_IFR = Polygon(ifr), Polygon(ifr) # 全部的IFR和可行的IFR
@@ -228,16 +241,17 @@ class GSMPD(object):
                 min_pd = total_pd
                 best_pt = [target[0],target[1]] # 更新最佳位置
             total_num_pt = total_num_pt + 1
-
+        
         return min_pd,best_pt
+        # return [min_pd,best_pt,oi]
 
     def updatePD(self,choose_index):
         '''平移某个元素后更新对应的PD'''
-        for i in range(len(self.polys)-1):
+        for i in range(len(self.polys)):
             if i == choose_index:
                 continue
             pd = self.getPolysPD(choose_index,i)
-            self.pair_pd_record[i][choose_index],self.pair_pd_record[choose_index ][i] = pd,pd # 更新对应的pd
+            self.pair_pd_record[i][choose_index],self.pair_pd_record[choose_index][i] = pd,pd # 更新对应的pd
 
     def getPDStatus(self):
         '''获得当前的最佳情况'''
@@ -293,6 +307,7 @@ class GSMPD(object):
             for j in range(i+1,len(self.polys)):
                 self.miu[i][j] = self.miu[i][j] + self.pair_pd_record[i][j]/max_pair_pd
                 self.miu[j][i] = self.miu[j][i] + self.pair_pd_record[j][i]/max_pair_pd
+        print("miu:",self.miu)
     
     def removeItmes(self,input_list,del_target):
         '''删除中间的元素，不考虑计算速度'''
