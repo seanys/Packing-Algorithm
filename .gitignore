@@ -4,7 +4,6 @@ logs*
 history*
 result*
 **/*.pyc
-record*
 *.npy
 .VSCodeCounter*
 *.pt

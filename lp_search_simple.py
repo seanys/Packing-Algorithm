@@ -21,7 +21,7 @@ import operator
 import multiprocessing
 
 bias = 0.0000001
-max_overlap = 3
+max_overlap = 10
 
 class GSMPD(object):
     """
@@ -36,7 +36,7 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(17) # 获得全部
+        self.initialProblem(21) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -65,14 +65,14 @@ class GSMPD(object):
                 self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
                 self.best_polys = copy.deepcopy(self.polys) # 更新形状
                 self.best_length = self.cur_length # 更新最佳高度
-                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
+                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])
                 # self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 self.outputWarning("结果不可行，重新进行检索")
-                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv","a+") as csvfile:
+                with open("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,433200/(self.cur_length*self.width),self.orientation,self.polys]])        
                 if search_status == 1:
