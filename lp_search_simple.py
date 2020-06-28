@@ -328,7 +328,7 @@ class GSMPD(object):
 
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''
-        _input = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp.csv")
+        _input = pd.read_csv("record/lp.csv")
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
         self.orientation, self.best_orientation = json.loads(_input["orientation"][index]),json.loads(_input["orientation"][index]) # 当前的形状状态（主要是角度）
         self.total_area = _input["total_area"][index] # 用来计算利用率
@@ -341,13 +341,13 @@ class GSMPD(object):
     def getPreData(self):
         '''获得全部的NFP和各个方向的形状'''
         self.all_polygons = [] # 存储所有的形状及其方向
-        fu = pd.read_csv("/Users/sean/Documents/Projects/Data/fu_orientation.csv") 
+        fu = pd.read_csv("data/fu_orientation.csv") 
         for i in range(fu.shape[0]):
             polygons=[]
             for j in ["o_0","o_1","o_2","o_3"]:
                 polygons.append(json.loads(fu[j][i]))
             self.all_polygons.append(polygons)
-        self.all_nfps = pd.read_csv("/Users/sean/Documents/Projects/Data/fu.csv") # 获得NFP
+        self.all_nfps = pd.read_csv("data/fu_lp.csv") # 获得NFP
 
     def showPolys(self):
         '''展示全部形状以及边框'''
