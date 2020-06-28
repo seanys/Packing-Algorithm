@@ -21,7 +21,7 @@ import operator
 import multiprocessing
 
 bias = 0.0000001
-max_overlap = 10
+max_overlap = 5
 
 class GSMPD(object):
     """
@@ -36,7 +36,7 @@ class GSMPD(object):
     """
     def __init__(self, width, polys):
         self.width = width # 容器的宽度
-        self.initialProblem(21) # 获得全部
+        self.initialProblem(24) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -162,7 +162,7 @@ class GSMPD(object):
             feasible_IFR = feasible_IFR.difference(cur_NFP) # 求解可行区域
             cutted_res = cur_NFP.intersection(IFR)
             cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
-        
+                
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
