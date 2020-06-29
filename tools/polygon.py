@@ -501,12 +501,12 @@ class PltFunc(object):
             else:
                 PltFunc.addLine([poly[i],poly[i+1]])
 
-    def addPolygonColor(poly):
+    def addPolygonColor(poly,color="blue"):
         for i in range(0,len(poly)):
             if i == len(poly)-1:
-                PltFunc.addLine([poly[i],poly[0]],color="red")
+                PltFunc.addLine([poly[i],poly[0]],color=color)
             else:
-                PltFunc.addLine([poly[i],poly[i+1]],color="red")
+                PltFunc.addLine([poly[i],poly[i+1]],color=color)
 
     def addLine(line,**kw):
         if len(kw)==0:
