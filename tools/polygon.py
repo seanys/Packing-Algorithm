@@ -504,9 +504,9 @@ class PltFunc(object):
     def addPolygonColor(poly):
         for i in range(0,len(poly)):
             if i == len(poly)-1:
-                PltFunc.addLine([poly[i],poly[0]],color="blue")
+                PltFunc.addLine([poly[i],poly[0]],color="red")
             else:
-                PltFunc.addLine([poly[i],poly[i+1]],color="blue")
+                PltFunc.addLine([poly[i],poly[i+1]],color="red")
 
     def addLine(line,**kw):
         if len(kw)==0:
@@ -938,7 +938,7 @@ def getData(index=6):
     if user_name=='Prinway' or user_name=='mac':
         df = pd.read_csv("data/"+name[index]+".csv")
     else:
-        df = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/"+name[index]+".csv")
+        df = pd.read_csv("data/"+name[index]+".csv")
     polygons=[]
     for i in range(0,df.shape[0]):
     # for i in range(0,4):
