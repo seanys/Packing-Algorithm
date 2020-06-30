@@ -35,8 +35,8 @@ class GSMPD(object):
     Attention: This file has only adapted to convex polys
     """
     def __init__(self, width, polys):
-        self.width = width # 容器的宽度
         self.initialProblem(24) # 获得全部
+        self.allowed_rotation = [0,1,2,3]
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -329,6 +329,9 @@ class GSMPD(object):
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''
         _input = pd.read_csv("record/lp.csv")
+        self.set_name = _input["set_name"][index]
+        self.width = _input["width"][index]
+        self.allowed_rotation = json.loads(_input["allow_rotation"][index])
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
         self.orientation, self.best_orientation = json.loads(_input["orientation"][index]),json.loads(_input["orientation"][index]) # 当前的形状状态（主要是角度）
         self.total_area = _input["total_area"][index] # 用来计算利用率
@@ -341,13 +344,13 @@ class GSMPD(object):
     def getPreData(self):
         '''获得全部的NFP和各个方向的形状'''
         self.all_polygons = [] # 存储所有的形状及其方向
-        fu = pd.read_csv("data/fu_orientation.csv") 
+        fu = pd.read_csv("data/" + self.set_name + "_orientation.csv") 
         for i in range(fu.shape[0]):
             polygons=[]
-            for j in ["o_0","o_1","o_2","o_3"]:
-                polygons.append(json.loads(fu[j][i]))
+            for j in self.allowed_rotation:
+                polygons.append(json.loads(fu["o_"+str(j)][i]))
             self.all_polygons.append(polygons)
-        self.all_nfps = pd.read_csv("data/fu_lp.csv") # 获得NFP
+        self.all_nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv") # 获得NFP
 
     def showPolys(self,coloring=None):
         '''展示全部形状以及边框'''
@@ -372,8 +375,7 @@ class GSMPD(object):
         print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':
-    polys=getData()
-    GSMPD(760,polys)
+    GSMPD()
     # for i in range(100):
     #     permutation = np.arange(10)
     #     np.random.shuffle(permutation)

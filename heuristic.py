@@ -41,7 +41,7 @@ class BottomLeftFill(object):
             self.rectangle=False
         # for i in range(1,3):
         for i in range(1,len(self.polygons)):
-            # print("##############################放置第",i+1,"个形状#################################")
+            print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
         
         self.getLength()
@@ -268,19 +268,32 @@ class TOPOS(object):
             PltFunc.addPolygon(poly)
         PltFunc.showPlt(width=2000,height=2000)
 
+class newNFPAssistant(object):
+    '''处理排样具体数据集加入'''
+    def __init__(self,set_name):
+        self.set_name = set_name
+        # 读取是否存在NFP
+        
+    def getData(self):
+        pass
+
+    def getNFP(self):
+        pass
+        
     
 if __name__=='__main__':
     # polys=getConvex(num=5)
-    polys=getData()
+    polys = getData()
     # poly_list=PolyListProcessor.getPolyObjectList(polys,[0])
     # TOPOS(polys,1500)
 
     # 计算NFP时间
     # print(datetime.datetime.now(),"开始计算NFP")
-    nfp_ass=packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    nfp_ass = newNFPAssistant()
     # print(datetime.datetime.now(),"计算完成NFP")
     starttime = datetime.datetime.now()
-    bfl=BottomLeftFill(1500,polys,vertical=False,NFPAssistant=nfp_ass)
+    bfl = BottomLeftFill(1500,polys,vertical=False,NFPAssistant=nfp_ass)
     
     # print(datetime.datetime.now(),"计算完成BLF")
 

@@ -926,7 +926,7 @@ def polygonFuncCheck():
         PltFunc.addPolygon(poly)
     PltFunc.showPlt(width=2500,height=2500)    
 
-def getData(index=6):
+def getData(index=12):
     '''报错数据集有（空心）：han,jakobs1,jakobs2 '''
     '''形状过多暂时未处理：shapes、shirt、swim、trousers'''
     name=["ga","albano","blaz1","blaz2","dighe1","dighe2","fu","han","jakobs1","jakobs2","mao","marques","shapes","shirts","swim","trousers","convex","simple","ali2","ali3"]
