@@ -110,10 +110,10 @@ class GSMPD(object):
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
                     print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
-                    # self.showPolys()
+                    # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                    # self.showPolys()
+                    # self.showPolys(self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
@@ -349,10 +349,13 @@ class GSMPD(object):
             self.all_polygons.append(polygons)
         self.all_nfps = pd.read_csv("data/fu_lp.csv") # 获得NFP
 
-    def showPolys(self):
+    def showPolys(self,coloring=None):
         '''展示全部形状以及边框'''
         for poly in self.polys:
-            PltFunc.addPolygon(poly)
+            if coloring!=None and poly==coloring:
+                PltFunc.addPolygonColor(poly,"red") # 红色突出显示
+            else:
+                PltFunc.addPolygon(poly)
         PltFunc.addPolygonColor([[0,0], [self.cur_length,0], [self.cur_length,self.width], [0,self.width]])
         PltFunc.showPlt(width=1000, height=1000)
 
