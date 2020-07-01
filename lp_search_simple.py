@@ -49,12 +49,12 @@ class GSMPD(object):
         '''核心算法部分'''
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         self.outputAttention(_str)
-        self.showPolys()
-        return 
+        # self.showPolys()
+        # return 
         self.shrinkBorder() # 平移边界并更新宽度
         # self.extendBorder()
 
-        max_time = 200000
+        max_time = 1800
         if self.TEST_MODEL == True:
             max_time = 50
 
@@ -185,7 +185,7 @@ class GSMPD(object):
                 continue
             for j in range(len(self.polys)):
                 if Polygon(basic_nfps[j]).contains(Point([target[0],target[1]])) == True:
-                    pd = self.getPtNFPPD([target[0],target[1]],basic_nfps[j])
+                    pd = self.getNonConvexPtPD([target[0],target[1]],i,j,oi,self.orientation[j])
                     total_pd = total_pd + pd * self.miu[i][j]
             if total_pd < min_pd:
                 min_pd = total_pd
@@ -208,6 +208,7 @@ class GSMPD(object):
                 all_search_targets = all_search_targets + [[pt[0],pt[1],[i,j]] for pt in new_pts] # 记录全部的情况
                 nfp_neighbor[i].append(j) # 记录邻接情况    
                 nfp_neighbor[j].append(i) # 记录邻接情况
+        
         return all_search_targets,nfp_neighbor
 
     def updatePD(self,choose_index):
@@ -241,16 +242,25 @@ class GSMPD(object):
         top_pt = GeometryAssistant.getTopPoint(self.polys[i])
         nfp = self.getNFP(i, j, self.orientation[i], self.orientation[j])
         if Polygon(nfp).contains(Point(top_pt)) == True:
-            return self.getPtNFPPD(top_pt,nfp)
+            return self.getNonConvexPtPD(top_pt, i, j, self.orientation[i], self.orientation[j])
         else:
             return 0
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
-        row = self.polys_type[j]*self.types_num*len(self.allowed_rotation)*len(self.allowed_rotation) + self.polys_type[i]*len(self.allowed_rotation)*len(self.allowed_rotation) + oj*len(self.allowed_rotation) + oi # i为移动形状，j为固定位置
+        row = self.computeRow(i, j, oi, oj)
         bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
-        return GeometryAssistant.deleteOnline(nfp) # 需要删除同直线的情况
+        return nfp
+
+    def getConexStatus(self, i, j, oi, oj):
+        return json.loads(self.all_nfps["convex_status"][self.computeRow(i, j, oi, oj)])
+
+    def getVerticalDirection(self, i, j, oi, oj):
+        return json.loads(self.all_nfps["vertical_direction"][self.computeRow(i, j, oi, oj)])
+    
+    def computeRow(self, i, j, oi, oj):
+        return self.polys_type[j]*self.types_num*len(self.allowed_rotation)*len(self.allowed_rotation) + self.polys_type[i]*len(self.allowed_rotation)*len(self.allowed_rotation) + oj*len(self.allowed_rotation) + oi # i为移动形状，j为固定位置
 
     def getIndexPD(self,i,top_pt,oi):
         '''获得某个形状的全部PD，是调整后的结果'''
@@ -258,22 +268,33 @@ class GSMPD(object):
         for j in range(len(self.polys)):
             total_pd = total_pd + self.pair_pd_record[i][j]*self.miu[i][j] # 计算PD，比较简单
         return total_pd
+    
+    def getNonConvexPtPD(self,pt,i,j,oi,oj):
+        '''考虑凹点的PD计算'''
+        convex_status = self.getConexStatus(i, j, oi, oj)
+        nfp = self.getNFP(i, j, oi, oj)
+        min_pd = self.getPtNFPPD(pt,nfp) # 获得所有边的情况
+        for k,nfp_pt in enumerate(nfp):
+            if convex_status[k] == 0:
+                non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
+                if non_convex_pd < min_pd:
+                    min_pd = non_convex_pd
+        return min_pd
 
     def getPtNFPPD(self, pt, nfp):
-        '''根据顶点和nfp计算PD'''
+        '''根据顶点和nfp计算PD，仅仅考虑边'''
         min_pd,min_edge = 999999999999,[]
         edges = GeometryAssistant.getPolyEdges(nfp)
         for edge in edges:
-            A = edge[0][1] - edge[1][1]
-            B = edge[1][0] - edge[0][0]
-            C = edge[0][0]*edge[1][1] - edge[1][0]*edge[0][1]
-            D = math.pow(A*A + B*B,0.5)
-            a,b,c = A/D,B/D,C/D
-            if abs(a*pt[0] + b*pt[1] + c) < min_pd:
-                min_pd,min_edge = abs(a*pt[0] + b*pt[1] + c),copy.deepcopy(edge)
-            if min_pd < bias:
-                min_pd = 0
-                break
+            foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
+            if foot_pt[0] < min(edge[0][0],edge[1][0]) or foot_pt[0] > max(edge[0][0],edge[1][0]):
+                continue # 垂足不在直线上
+            pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
+            if  pd < min_pd:
+                min_pd,min_edge = pd,copy.deepcopy(edge)
+                if min_pd < bias:
+                    min_pd = 0
+                    break
         return min_pd
 
     def updateMiu(self,max_pair_pd):
@@ -303,14 +324,12 @@ class GSMPD(object):
                 try: # 可能会报错
                     self.addTuplePoly(all_pts,sub_item[0])
                 except BaseException:
+                    print("增加错误")
                     self.outputWarning(sub_item)
         elif item.geom_type == "GeometryCollection":
-            try: # 可能会报错
-                for w,sub_item in enumerate(mapping(item)["geometries"]):
-                    if sub_item["type"] == "Polygon":
-                        self.addTuplePoly(all_pts,sub_item[0])
-            except BaseException:
-                self.outputWarning(item)
+            for w,sub_item in enumerate(mapping(item)["geometries"]):
+                if sub_item["type"] == "Polygon":
+                    self.addTuplePoly(all_pts,sub_item["coordinates"][0])
         else:
             pass # 只有直线一种情况，不影响计算结果
         return all_pts

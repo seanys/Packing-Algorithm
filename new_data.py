@@ -2,12 +2,14 @@ from tools.polygon import PltFunc,GeoFunc,NFP,getData
 from sequence import BottomLeftFill
 from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
-from shapely.geometry import Polygon,mapping
+from shapely.geometry import Polygon,mapping,Point
 from shapely import affinity
 import pandas as pd # 读csv
 import csv # 写csv
 import json
 import itertools
+import copy
+import math
 
 class PreProccess(object):
     '''
@@ -53,7 +55,43 @@ class PreProccess(object):
                             new_poly_j=self.rotation(Poly_j,oj,min_angle)
                             nfp = NFP(new_poly_i,new_poly_j)
                             new_nfp = LPAssistant.deleteOnline(nfp.nfp)
-                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp]])
+                            convex_status = self.getConvexStatus(new_nfp)
+                            vertical_direction = self.getVerticalDirection(convex_status,new_nfp)
+                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction]])
+    
+    def getConvexStatus(self,nfp):
+        '''判断凹点还是凸点'''
+        if len(nfp) == 3:
+            return [1,1,1]
+        convex_status = []
+        for i in range(len(nfp)):
+            nfp_after_del = copy.deepcopy(nfp)
+            del nfp_after_del[i]
+            if Polygon(nfp_after_del).contains(Point(nfp[i])):
+                convex_status.append(0)
+            else:
+                convex_status.append(1)
+        return convex_status
+
+    def getVerticalDirection(self,convex_status,nfp):
+        '''获得某个凹点的两个垂线'''
+        target_NFP,extend_nfp = Polygon(nfp), nfp + nfp
+        vertical_direction = []
+        for i,status in enumerate(convex_status):
+            # 如果不垂直，则需要计算垂线了
+            if status == 0:
+                vec1 = self.rotationDirection([extend_nfp[i][0]-extend_nfp[i-1][0],extend_nfp[i][1]-extend_nfp[i-1][1]])
+                vec2 = self.rotationDirection([extend_nfp[i+1][0]-extend_nfp[i][0],extend_nfp[i+1][1]-extend_nfp[i][1]])
+                vertical_direction.append([vec1,vec2])
+            else:
+                vertical_direction.append([])
+        return vertical_direction
+
+    def rotationDirection(self,vec):
+        theta = math.pi/2
+        new_x = vec[0] * math.cos(theta) - vec[1] * math.sin(theta)
+        new_y = vec[0] * math.sin(theta) + vec[1] * math.cos(theta)
+        return [new_x,new_y]
 
     def slideToOrigin(self,poly):
         bottom_pt,min_y=[],999999999
