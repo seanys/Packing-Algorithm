@@ -928,13 +928,15 @@ def polygonFuncCheck():
 
 def getData():
     # index = 12 # shapes
-    index = 5 # dighe2
+    # index = 5 # dighe2
+    # index = 13 # shirts
+    index = 2 
     '''报错数据集有（空心）：han,jakobs1,jakobs2 '''
     '''形状过多暂时未处理：shapes、shirt、swim、trousers'''
-    name = ["ga","albano","blaz1","blaz2","dighe1","dighe2","fu","han","jakobs1","jakobs2","mao","marques","shapes","shirts","swim","trousers","convex","simple","ali2","ali3"]
+    name = ["ga","albano","blaz","blaz2","dighe1","dighe2","fu","han","jakobs1","jakobs2","mao","marques","shapes","shirts","swim","trousers","convex","simple","ali2","ali3"]
     print("开始处理",name[index],"数据集")
     '''暂时没有考虑宽度，全部缩放来表示'''
-    scale = [100,0.5,100,100,10,10,20,10,20,20,0.5,20,50,1,1,1,1,1,3,1,1,1,1,1]
+    scale = [100,0.5,50,100,10,10,20,10,20,20,0.5,20,50,20,1,1,1,1,3,1,1,1,1,1]
     print("缩放",scale[index],"倍")
     user_name = os.getlogin()
     if user_name=='Prinway' or user_name=='mac':
@@ -942,12 +944,15 @@ def getData():
     else:
         df = pd.read_csv("data/"+name[index]+".csv")
     polygons=[]
+    polys_type = []
     for i in range(0,df.shape[0]):
     # for i in range(0,4):
         for j in range(0,df['num'][i]):
+            polys_type.append(i)
             poly=json.loads(df['polygon'][i])
             GeoFunc.normData(poly,scale[index])
             polygons.append(poly)
+    print(polys_type)
     return polygons
 
 def getConvex(**kw):
@@ -973,7 +978,8 @@ def getConvex(**kw):
     return polygons
 
 if __name__ == '__main__':
-    tryNFP()
+    # tryNFP()
+    getData()
     # polygonFuncCheck()
     # PltFunc.addPolygonColor(((0, 580), (480, 580), (480, 200), (0, 200), (0, 580)))
     # PltFunc.addPolygon(((248.47, 860), (448.47, 940), (648.47, 940), (648.47, 560), (248.47, 560)))

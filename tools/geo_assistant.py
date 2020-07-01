@@ -165,3 +165,25 @@ class GeometryAssistant(object):
                 min_y=pt[1]
                 bottom_pt=[pt[0],pt[1]]
         return left_pt,bottom_pt,right_pt,top_pt
+
+    @staticmethod
+    def getFootPoint(point, line_p1, line_p2):
+        """
+        @point, line_p1, line_p2 : [x, y, z]
+        """
+        x0 = point[0]
+        y0 = point[1]
+    
+        x1 = line_p1[0]
+        y1 = line_p1[1]
+    
+        x2 = line_p2[0]
+        y2 = line_p2[1]
+    
+        k = -((x1 - x0) * (x2 - x1) + (y1 - y0) * (y2 - y1)) / ((x2 - x1) ** 2 + (y2 - y1) ** 2)*1.0
+    
+        xn = k * (x2 - x1) + x1
+        yn = k * (y2 - y1) + y1
+    
+        return (xn, yn)
+    

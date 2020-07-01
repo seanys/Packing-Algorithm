@@ -35,18 +35,22 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(31) # 获得全部
+        self.initialProblem(35) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
+        # total_area = 0
+        # for poly in self.polys:
+        #     total_area = total_area + Polygon(poly).area
+        # print(total_area)
         # self.showPolys()
         self.main()
 
     def main(self):
         '''核心算法部分'''
-        _str = "初始利用率为：",self.total_area/(self.cur_length*self.width)
+        _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         self.outputAttention(_str)
-        # self.showPolys()
-        # return 
+        self.showPolys()
+        return 
         self.shrinkBorder() # 平移边界并更新宽度
         # self.extendBorder()
 
@@ -113,7 +117,7 @@ class GSMPD(object):
                 if final_pd < cur_pd: # 更新最佳情况
                     print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     # self.showPolys(self.polys[choose_index])
-                    self.polys[choose_index] = copy.deepcopy(self.all_polygons[choose_index][final_ori]) # 形状对象
+                    self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     # self.showPolys(self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
@@ -241,6 +245,13 @@ class GSMPD(object):
         else:
             return 0
 
+    def getNFP(self, i, j, oi, oj):
+        '''根据形状和角度获得NFP的情况'''
+        row = self.polys_type[j]*self.types_num*len(self.allowed_rotation)*len(self.allowed_rotation) + self.polys_type[i]*len(self.allowed_rotation)*len(self.allowed_rotation) + oj*len(self.allowed_rotation) + oi # i为移动形状，j为固定位置
+        bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
+        nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
+        return GeometryAssistant.deleteOnline(nfp) # 需要删除同直线的情况
+
     def getIndexPD(self,i,top_pt,oi):
         '''获得某个形状的全部PD，是调整后的结果'''
         total_pd = 0 # 获得全部的NFP基础
@@ -324,16 +335,9 @@ class GSMPD(object):
         '''扩大边界'''
         self.cur_length = self.best_length*(1 + self.ration_inc)
 
-    def getNFP(self, i, j, oi, oj):
-        '''根据形状和角度获得NFP的情况'''
-        row = j*len(self.polys)*len(self.allowed_rotation) + i*len(self.allowed_rotation) + oj*len(self.allowed_rotation) + oi # i为移动形状，j为固定位置
-        bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
-        nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
-        return GeometryAssistant.deleteOnline(nfp) # 需要删除同直线的情况
-
     def getPolygon(self, index, orientation):
         '''获得某个形状'''
-        return self.all_polygons[index][orientation]
+        return copy.deepcopy(self.all_polygons[self.polys_type[index]][orientation])
 
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''
@@ -343,7 +347,8 @@ class GSMPD(object):
         self.allowed_rotation = json.loads(_input["allow_rotation"][index])
         self.total_area = _input["total_area"][index]
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
-        self.poly_type = [i for i in range(len(self.polys))] # 记录全部形状的种类
+        self.polys_type = json.loads(_input["polys_type"][index]) # 记录全部形状的种类
+        self.types_num = _input["types_num"][index] # 记录全部形状的种类
         self.orientation, self.best_orientation = json.loads(_input["orientation"][index]),json.loads(_input["orientation"][index]) # 当前的形状状态（主要是角度）
         self.total_area = _input["total_area"][index] # 用来计算利用率
         self.use_ratio = [] # 记录利用率

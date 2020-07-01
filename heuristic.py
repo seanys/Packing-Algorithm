@@ -276,23 +276,27 @@ class newNFPAssistant(object):
     '''
     def __init__(self,set_name):
         self.set_name = set_name
-        self.original_data = pd.read_csv("data/" + self.set_name + "_orientation.csv") 
-        # 读取是否存在NFP
-        
-    def getData(self):
-        '''如果没有数据就修改一下'''
-        pass
+        self.all_polys = pd.read_csv("data/" + self.set_name + "_orientation.csv") 
+        self.all_nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv")
 
-    def getDirectNFP(self,poly1,poly2):
-        # GeometryAssistant.slide
-        pass
-        
+    def getDirectNFP(self,main,adjoin):
+        # 分别为固定i/移动j的形状
+        i,j = self.judgeType(main),self.judgeType(adjoin)
+        row = 7*2*2*i + 2*2*j + 2*0 + 1*0
+        bottom_pt = GeometryAssistant.getBottomPoint(main)
+        nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
+        return nfp 
+
+    def judgeType(self,poly):
+        # 判断形状类别，用于计算具体的NFP
+        area = int(Polygon(poly).area)
+        for i in range(self.all_polys.shape[0]):
+            test_poly = json.loads(self.all_polys["o_0"][i])
+            if abs(Polygon(test_poly).area - area) < 0.001:
+                return i
     
 if __name__=='__main__':
-    # polys=getConvex(num=5)
     polys = getData()
-    # poly_list=PolyListProcessor.getPolyObjectList(polys,[0])
-    # TOPOS(polys,1500)
 
     total_area = 0
     for poly in polys:
@@ -300,20 +304,19 @@ if __name__=='__main__':
     print("total_area:",total_area)
     print("number:",len(polys))
 
+    print([0 for i in range(28)])
+
     # 计算NFP时间
     # print(datetime.datetime.now(),"开始计算NFP")
-    nfp_ass = packing.NFPAssistant(polys,store_nfp=True,get_all_nfp=False,load_history=False)
-    # nfp_ass = newNFPAssistant("set")
-    # print(datetime.datetime.now(),"计算完成NFP")
-    starttime = datetime.datetime.now()
-    bfl = BottomLeftFill(1000,polys,vertical=False,NFPAssistant=nfp_ass)
+    # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+
+    nfp_ass = newNFPAssistant("blaz")
+    # nfp_ass.getDirectNFP(polys[10],polys[12])
+    # starttime = datetime.datetime.now()
+    bfl = BottomLeftFill(750,polys,vertical=False,NFPAssistant=nfp_ass)
     
     # print(datetime.datetime.now(),"计算完成BLF")
 
-    # GA(poly_list)
-    # SA(poly_list)
-
-    # GetBestSeq(1000,getConvex(num=5),"decrease")
     endtime = datetime.datetime.now()
-    print (endtime - starttime)
-    # bfl.showAll()
+    # print (endtime - starttime)
+    bfl.showAll()

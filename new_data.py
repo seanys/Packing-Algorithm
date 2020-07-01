@@ -14,15 +14,18 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        # self.main()
-        self.orientation()
+        self.set_name = "blaz"
+        self.min_angle = 180
+        self.zoom = 50
+        self.main()
+        # self.orientation()
 
     def orientation(self):
-        fu = pd.read_csv("data/dighe2.csv")
+        fu = pd.read_csv("data/" + self.set_name + ".csv")
         _len = fu.shape[0]
-        min_angle = 90
-        rotation_range = [0]
-        with open("data/dighe2_orientation.csv","a+") as csvfile:
+        min_angle = self.min_angle
+        rotation_range = [j for j in range(int(360/self.min_angle))]
+        with open("data/" + self.set_name + "_orientation.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
@@ -32,11 +35,11 @@ class PreProccess(object):
                 writer.writerows([all_poly])
 
     def main(self):
-        fu = pd.read_csv("data/dighe1.csv")
+        fu = pd.read_csv("data/" + self.set_name + ".csv")
         _len = fu.shape[0]
-        rotation_range = [0]
-        min_angle = 360
-        with open("data/dighe2_nfp.csv","a+") as csvfile:
+        min_angle = self.min_angle
+        rotation_range = [j for j in range(int(360/self.min_angle))]
+        with open("data/" + self.set_name + "_nfp.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
@@ -61,7 +64,7 @@ class PreProccess(object):
         GeoFunc.slidePoly(poly,-bottom_pt[0],-bottom_pt[1])
 
     def normData(self,poly):
-        new_poly,num = [],10
+        new_poly,num = [],self.zoom
         for pt in poly:
             new_poly.append([pt[0]*num,pt[1]*num])
         return new_poly
@@ -221,3 +224,4 @@ if __name__ == '__main__':
     # testCPlusResult()
     # showLPResult()
     PreProccess()
+    # print([i for i in range(16)])
