@@ -31,12 +31,11 @@ class GSMPD(object):
     the layout of a nesting problem can be optimized step by step. Our 
     approach makes directly finding the best position for a polygon over 
     the layout, which can save the searching time and get a better result.
-    
-    Attention: This file has only adapted to convex polys
+
+    如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
-    def __init__(self, width, polys):
-        self.initialProblem(24) # 获得全部
-        self.allowed_rotation = [0,1,2,3]
+    def __init__(self):
+        self.initialProblem(31) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -44,7 +43,8 @@ class GSMPD(object):
 
     def main(self):
         '''核心算法部分'''
-        print("初始利用率为：",433200/(self.cur_length*self.width))
+        _str = "初始利用率为：",self.total_area/(self.cur_length*self.width)
+        self.outputAttention(_str)
         # self.showPolys()
         # return 
         self.shrinkBorder() # 平移边界并更新宽度
@@ -61,26 +61,28 @@ class GSMPD(object):
             feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True:
                 search_status = 0
-                print("当前利用率为：",433200/(self.cur_length*self.width))
+                print("当前利用率为：",self.total_area/(self.cur_length*self.width))
                 self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
                 self.best_polys = copy.deepcopy(self.polys) # 更新形状
                 self.best_length = self.cur_length # 更新最佳高度
-                with open("record/lp_result/fu_result_success.csv","a+") as csvfile:
+                with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,433200/(self.best_length*self.width),self.orientation,self.polys]])
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
                 # self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 self.outputWarning("结果不可行，重新进行检索")
-                with open("record/lp_result/fu_result_fail.csv","a+") as csvfile:
+                with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,433200/(self.cur_length*self.width),self.orientation,self.polys]])        
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
                 if search_status == 1:
                     self.shrinkBorder()
                     search_status = 0
                 else:
                     self.extendBorder() # 扩大边界并进行下一次检索
-                    search_status = 1            
+                    search_status = 1    
+            if self.total_area/(self.best_length*self.width) > 0.99:
+                break
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
@@ -104,7 +106,7 @@ class GSMPD(object):
                 if cur_pd < bias: # 如果没有重叠就直接退出
                     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
-                for ori in [0,1,2,3]: # 测试全部的方向
+                for ori in self.allowed_rotation: # 测试全部的方向
                     min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
@@ -304,12 +306,19 @@ class GSMPD(object):
 
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
+        # 收缩边界宽度
         self.cur_length = self.best_length*(1 - self.ration_dec)
+        # 如果超过了100%就定位100%
+        if self.total_area/(self.cur_length*self.width) > 1:
+            self.cur_length = self.total_area/self.width
+        # 把形状全部内移
         for index,poly in enumerate(self.polys):
             right_pt = GeometryAssistant.getRightPoint(poly)
             if right_pt[0] > self.cur_length:
                 delta_x = self.cur_length-right_pt[0]
                 GeometryAssistant.slidePoly(poly,delta_x,0)
+        _str = "当前目标利用率" + str(self.total_area/(self.cur_length*self.width))
+        self.outputWarning(_str)
     
     def extendBorder(self):
         '''扩大边界'''
@@ -317,7 +326,7 @@ class GSMPD(object):
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
-        row = j*192 + i*16 + oj*4 + oi # i为移动形状，j为固定位置
+        row = j*len(self.polys)*len(self.allowed_rotation) + i*len(self.allowed_rotation) + oj*len(self.allowed_rotation) + oi # i为移动形状，j为固定位置
         bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return GeometryAssistant.deleteOnline(nfp) # 需要删除同直线的情况
@@ -328,11 +337,13 @@ class GSMPD(object):
 
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''
-        _input = pd.read_csv("record/lp.csv")
+        _input = pd.read_csv("record/lp_initial.csv")
         self.set_name = _input["set_name"][index]
         self.width = _input["width"][index]
         self.allowed_rotation = json.loads(_input["allow_rotation"][index])
+        self.total_area = _input["total_area"][index]
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
+        self.poly_type = [i for i in range(len(self.polys))] # 记录全部形状的种类
         self.orientation, self.best_orientation = json.loads(_input["orientation"][index]),json.loads(_input["orientation"][index]) # 当前的形状状态（主要是角度）
         self.total_area = _input["total_area"][index] # 用来计算利用率
         self.use_ratio = [] # 记录利用率
@@ -360,7 +371,7 @@ class GSMPD(object):
             else:
                 PltFunc.addPolygon(poly)
         PltFunc.addPolygonColor([[0,0], [self.cur_length,0], [self.cur_length,self.width], [0,self.width]])
-        PltFunc.showPlt(width=1000, height=1000)
+        PltFunc.showPlt(width=1500, height=1500)
 
     def outputWarning(self,_str):
         '''输出红色字体'''

@@ -7,6 +7,7 @@ Created on Wed Dec 11, 2019
 """
 from shapely.geometry import Polygon,mapping
 from shapely import affinity
+from tools.geo_assistant import GeometryAssistant
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 from tools.polygon import GeoFunc,NFP,PltFunc,RatotionPoly,getData,getConvex,Poly
 import tools.packing as packing
@@ -45,6 +46,7 @@ class BottomLeftFill(object):
             self.placePoly(i)
         
         self.getLength()
+        print(self.polygons)
         # self.showAll()
 
     def placeFirstPoly(self):
@@ -76,7 +78,7 @@ class BottomLeftFill(object):
                 print(nfp)
                 self.showAll()
                 self.showPolys([main]+[adjoin]+[nfp])
-                print('NFP loaded from: ',self.NFPAssistant.history_path)
+                # print('NFP loaded from: ',self.NFPAssistant.history_path)
 
         differ=GeoFunc.polyToArr(differ_region)
         differ_index=self.getBottomLeft(differ)
@@ -269,15 +271,20 @@ class TOPOS(object):
         PltFunc.showPlt(width=2000,height=2000)
 
 class newNFPAssistant(object):
-    '''处理排样具体数据集加入'''
+    '''
+    处理排样具体数据集加入，输入是形状，不考虑旋转！！
+    '''
     def __init__(self,set_name):
         self.set_name = set_name
+        self.original_data = pd.read_csv("data/" + self.set_name + "_orientation.csv") 
         # 读取是否存在NFP
         
     def getData(self):
+        '''如果没有数据就修改一下'''
         pass
 
-    def getNFP(self):
+    def getDirectNFP(self,poly1,poly2):
+        # GeometryAssistant.slide
         pass
         
     
@@ -287,13 +294,19 @@ if __name__=='__main__':
     # poly_list=PolyListProcessor.getPolyObjectList(polys,[0])
     # TOPOS(polys,1500)
 
+    total_area = 0
+    for poly in polys:
+        total_area = total_area + Polygon(poly).area
+    print("total_area:",total_area)
+    print("number:",len(polys))
+
     # 计算NFP时间
     # print(datetime.datetime.now(),"开始计算NFP")
-    # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
-    nfp_ass = newNFPAssistant()
+    nfp_ass = packing.NFPAssistant(polys,store_nfp=True,get_all_nfp=False,load_history=False)
+    # nfp_ass = newNFPAssistant("set")
     # print(datetime.datetime.now(),"计算完成NFP")
     starttime = datetime.datetime.now()
-    bfl = BottomLeftFill(1500,polys,vertical=False,NFPAssistant=nfp_ass)
+    bfl = BottomLeftFill(1000,polys,vertical=False,NFPAssistant=nfp_ass)
     
     # print(datetime.datetime.now(),"计算完成BLF")
 
@@ -303,4 +316,4 @@ if __name__=='__main__':
     # GetBestSeq(1000,getConvex(num=5),"decrease")
     endtime = datetime.datetime.now()
     print (endtime - starttime)
-    bfl.showAll()
+    # bfl.showAll()

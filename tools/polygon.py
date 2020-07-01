@@ -926,15 +926,17 @@ def polygonFuncCheck():
         PltFunc.addPolygon(poly)
     PltFunc.showPlt(width=2500,height=2500)    
 
-def getData(index=12):
+def getData():
+    # index = 12 # shapes
+    index = 5 # dighe2
     '''报错数据集有（空心）：han,jakobs1,jakobs2 '''
     '''形状过多暂时未处理：shapes、shirt、swim、trousers'''
-    name=["ga","albano","blaz1","blaz2","dighe1","dighe2","fu","han","jakobs1","jakobs2","mao","marques","shapes","shirts","swim","trousers","convex","simple","ali2","ali3"]
+    name = ["ga","albano","blaz1","blaz2","dighe1","dighe2","fu","han","jakobs1","jakobs2","mao","marques","shapes","shirts","swim","trousers","convex","simple","ali2","ali3"]
     print("开始处理",name[index],"数据集")
     '''暂时没有考虑宽度，全部缩放来表示'''
-    scale=[100,0.5,100,100,20,20,20,10,20,20,0.5,20,50,1,1,1,1,1,3,1,1,1,1,1]
+    scale = [100,0.5,100,100,10,10,20,10,20,20,0.5,20,50,1,1,1,1,1,3,1,1,1,1,1]
     print("缩放",scale[index],"倍")
-    user_name=os.getlogin()
+    user_name = os.getlogin()
     if user_name=='Prinway' or user_name=='mac':
         df = pd.read_csv("data/"+name[index]+".csv")
     else:
@@ -971,7 +973,7 @@ def getConvex(**kw):
     return polygons
 
 if __name__ == '__main__':
-    # tryNFP()
+    tryNFP()
     # polygonFuncCheck()
     # PltFunc.addPolygonColor(((0, 580), (480, 580), (480, 200), (0, 200), (0, 580)))
     # PltFunc.addPolygon(((248.47, 860), (448.47, 940), (648.47, 940), (648.47, 560), (248.47, 560)))
@@ -980,4 +982,4 @@ if __name__ == '__main__':
     # PltFunc.addPolygonColor([[234.286,560],[360,560],[380,560],[380,723.959],[380,723.959],[380,460],[234.286,460],[234.286,560]])
     # PltFunc.addPolygon([[-80,580,],[200,580,],[200,400,],[-80,400,]])
     # PltFunc.addPolygon(((480, 200), (480, 380), (200, 380), (200, 760), (1e+08, 760), (1e+08, 200), (480, 200)))
-    PltFunc.showPlt()
+    # PltFunc.showPlt()

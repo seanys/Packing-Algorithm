@@ -4,7 +4,6 @@ from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping
 from shapely import affinity
-from lp_search import LPSearch
 import pandas as pd # 读csv
 import csv # 写csv
 import json
@@ -15,15 +14,15 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.main()
-        # self.orientation()
+        # self.main()
+        self.orientation()
 
     def orientation(self):
-        fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
-        _len= fu.shape[0]
-        min_angle=90
-        rotation_range=[0,1,2,3]
-        with open("/Users/sean/Documents/Projects/Data/fu_orientation.csv","a+") as csvfile:
+        fu = pd.read_csv("data/dighe2.csv")
+        _len = fu.shape[0]
+        min_angle = 90
+        rotation_range = [0]
+        with open("data/dighe2_orientation.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
@@ -32,13 +31,12 @@ class PreProccess(object):
                     all_poly.append(self.rotation(Poly_i,oi,min_angle))
                 writer.writerows([all_poly])
 
-
     def main(self):
-        fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/fu.csv")
-        _len= fu.shape[0]
-        rotation_range=[0,1,2,3]
-        min_angle=90
-        with open("/Users/sean/Documents/Projects/Data/fu.csv","a+") as csvfile:
+        fu = pd.read_csv("data/dighe1.csv")
+        _len = fu.shape[0]
+        rotation_range = [0]
+        min_angle = 360
+        with open("data/dighe2_nfp.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
@@ -50,10 +48,9 @@ class PreProccess(object):
                         for oj in rotation_range:
                             print(i,j,oi,oj)
                             new_poly_j=self.rotation(Poly_j,oj,min_angle)
-                            nfp=NFP(new_poly_i,new_poly_j)
-                            new_nfp=LPSearch.deleteOnline(nfp.nfp)
-                            all_bisectior,divided_nfp,target_func=LPSearch.getDividedNfp(new_nfp)
-                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,divided_nfp,target_func]])
+                            nfp = NFP(new_poly_i,new_poly_j)
+                            new_nfp = LPAssistant.deleteOnline(nfp.nfp)
+                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp]])
 
     def slideToOrigin(self,poly):
         bottom_pt,min_y=[],999999999
@@ -64,7 +61,7 @@ class PreProccess(object):
         GeoFunc.slidePoly(poly,-bottom_pt[0],-bottom_pt[1])
 
     def normData(self,poly):
-        new_poly,num=[],20
+        new_poly,num = [],10
         for pt in poly:
             new_poly.append([pt[0]*num,pt[1]*num])
         return new_poly
@@ -102,8 +99,8 @@ class initialResult(object):
         else:
             pass
         # 重排列后的结果
-        self.nfp_assistant=NFPAssistant(self.polys,store_nfp=False,get_all_nfp=True,load_history=True)
-        new_list=sorted(_list, key=lambda item: item[1],reverse=True)
+        self.nfp_assistant = NFPAssistant(self.polys,store_nfp=True,get_all_nfp=False,load_history=False)
+        new_list = sorted(_list, key=lambda item: item[1],reverse=True)
     
     def checkOneSeq(self,one_list):
         new_polys=[]
@@ -127,7 +124,7 @@ class initialResult(object):
     def getWidthDecreaing(self,polys):
         width_list=[]
         for i,poly in enumerate(self.polys):
-            left_pt,right_pt=LPAssistant.getLeftPoint(poly),LPAssistant.getRightPoint(poly)
+            left_pt,right_pt = LPAssistant.getLeftPoint(poly),LPAssistant.getRightPoint(poly)
             width_list.append([i,right_pt[0]-left_pt[0]])
         return width_list
 
@@ -222,4 +219,5 @@ if __name__ == '__main__':
     # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
     # ReverseFunction()
     # testCPlusResult()
-    showLPResult()
+    # showLPResult()
+    PreProccess()
