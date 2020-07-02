@@ -902,20 +902,18 @@ class NFP(object):
 
 # 计算NFP然后寻找最合适位置
 def tryNFP():
-    # df = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/euro_data/blaz.csv")
+    df = pd.read_csv("data/shapes2_clus.csv")
     # df = pd.read_csv("/Users/sean/Documents/Projects/Data/Shapes/now_fail.csv")
 
     # i=random.randint(0,80)
     # i=19
     # print(i)
-    # poly1=json.loads(df['poly1'][i])
-    # poly2=json.loads(df['poly2'][i])
+    poly1 = json.loads(df['polygon'][0])
+    poly2 = json.loads(df['polygon'][1])
     # GeoFunc.normData(poly1,50)
     # GeoFunc.normData(poly2,50)
     # GeoFunc.slidePoly(poly1,500,500)
-    rect1=[[100,100], [150,100], [150,150], [100,150]]
-    rect2=[[100,100], [120,100], [120,160], [100,160]]
-    nfp=NFP(rect1,rect2,show=True,rectangle=True)
+    nfp = NFP(poly1,poly2,show=True,rectangle=False)
     print(nfp.nfp)
     # bfp=bestFitPosition(nfp,True)
     # print("Final fitness:",bfp.fitness)
@@ -930,13 +928,14 @@ def getData():
     # index = 12 # shapes
     # index = 5 # dighe2
     # index = 13 # shirts
-    index = 2 
+    index = 2
+    # index = 11 # marques
     '''报错数据集有（空心）：han,jakobs1,jakobs2 '''
     '''形状过多暂时未处理：shapes、shirt、swim、trousers'''
     name = ["ga","albano","blaz","blaz2","dighe1","dighe2","fu","han","jakobs1","jakobs2","mao","marques","shapes","shirts","swim","trousers","convex","simple","ali2","ali3"]
     print("开始处理",name[index],"数据集")
     '''暂时没有考虑宽度，全部缩放来表示'''
-    scale = [100,0.5,50,100,10,10,20,10,20,20,0.5,20,50,20,1,1,1,1,3,1,1,1,1,1]
+    scale = [100,0.5,50,100,10,10,20,10,20,20,0.5,10,50,20,1,1,1,1,3,1,1,1,1,1]
     print("缩放",scale[index],"倍")
     user_name = os.getlogin()
     if user_name=='Prinway' or user_name=='mac':
@@ -978,8 +977,8 @@ def getConvex(**kw):
     return polygons
 
 if __name__ == '__main__':
-    # tryNFP()
-    getData()
+    tryNFP()
+    # getData()
     # polygonFuncCheck()
     # PltFunc.addPolygonColor(((0, 580), (480, 580), (480, 200), (0, 200), (0, 580)))
     # PltFunc.addPolygon(((248.47, 860), (448.47, 940), (648.47, 940), (648.47, 560), (248.47, 560)))

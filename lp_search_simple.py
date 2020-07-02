@@ -36,7 +36,7 @@ class GSMPD(object):
     """
     def __init__(self):
         self.initialProblem(24) # 获得全部
-        self.ration_dec, self.ration_inc = 0.04, 0.004
+        self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
@@ -53,11 +53,9 @@ class GSMPD(object):
         # return 
         self.shrinkBorder() # 平移边界并更新宽度
         # self.extendBorder()
-
-        max_time = 21600
+        max_time = 360000
         if self.TEST_MODEL == True:
             max_time = 50
-
         start_time = time.time()
         search_status = 0
         while time.time() - start_time < max_time:
