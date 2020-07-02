@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(41) # 获得全部
+        self.initialProblem(24) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -369,7 +369,7 @@ class GSMPD(object):
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
         # 收缩边界宽度
-        self.cur_length = self.cur_length*(1 - self.ration_dec)
+        self.cur_length = self.best_length*(1 - self.ration_dec)
         # 如果超过了100%就定位100%
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
@@ -384,7 +384,7 @@ class GSMPD(object):
     
     def extendBorder(self):
         '''扩大边界'''
-        self.cur_length = self.cur_length*(1 + self.ration_inc)
+        self.cur_length = self.best_length*(1 + self.ration_inc)
 
     def getPolygon(self, index, orientation):
         '''获得某个形状'''
