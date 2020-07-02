@@ -465,21 +465,21 @@ class GeoFunc(object):
     
     '''可能需要用近似计算进行封装！！！！！！'''
     def judgePosition(edge1,edge2):
-        x1=edge1[1][0]-edge1[0][0]
-        y1=edge1[1][1]-edge1[0][1]
-        x2=edge2[1][0]-edge2[0][0]
-        y2=edge2[1][1]-edge2[0][1]
-        res=x1*y2-x2*y1
-        right=False
-        left=False
-        parallel=False
+        x1 = edge1[1][0] - edge1[0][0]
+        y1 = edge1[1][1] - edge1[0][1]
+        x2 = edge2[1][0] - edge2[0][0]
+        y2 = edge2[1][1] - edge2[0][1]
+        res = x1*y2 - x2*y1
+        right = False
+        left = False
+        parallel = False
         # print("res:",res)
-        if res==0:
-            parallel=True
-        elif res>0:
-            left=True
+        if res == 0:
+            parallel = True
+        elif res > 0:
+            left = True
         else:
-            right=True 
+            right = True 
         return right,left,parallel
 
 
@@ -626,9 +626,9 @@ class NFP(object):
             while self.judgeEnd()==False and i<75: # 大于等于75会自动退出的，一般情况是计算出错
             # while i<7:
                 # print("########第",i,"轮##########")
-                touching_edges=self.detectTouching()
-                all_vectors=self.potentialVector(touching_edges)
-                if len(all_vectors)==0:
+                touching_edges = self.detectTouching()
+                all_vectors = self.potentialVector(touching_edges)
+                if len(all_vectors) == 0:
                     print("没有可行向量")
                     self.error=-2 # 没有可行向量
                     break
@@ -672,11 +672,11 @@ class NFP(object):
                     # print("edge2:",edge2)
                     # print("inter:",inter)
                     # print("")
-                    pt=[inter[0],inter[1]] # 交叉点
-                    edge1_bound=(GeoFunc.almostEqual(edge1[0],pt) or GeoFunc.almostEqual(edge1[1],pt)) # 是否为边界
-                    edge2_bound=(GeoFunc.almostEqual(edge2[0],pt) or GeoFunc.almostEqual(edge2[1],pt)) # 是否为边界
-                    stationary_start=GeoFunc.almostEqual(edge1[0],pt) # 是否开始
-                    orbiting_start=GeoFunc.almostEqual(edge2[0],pt) # 是否开始
+                    pt = [inter[0],inter[1]] # 交叉点
+                    edge1_bound = (GeoFunc.almostEqual(edge1[0],pt) or GeoFunc.almostEqual(edge1[1],pt)) # 是否为边界
+                    edge2_bound = (GeoFunc.almostEqual(edge2[0],pt) or GeoFunc.almostEqual(edge2[1],pt)) # 是否为边界
+                    stationary_start = GeoFunc.almostEqual(edge1[0],pt) # 是否开始
+                    orbiting_start = GeoFunc.almostEqual(edge2[0],pt) # 是否开始
                     touch_edges.append({
                         "edge1":edge1,
                         "edge2":edge2,
@@ -695,12 +695,11 @@ class NFP(object):
     def potentialVector(self,touching_edges):
         all_vectors=[]
         for touching in touching_edges:
-            # print("touching:",touching)
             aim_edge=[]
             # 情况1
             if touching["edge1_bound"]==True and touching["edge2_bound"]==True:
-                right,left,parallel=GeoFunc.judgePosition(touching["edge1"],touching["edge2"])
-                # print("right,left,parallel:",right,left,parallel)
+                right,left,parallel = GeoFunc.judgePosition(touching["edge1"],touching["edge2"])
+                # 如果是两条边都是开始的
                 if touching["stationary_start"]==True and touching["orbiting_start"]==True:
                     touching["type"]=0
                     if left==True:
@@ -908,13 +907,16 @@ def tryNFP():
     # i=random.randint(0,80)
     # i=19
     # print(i)
-    poly1 = json.loads(df['polygon'][0])
+    # poly1 = json.loads(df['polygon'x][0])
     poly2 = json.loads(df['polygon'][1])
+    PltFunc.addPolygon(poly2)
+    print(poly2)
+    PltFunc.showPlt()
     # GeoFunc.normData(poly1,50)
     # GeoFunc.normData(poly2,50)
     # GeoFunc.slidePoly(poly1,500,500)
-    nfp = NFP(poly1,poly2,show=True,rectangle=False)
-    print(nfp.nfp)
+    # nfp = NFP(poly1,poly2,show=True,rectangle=False)
+    # print(nfp.nfp)
     # bfp=bestFitPosition(nfp,True)
     # print("Final fitness:",bfp.fitness)
 
@@ -928,7 +930,7 @@ def getData():
     # index = 12 # shapes
     # index = 5 # dighe2
     # index = 13 # shirts
-    index = 2
+    # index = 2 
     # index = 11 # marques
     '''报错数据集有（空心）：han,jakobs1,jakobs2 '''
     '''形状过多暂时未处理：shapes、shirt、swim、trousers'''

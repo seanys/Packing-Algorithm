@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(24) # 获得全部
+        self.initialProblem(41) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.T = 100
         self.TEST_MODEL = False
@@ -64,7 +64,8 @@ class GSMPD(object):
             feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True:
                 search_status = 0
-                print("当前利用率为：",self.total_area/(self.cur_length*self.width))
+                _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
+                self.outputInfo(_str)
                 self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
                 self.best_polys = copy.deepcopy(self.polys) # 更新形状
                 self.best_length = self.cur_length # 更新最佳高度
@@ -97,8 +98,7 @@ class GSMPD(object):
             N = 1
         unchange_times,last_pd = 0,0
         while it < N:
-            # changed = False # 该参数表示是否修改过
-            # print("第",it,"轮")
+            print("第",it,"轮")
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
             # print(permutation)
@@ -117,8 +117,8 @@ class GSMPD(object):
                     sub_best.append([sub_min_pd,sub_best_pt,ori])
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
-                if final_pd<cur_pd: # 更新最佳情况
-                    # print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
+                if final_pd < cur_pd: # 更新最佳情况
+                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
@@ -141,6 +141,8 @@ class GSMPD(object):
                     else:
                         # print(choose_index,"未寻找到更优位置")
                         pass
+            if self.TEST_MODEL == True: # 测试模式
+                return
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < max_overlap:
                 self.outputWarning("结果可行")                
@@ -185,7 +187,7 @@ class GSMPD(object):
             feasible_IFR = feasible_IFR.difference(cur_NFP) # 求解可行区域
             cutted_res = cur_NFP.intersection(IFR)
             cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
-                
+
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
@@ -198,10 +200,16 @@ class GSMPD(object):
         min_pd,best_pt = 99999999999,[]
         pd_list=[] # 记录所有的位置
         for k,target in enumerate(all_search_targets):
-            total_pd = 0 
+            total_pd = 0
+            # 判断是否计算重复了
             if target[0] == all_search_targets[k-1][0] and target[1] == all_search_targets[k-1][1]:
                 continue
-            for j in range(len(self.polys)):
+            # 计算可能的重叠情况 
+            possible_poly_indexs = nfp_neighbor[target[2][0]]
+            for next_index in target[2][1:]:
+                possible_poly_indexs = [w for w in possible_poly_indexs if w in nfp_neighbor[next_index]]
+            # 逐一判断与多边形的交集情况
+            for j in possible_poly_indexs:
                 if Polygon(basic_nfps[j]).contains(Point([target[0],target[1]])) == True:
                     pd = self.getNonConvexPtPD([target[0],target[1]],i,j,oi,self.orientation[j])
                     total_pd = total_pd + pd * self.miu[i][j]
@@ -213,21 +221,22 @@ class GSMPD(object):
         return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和次优位置
 
     def getSearchTarget(self, NFPs, index):
-        all_search_targets,nfp_neighbor = [],[[] for _ in range(len(NFPs))] # 全部的点及其对应区域，NFP的邻接多边形
-        '''获得所有cutted_NFP的所有的点'''
-        for i,nfp in enumerate(NFPs):
-            if i == index:
-                continue
-            new_pts = self.getAllPoint(nfp)
-            all_search_targets = all_search_targets + [[pt[0],pt[1],[-1,-1]] for pt in new_pts]    
         '''获得NFP的重叠情况和交集'''
+        all_search_targets,nfp_neighbor = [],[[w] for w in range(len(NFPs))] # 全部的点及其对应区域，NFP的邻接多边形
+        # 计算两两之间的情况
         for i in range(len(NFPs)-1):
             for j in range(i+1, len(NFPs)):
-                if i == index or j == index:
+                if i == index or j == index or NFPs[i].is_empty == True or NFPs[j].is_empty == True:
                     continue
+                '''根据边界判断交集情况，否则需要计算差集比较麻烦'''
+                bounds_i, bounds_j = NFPs[i].bounds,NFPs[j].bounds # 获得边界
+                if bounds_i[2] < bounds_j[0] or bounds_i[0] > bounds_j[2] or bounds_i[3] < bounds_j[1] or bounds_i[1] > bounds_j[3]:
+                    continue
+                '''有相交的可能性再求想交区域'''
                 INTER = NFPs[i].intersection(NFPs[j]) # 求解交集
                 if INTER.geom_type == "String" or INTER.is_empty == True: # 如果为空或者仅为直线相交
                     continue
+                '''遍历全部的点'''
                 new_pts = self.getAllPoint(INTER) # 获得全部的点
                 for pt in new_pts:
                     if [pt[0],pt[1],[-1,-1]] in all_search_targets: # 过滤已有的点
@@ -236,8 +245,20 @@ class GSMPD(object):
                         all_search_targets.append([pt[0],pt[1],[i,j]]) # 记录全部的情况
                 nfp_neighbor[i].append(j) # 记录邻接情况    
                 nfp_neighbor[j].append(i) # 记录邻接情况
-        total_targets=len(all_search_targets)
-        # self.outputInfo("检索{}个点".format(total_targets))
+        # 遍历全部切除后NFP的点
+        for i,nfp in enumerate(NFPs):
+            new_pts = self.getAllPoint(nfp)
+            all_search_targets = all_search_targets + [[pt[0],pt[1],[i]] for pt in new_pts]
+        # 处理全部的检索目标
+        all_search_targets = sorted(all_search_targets, key=operator.itemgetter(0, 1)) # 按照升序进行排列
+        new_all_search_targets = []
+        for k,target in enumerate(all_search_targets):
+            total_pd = 0
+            # 如果重复，则增加交集
+            if target[0] == all_search_targets[k-1][0] and target[1] == all_search_targets[k-1][1]:
+                new_all_search_targets[-1][2] = list(set(new_all_search_targets[-1][2] + target[2]))
+            # 否则直接增加
+            new_all_search_targets.append(target)
         return all_search_targets,nfp_neighbor
 
     def updatePD(self,choose_index):
@@ -434,14 +455,17 @@ class GSMPD(object):
 
     def outputWarning(self,_str):
         '''输出红色字体'''
+        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
         print("\033[0;31m",_str,"\033[0m")
 
     def outputAttention(self,_str):
         '''输出绿色字体'''
+        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
         print("\033[0;32m",_str,"\033[0m")
 
     def outputInfo(self,_str):
         '''输出浅黄色字体'''
+        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
         print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':

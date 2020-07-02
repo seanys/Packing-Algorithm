@@ -19,7 +19,7 @@ class PreProccess(object):
     def __init__(self):
         self.set_name = "shapes2_clus"
         self.min_angle = 180
-        self.zoom = 10
+        self.zoom = 1
         self.main()
         self.orientation()
 
@@ -218,7 +218,9 @@ class Clustering(object):
 
 class ReverseFunction(object):
     def __init__(self):
-        self.main()
+        new_poly = self.getReverse([[0.0, 0.0], [50.0, 150.0], [0.0, 250.0], [100.0, 200.0], [200.0, 250.0], [150.0, 100.0], [200.0, 0.0], [200.0, -150.0], [100.0, -200.0], [0.0, -150.0]])
+        print(new_poly)
+        # self.main()
 
     def main(self):
         fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/c_blf.csv")
@@ -296,4 +298,5 @@ if __name__ == '__main__':
     # testCPlusResult()
     # showLPResult()
     PreProccess()
+    # ReverseFunction()
     # print([i for i in range(16)])
