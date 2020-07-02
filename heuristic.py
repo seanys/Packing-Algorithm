@@ -310,10 +310,10 @@ if __name__=='__main__':
     # print(datetime.datetime.now(),"开始计算NFP")
     # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
-    nfp_ass = newNFPAssistant("blaz")
+    nfp_ass = newNFPAssistant("marques")
     # nfp_ass.getDirectNFP(polys[10],polys[12])
     # starttime = datetime.datetime.now()
-    bfl = BottomLeftFill(750,polys,vertical=False,NFPAssistant=nfp_ass)
+    bfl = BottomLeftFill(1040,polys,vertical=False,NFPAssistant=nfp_ass)
     
     # print(datetime.datetime.now(),"计算完成BLF")
 

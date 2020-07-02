@@ -1,5 +1,6 @@
 from tools.polygon import PltFunc,GeoFunc,NFP,getData
 from sequence import BottomLeftFill
+from tools.geo_assistant import GeometryAssistant
 from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping,Point
@@ -16,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "blaz"
+        self.set_name = "shapes2_clus"
         self.min_angle = 180
-        self.zoom = 50
+        self.zoom = 10
         self.main()
-        # self.orientation()
+        self.orientation()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -255,7 +256,40 @@ def showLPResult():
         PltFunc.addPolygon(json.loads(fu["polygon"][i]))
     PltFunc.showPlt()
 
+def addTuplePoly(_arr,_tuple):
+    """增加tuple格式的多边形，不添加最后一个"""
+    for i,pt in enumerate(_tuple):
+        if i == len(_tuple) - 1 :
+            break
+        _arr.append([pt[0],pt[1]])
+
+def cluster():
+    '''手动聚类'''
+    polys = getData()
+    nfp = NFP(polys[13],polys[1])
+    new_nfp = LPAssistant.deleteOnline(nfp.nfp)
+    # PltFunc.addPolygon(new_nfp)
+    poly0 = copy.deepcopy(polys[13])
+    poly1 = copy.deepcopy(polys[1])
+    # poly2 = copy.deepcopy(polys[1])
+    # print(new_nfp)
+    GeometryAssistant.slideToPoint(poly1,[100,50])
+    # GeometryAssistant.slideToPoint(poly2,[100,450])
+    # PltFunc.addPolygon(poly0)
+    # PltFunc.addPolygon(poly1)
+    # PltFunc.addPolygon(poly2)
+    final_poly = Polygon(poly0).union(Polygon(poly1))
+    print(mapping(final_poly))
+    _arr = []
+    addTuplePoly(_arr,mapping(final_poly)["coordinates"][0])
+    print(_arr)
+    PltFunc.addPolygon(_arr)
+    PltFunc.showPlt()
+    # print(_arr)
+
+
 if __name__ == '__main__':
+    # cluster()
     # initialResult(getData())
     # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
     # ReverseFunction()
