@@ -35,15 +35,15 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(37) # 获得全部
+        self.initialProblem(39) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
-        self.showPolys()
-        # self.main()
+        # self.showPolys()
+        self.main()
 
     def main(self):
         '''核心算法部分'''
@@ -65,7 +65,8 @@ class GSMPD(object):
             feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True:
                 search_status = 0
-                print("当前利用率为：",self.total_area/(self.cur_length*self.width))
+                _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
+                self.outputInfo(_str)
                 self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
                 self.best_polys = copy.deepcopy(self.polys) # 更新形状
                 self.best_length = self.cur_length # 更新最佳高度
@@ -97,7 +98,6 @@ class GSMPD(object):
             N = 1
         unchange_times,last_pd = 0,0
         while it < N:
-            # changed = False # 该参数表示是否修改过
             print("第",it,"轮")
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
@@ -168,7 +168,7 @@ class GSMPD(object):
             feasible_IFR = feasible_IFR.difference(cur_NFP) # 求解可行区域
             cutted_res = cur_NFP.intersection(IFR)
             cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
-                
+
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
@@ -180,10 +180,16 @@ class GSMPD(object):
         all_search_targets = sorted(all_search_targets, key=operator.itemgetter(0, 1)) # 按照升序进行排列
         min_pd,total_num_pt,best_pt = 99999999999,0,[]
         for k,target in enumerate(all_search_targets):
-            total_pd = 0 
+            total_pd = 0
+            # 判断是否计算重复了
             if target[0] == all_search_targets[k-1][0] and target[1] == all_search_targets[k-1][1]:
                 continue
-            for j in range(len(self.polys)):
+            # 计算可能的重叠情况 
+            possible_poly_indexs = nfp_neighbor[target[2][0]]
+            if len(target[2]) == 2:
+                possible_poly_indexs = [w for w in nfp_neighbor[target[2][0]] if w in nfp_neighbor[target[2][1]]]
+            # 逐一判断与多边形的交集情况
+            for j in possible_poly_indexs:
                 if Polygon(basic_nfps[j]).contains(Point([target[0],target[1]])) == True:
                     pd = self.getNonConvexPtPD([target[0],target[1]],i,j,oi,self.orientation[j])
                     total_pd = total_pd + pd * self.miu[i][j]
@@ -196,7 +202,8 @@ class GSMPD(object):
 
     def getSearchTarget(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''
-        all_search_targets,nfp_neighbor = [],[[] for _ in range(len(NFPs))] # 全部的点及其对应区域，NFP的邻接多边形
+        all_search_targets,nfp_neighbor = [],[[w] for w in range(len(NFPs))] # 全部的点及其对应区域，NFP的邻接多边形
+        # 计算两两之间的情况
         for i in range(len(NFPs)-1):
             for j in range(i+1, len(NFPs)):
                 if i == index or j == index:
@@ -208,7 +215,10 @@ class GSMPD(object):
                 all_search_targets = all_search_targets + [[pt[0],pt[1],[i,j]] for pt in new_pts] # 记录全部的情况
                 nfp_neighbor[i].append(j) # 记录邻接情况    
                 nfp_neighbor[j].append(i) # 记录邻接情况
-        
+        # 遍历全部切除后NFP的点
+        for i,nfp in enumerate(NFPs):
+            new_pts = self.getAllPoint(nfp)
+            all_search_targets = all_search_targets + [[pt[0],pt[1],[i]] for pt in new_pts]
         return all_search_targets,nfp_neighbor
 
     def updatePD(self,choose_index):

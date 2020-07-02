@@ -28,6 +28,7 @@ class BottomLeftFill(object):
         self.polygons=original_polygons
         self.placeFirstPoly()
         self.NFPAssistant=None
+
         if 'NFPAssistant' in kw:
             self.NFPAssistant=kw["NFPAssistant"]
         # else:
@@ -66,12 +67,12 @@ class BottomLeftFill(object):
         for main_index in range(0,index):
             main=self.polygons[main_index]
             if self.NFPAssistant==None:
-                nfp=NFP(main,adjoin,rectangle=self.rectangle).nfp
+                nfp = NFP(main,adjoin,rectangle=self.rectangle).nfp
             else:
-                nfp=self.NFPAssistant.getDirectNFP(main,adjoin)
-            nfp_poly=Polygon(nfp)
+                nfp = self.NFPAssistant.getDirectNFP(main,adjoin)
+            nfp_poly = Polygon(nfp)
             try:
-                differ_region=differ_region.difference(nfp_poly)
+                differ_region = differ_region.difference(nfp_poly)
             except:
                 print('NFP failure, polys and nfp are:')
                 print([main,adjoin])
@@ -274,15 +275,16 @@ class newNFPAssistant(object):
     '''
     处理排样具体数据集加入，输入是形状，不考虑旋转！！
     '''
-    def __init__(self,set_name):
+    def __init__(self,set_name,allowed_rotation):
         self.set_name = set_name
+        self.allowed_rotation = allowed_rotation
         self.all_polys = pd.read_csv("data/" + self.set_name + "_orientation.csv") 
         self.all_nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv")
 
     def getDirectNFP(self,main,adjoin):
         # 分别为固定i/移动j的形状
         i,j = self.judgeType(main),self.judgeType(adjoin)
-        row = 7*2*2*i + 2*2*j + 2*0 + 1*0
+        row = len(self.all_polys)*self.allowed_rotation*self.allowed_rotation*i + self.allowed_rotation*self.allowed_rotation*j + self.allowed_rotation*0 + 1*0
         bottom_pt = GeometryAssistant.getBottomPoint(main)
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return nfp 
@@ -291,29 +293,59 @@ class newNFPAssistant(object):
         # 判断形状类别，用于计算具体的NFP
         area = int(Polygon(poly).area)
         for i in range(self.all_polys.shape[0]):
-            test_poly = json.loads(self.all_polys["o_0"][i])
-            if abs(Polygon(test_poly).area - area) < 0.001:
+            test_poly_area = Polygon(json.loads(self.all_polys["o_0"][i])).area
+            if abs(test_poly_area - area) < 2:
                 return i
     
-if __name__=='__main__':
-    polys = getData()
 
+def getDataNew():
+    index = 1 
+    targets = [{
+        "index" : 0,
+        "name" : "blaz",
+        "scale" : 10
+    },{
+        "index" : 1,
+        "name" : "shapes2_clus",
+        "scale" : 1
+    }]
+    
+    print(targets[index]["name"])
+    print("缩放",targets[index]["scale"],"倍")
+
+    df = pd.read_csv("data/" + targets[index]["name"] + ".csv")
+    polygons=[]
+    polys_type = []
+    for i in range(0,df.shape[0]):
+    # for i in range(0,4):
+        for j in range(0,df['num'][i]):
+            polys_type.append(i)
+            poly = json.loads(df['polygon'][i])
+            GeoFunc.normData(poly,targets[index]["scale"])
+            polygons.append(poly)
+    print(polys_type)
+    return polygons
+
+if __name__=='__main__':
+    polys = getDataNew()
+    
     total_area = 0
     for poly in polys:
         total_area = total_area + Polygon(poly).area
     print("total_area:",total_area)
     print("number:",len(polys))
-
-    print([0 for i in range(28)])
+    print([0 for i in range(len(polys))])
 
     # 计算NFP时间
     # print(datetime.datetime.now(),"开始计算NFP")
     # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
-    nfp_ass = newNFPAssistant("marques")
+    nfp_ass = newNFPAssistant("shapes2_clus",allowed_rotation=2)
+    
     # nfp_ass.getDirectNFP(polys[10],polys[12])
     # starttime = datetime.datetime.now()
-    bfl = BottomLeftFill(1040,polys,vertical=False,NFPAssistant=nfp_ass)
+
+    bfl = BottomLeftFill(750,polys,vertical=False,NFPAssistant=nfp_ass)
     
     # print(datetime.datetime.now(),"计算完成BLF")
 
