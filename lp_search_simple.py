@@ -53,11 +53,9 @@ class GSMPD(object):
         # return 
         self.shrinkBorder() # 平移边界并更新宽度
         # self.extendBorder()
-
         max_time = 360000
         if self.TEST_MODEL == True:
             max_time = 50
-
         start_time = time.time()
         search_status = 0
         while time.time() - start_time < max_time:
@@ -115,7 +113,7 @@ class GSMPD(object):
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
+                    # print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
@@ -123,7 +121,8 @@ class GSMPD(object):
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
-                    print(choose_index,"未寻找到更优位置")
+                    # print(choose_index,"未寻找到更优位置")
+                    pass
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < max_overlap:
                 self.outputWarning("结果可行")                
@@ -212,7 +211,11 @@ class GSMPD(object):
                 if INTER.geom_type == "String" or INTER.is_empty == True: # 如果为空或者仅为直线相交
                     continue
                 new_pts = self.getAllPoint(INTER) # 获得全部的点
-                all_search_targets = all_search_targets + [[pt[0],pt[1],[i,j]] for pt in new_pts] # 记录全部的情况
+                for pt in new_pts:
+                    if [pt[0],pt[1],[-1,-1]] in all_search_targets: # 过滤已有的点
+                        continue
+                    else:
+                        all_search_targets.append([pt[0],pt[1],[i,j]]) # 记录全部的情况
                 nfp_neighbor[i].append(j) # 记录邻接情况    
                 nfp_neighbor[j].append(i) # 记录邻接情况
         # 遍历全部切除后NFP的点
@@ -264,6 +267,8 @@ class GSMPD(object):
         return nfp
 
     def getConexStatus(self, i, j, oi, oj):
+        if self.set_name=='fu':
+            return np.ones(12)
         return json.loads(self.all_nfps["convex_status"][self.computeRow(i, j, oi, oj)])
 
     def getVerticalDirection(self, i, j, oi, oj):
@@ -347,7 +352,7 @@ class GSMPD(object):
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
         # 收缩边界宽度
-        self.cur_length = self.best_length*(1 - self.ration_dec)
+        self.cur_length = self.cur_length*(1 - self.ration_dec)
         # 如果超过了100%就定位100%
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
@@ -362,7 +367,7 @@ class GSMPD(object):
     
     def extendBorder(self):
         '''扩大边界'''
-        self.cur_length = self.best_length*(1 + self.ration_inc)
+        self.cur_length = self.cur_length*(1 + self.ration_inc)
 
     def getPolygon(self, index, orientation):
         '''获得某个形状'''
