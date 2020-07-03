@@ -55,12 +55,13 @@ class GSMPD(object):
         # self.extendBorder()
         max_time = 360000
         if self.TEST_MODEL == True:
-            max_time = 1
-        start_time = time.time()
+            max_time = 50
+        self.start_time = time.time()
         search_status = 0
-        while time.time() - start_time < max_time:
+        while time.time() - self.start_time < max_time:
             self.intialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
+            self.showPolys(saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -108,8 +109,10 @@ class GSMPD(object):
                 if cur_pd < bias: # 如果没有重叠就直接退出
                     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
+                sub_best=[]
                 for ori in self.allowed_rotation: # 测试全部的方向
-                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找更优的位置
+                    min_pd,best_pt,sub_min_pd,sub_best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
+                    sub_best.append([sub_min_pd,sub_best_pt,ori])
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
@@ -123,8 +126,21 @@ class GSMPD(object):
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
-                    print(choose_index,"未寻找到更优位置")
-                    pass
+                    '''有一定概率接受次优的位置'''
+                    sub_best.sort(key=lambda x:x[0])
+                    final_pd=sub_best[0][0]
+                    delta_pd=cur_pd-final_pd
+                    if random.random()>0.5:
+                        print(choose_index,"接受次优位置",cur_pd,"->",final_pd)
+                        final_ori=sub_best[0][2]
+                        final_pt=sub_best[0][1]
+                        self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
+                        GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
+                        self.orientation[choose_index] = final_ori # 更新方向
+                        self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
+                    else:
+                        print(choose_index,"未寻找到更优位置")
+                        pass
             if self.TEST_MODEL == True: # 测试模式
                 return
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
@@ -176,7 +192,7 @@ class GSMPD(object):
         if feasible_IFR.area > bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
             random_index = random.randint(0, len(potential_points) - 1)
-            return 0,potential_points[random_index]
+            return 0,potential_points[random_index],0,potential_points[random_index]
         
         # print(i)
         # if i == 2 or i == 3:
@@ -186,8 +202,9 @@ class GSMPD(object):
         #     PltFunc.showPlt(height=2500,width=2500)
         
         '''计算各个阶段的NFP情况'''
-        all_pt_neighbors = self.getPtNegibors(cutted_NFPs,i) # 获得邻接NFP和可能包含区域
-        min_pd,total_num_pt,best_pt = 99999999999,0,[]
+        all_pt_neighbors = self.getPtNegibors(cutted_NFPs,i) # 获得邻接NFP和交集
+        min_pd,best_pt = 99999999999,[]
+        pd_list=[] # 记录所有的位置
         for k,pt_neighbors in enumerate(all_pt_neighbors):
             total_pd = 0
             # 逐一判断与多边形的交集情况
@@ -195,12 +212,14 @@ class GSMPD(object):
                 if Polygon(basic_nfps[j]).contains(Point([pt_neighbors[0],pt_neighbors[1]])) == True:
                     pd = self.getNonConvexPtPD([pt_neighbors[0],pt_neighbors[1]],i,j,oi,self.orientation[j])
                     total_pd = total_pd + pd * self.miu[i][j]
-            if total_pd < min_pd:
-                min_pd = total_pd
-                best_pt = [pt_neighbors[0],pt_neighbors[1]]
-            total_num_pt = total_num_pt + 1
+            best_pt = [pt_neighbors[0],pt_neighbors[1]]
+            pd_list.append([total_pd,best_pt])
 
-        return min_pd,best_pt
+        pd_list.sort(key = lambda x:x[0]) # 排序
+        min_pd,sub_min_pd = pd_list[0][0],pd_list[1][0]
+        best_pt,sub_best_pt = pd_list[0][1],pd_list[1][1]
+
+        return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和次优位置
 
     def getPtNegibors(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''
@@ -429,7 +448,7 @@ class GSMPD(object):
             self.all_polygons.append(polygons)
         self.all_nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv") # 获得NFP
 
-    def showPolys(self,coloring=None):
+    def showPolys(self,saving=False,coloring=None):
         '''展示全部形状以及边框'''
         for poly in self.polys:
             if coloring != None and poly == coloring:

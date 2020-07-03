@@ -10,3 +10,4 @@ record/DRL*
 *.pt
 .DS_Store
 */.DS_Store
+figs/LP_Search*
