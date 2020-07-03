@@ -17,10 +17,10 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "mao"
-        self.min_angle = 90
+        self.set_name = "shapes2_clus"
+        self.min_angle = 180
         self.zoom = 1
-        # self.orientation()
+        self.orientation()
         self.main()
 
     def orientation(self):
@@ -44,28 +44,22 @@ class PreProccess(object):
         rotation_range = [j for j in range(int(360/self.min_angle))]
         with open("data/" + self.set_name + "_nfp.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
-            for i in range(3,4):
+            for i in range(_len):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
-                for j in range(2,3):
+                for j in range(_len):
                     Poly_j=Polygon(self.normData(json.loads(fu["polygon"][j])))
                     for oi in rotation_range:
                         new_poly_i=self.rotation(Poly_i,oi,min_angle)
                         self.slideToOrigin(new_poly_i)
                         for oj in rotation_range:
                             print(i,j,oi,oj)
-                            new_poly_j = self.rotation(Poly_j,oj,min_angle)
+                            new_poly_j=self.rotation(Poly_j,oj,min_angle)
                             nfp = NFP(new_poly_i,new_poly_j)
                             new_nfp = LPAssistant.deleteOnline(nfp.nfp)
                             convex_status = self.getConvexStatus(new_nfp)
                             vertical_direction = self.getVerticalDirection(convex_status,new_nfp)
-                            if i ==3 and j == 2 and oi ==2 and oj ==3:
-                                print(new_poly_i)
-                                print(new_poly_j)
-                                print(new_nfp)
-                                print(convex_status)
-                                print(vertical_direction)
-                            # writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction]])
-    
+                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction]])
+
     def getConvexStatus(self,nfp):
         '''判断凹点还是凸点'''
         if len(nfp) == 3:

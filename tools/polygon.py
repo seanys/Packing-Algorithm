@@ -597,7 +597,6 @@ class NFP(object):
         self.locus_index = GeoFunc.checkTop(self.sliding)
         # 如果不加list则original_top是指针
         self.original_top = list(self.sliding[self.locus_index])
-        print(self.start_point)
         GeoFunc.slideToPoint(self.sliding,self.sliding[self.locus_index],self.start_point)
         self.start = True # 判断是否初始
         self.nfp = []
@@ -894,7 +893,6 @@ class NFP(object):
         # 首先是如果直接划过去了
         if len(self.nfp) >= 3 and GeoFunc.almostContain([self.nfp[-2],self.nfp[-1]],main_bt) == True:
             self.nfp[-1] = [main_bt[0],main_bt[1]]
-            print(self.nfp)
             return True
         # 其次是如果是正好移到位置
         if abs(sliding_locus[0]-main_bt[0]) < 0.1 and abs(sliding_locus[1]-main_bt[1]) < 0.1:

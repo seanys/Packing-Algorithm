@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(44) # 获得全部
+        self.initialProblem(53) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -61,7 +61,7 @@ class GSMPD(object):
         while time.time() - self.start_time < max_time:
             self.intialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            self.showPolys(saving=True)
+            # self.showPolys(saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -118,11 +118,11 @@ class GSMPD(object):
                 if final_pd < cur_pd: # 更新最佳情况
                     print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     # if i >= 2 and i <= 3:
-                    self.showPolys(self.polys[choose_index])
+                    # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     # if i >= 2 and i <= 3:
-                    self.showPolys(self.polys[choose_index])
+                    # self.showPolys(self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
@@ -461,17 +461,17 @@ class GSMPD(object):
 
     def outputWarning(self,_str):
         '''输出红色字体'''
-        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
+        _str = self.set_name + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;31m",_str,"\033[0m")
 
     def outputAttention(self,_str):
         '''输出绿色字体'''
-        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
+        _str = self.set_name + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;32m",_str,"\033[0m")
 
     def outputInfo(self,_str):
         '''输出浅黄色字体'''
-        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
+        _str = self.set_name + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':

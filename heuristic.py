@@ -302,7 +302,7 @@ class newNFPAssistant(object):
             if abs(test_poly_area - area) < 2:
                 return i
     
-index = 4
+index = 1
 targets = [{
         "index" : 0,
         "name" : "blaz",
