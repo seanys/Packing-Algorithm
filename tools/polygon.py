@@ -909,6 +909,9 @@ class NFP(object):
 
     # 显示最终结果
     def showResult(self):
+        GeoFunc.slidePoly(self.sliding,200,200)
+        GeoFunc.slidePoly(self.stationary,200,200)
+        GeoFunc.slidePoly(self.nfp,200,200)
         PltFunc.addPolygon(self.sliding)
         PltFunc.addPolygon(self.stationary)
         PltFunc.addPolygonColor(self.nfp)
@@ -952,18 +955,17 @@ class NFP(object):
 def tryNFP():
     df = pd.read_csv("data/mao_orientation.csv")
 
-    # poly1 = json.loads(df['o_1'][3])
-    # poly2 = json.loads(df['o_3'][2])
-    poly1 = [[0.0, 0.0], [191.0, 0.0], [310.0, 384.0], [240.0, 384.0], [241.0, 759.0], [0.0, 758.0], [0.0, 0.0]]
-    poly2 = [[82.0, 161.0], [81.0, -78.0], [161.0, -81.0], [159.0, 161.0], [82.0, 161.0]]
-    # GeoFunc.normData(poly1,20)
-    # GeoFunc.normData(poly2,20)
-    # PltFunc.addPolygon(poly1)
-    # PltFunc.addPolygon(poly2)
-    # PltFunc.showPlt()
-    # GeoFunc.slidePoly(poly1,500,500)
-    nfp = NFP(poly1,poly2,show=True,rectangle=False)
-    # print(nfp.nfp)
+    for i in range(df.shape[0]):
+        for j in range(df.shape[0]):
+            poly1 = json.loads(df['o_0'][i])
+            poly2 = json.loads(df['o_0'][j])
+            GeoFunc.normData(poly1,0.2)
+            GeoFunc.normData(poly2,0.2)
+            nfp = NFP(poly1,poly2,show=True,rectangle=False)
+            print(nfp.nfp)
+        # PltFunc.addPolygon(poly1)
+        # PltFunc.addPolygon(poly2)
+        # PltFunc.showPlt()
     # bfp=bestFitPosition(nfp,True)
     # print("Final fitness:",bfp.fitness)
 

@@ -17,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "shapes2_clus"
+        self.set_name = "dagli"
         self.min_angle = 180
-        self.zoom = 1
-        self.orientation()
-        self.main()
+        self.zoom = 0.4
+        # self.orientation()
+        # self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -121,6 +121,16 @@ class PreProccess(object):
         for pt in coordinates:
             new_poly.append([pt[0],pt[1]])
         return new_poly
+
+    def normFile(self):
+        data = pd.read_csv("data/mao_orientation.csv")
+        with open("data/mao_orientation.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            for row in range(data.shape[0]):
+                o_1 = self.normData(json.loads(data["o_1"][row]))
+                o_2 = self.normData(json.loads(data["o_2"][row]))
+                o_3 = self.normData(json.loads(data["o_3"][row]))
+                writer.writerows([[o_0,o_1,o_2,o_3]])
 
 
 class initialResult(object):

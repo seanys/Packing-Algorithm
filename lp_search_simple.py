@@ -20,7 +20,7 @@ import numpy as np
 import operator
 import multiprocessing
 
-bias = 0.0000001
+bias = 0.5
 max_overlap = 5
 
 class GSMPD(object):
@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(53) # 获得全部
+        self.initialProblem(47) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -101,7 +101,7 @@ class GSMPD(object):
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
             # print(permutation)
-            permutation = [j for j in range(len(self.polys))]
+            # permutation = [j for j in range(len(self.polys))]
             for i in range(len(self.polys)):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
@@ -116,7 +116,7 @@ class GSMPD(object):
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
+                    print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
                     # if i >= 2 and i <= 3:
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
@@ -130,7 +130,7 @@ class GSMPD(object):
                     sub_best.sort(key=lambda x:x[0])
                     final_pd=sub_best[0][0]
                     delta_pd=cur_pd-final_pd
-                    if random.random()>0.5:
+                    if random.random()>1:
                         print(choose_index,"接受次优位置",cur_pd,"->",final_pd)
                         final_ori=sub_best[0][2]
                         final_pt=sub_best[0][1]
@@ -143,6 +143,7 @@ class GSMPD(object):
                         pass
             if self.TEST_MODEL == True: # 测试模式
                 return
+            self.showPolys()
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < max_overlap:
                 self.outputWarning("结果可行")                
@@ -208,6 +209,7 @@ class GSMPD(object):
         for k,pt_neighbors in enumerate(all_pt_neighbors):
             total_pd = 0
             # 逐一判断与多边形的交集情况
+            # for j in range(len(self.polys)):
             for j in pt_neighbors[2]:
                 if Polygon(basic_nfps[j]).contains(Point([pt_neighbors[0],pt_neighbors[1]])) == True:
                     pd = self.getNonConvexPtPD([pt_neighbors[0],pt_neighbors[1]],i,j,oi,self.orientation[j])
@@ -230,9 +232,9 @@ class GSMPD(object):
                 if i == index or j == index or NFPs[i].is_empty == True or NFPs[j].is_empty == True:
                     continue
                 '''根据边界判断交集情况，否则需要计算差集比较麻烦'''
-                bounds_i, bounds_j = NFPs[i].bounds,NFPs[j].bounds # 获得边界
-                if bounds_i[2] < bounds_j[0] or bounds_i[0] > bounds_j[2] or bounds_i[3] < bounds_j[1] or bounds_i[1] > bounds_j[3]:
-                    continue
+                # bounds_i, bounds_j = NFPs[i].bounds,NFPs[j].bounds # 获得边界
+                # if bounds_i[2] < bounds_j[0] or bounds_i[0] > bounds_j[2] or bounds_i[3] < bounds_j[1] or bounds_i[1] > bounds_j[3]:
+                #     continue
                 '''有相交的可能性再求想交区域'''
                 INTER = NFPs[i].intersection(NFPs[j]) # 求解交集
                 if INTER.geom_type == "String" or INTER.is_empty == True: # 如果为空或者仅为直线相交
@@ -277,6 +279,7 @@ class GSMPD(object):
                 continue
             pd = self.getPolysPD(choose_index,i)
             self.pair_pd_record[i][choose_index],self.pair_pd_record[choose_index][i] = pd,pd # 更新对应的pd
+            # print(self.pair_pd_record[i])
 
     def getPDStatus(self):
         '''获得当前的最佳情况'''
@@ -305,6 +308,34 @@ class GSMPD(object):
         else:
             return 0
 
+    def getNonConvexPtPD(self,pt,i,j,oi,oj):
+        '''考虑凹点的PD计算'''
+        convex_status = self.getConexStatus(i, j, oi, oj)
+        nfp = self.getNFP(i, j, oi, oj)
+        min_pd = self.getPtNFPPD(pt,nfp) # 获得所有边的情况
+        # for k,nfp_pt in enumerate(nfp):
+        #     if convex_status[k] == 0:
+        #         non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
+        #         if non_convex_pd < min_pd:
+        #             min_pd = non_convex_pd
+        return min_pd
+
+    def getPtNFPPD(self, pt, nfp):
+        '''根据顶点和nfp计算PD，仅仅考虑边'''
+        min_pd,min_edge,final_foot_pt = 999999999999,[],[]
+        edges = GeometryAssistant.getPolyEdges(nfp)
+        for edge in edges:
+            foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
+            if foot_pt[0] < min(edge[0][0],edge[1][0]) or foot_pt[0] > max(edge[0][0],edge[1][0]) or foot_pt[1] < min(edge[0][1],edge[1][1]) or foot_pt[1] > max(edge[0][1],edge[1][1]):
+                continue # 垂足不在直线上
+            pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
+            if  pd < min_pd:
+                min_pd,min_edge,final_foot_pt = pd,copy.deepcopy(edge),copy.deepcopy(foot_pt)
+                if min_pd < bias:
+                    min_pd = 0
+                    break
+        return min_pd
+
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
         row = self.computeRow(i, j, oi, oj)
@@ -329,34 +360,6 @@ class GSMPD(object):
         for j in range(len(self.polys)):
             total_pd = total_pd + self.pair_pd_record[i][j]*self.miu[i][j] # 计算PD，比较简单
         return total_pd
-    
-    def getNonConvexPtPD(self,pt,i,j,oi,oj):
-        '''考虑凹点的PD计算'''
-        convex_status = self.getConexStatus(i, j, oi, oj)
-        nfp = self.getNFP(i, j, oi, oj)
-        min_pd = self.getPtNFPPD(pt,nfp) # 获得所有边的情况
-        # for k,nfp_pt in enumerate(nfp):
-        #     if convex_status[k] == 0:
-        #         non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
-        #         if non_convex_pd < min_pd:
-        #             min_pd = non_convex_pd
-        return min_pd
-
-    def getPtNFPPD(self, pt, nfp):
-        '''根据顶点和nfp计算PD，仅仅考虑边'''
-        min_pd,min_edge = 999999999999,[]
-        edges = GeometryAssistant.getPolyEdges(nfp)
-        for edge in edges:
-            foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
-            if foot_pt[0] < min(edge[0][0],edge[1][0]) or foot_pt[0] > max(edge[0][0],edge[1][0]):
-                continue # 垂足不在直线上
-            pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
-            if  pd < min_pd:
-                min_pd,min_edge = pd,copy.deepcopy(edge)
-                if min_pd < bias:
-                    min_pd = 0
-                    break
-        return min_pd
 
     def updateMiu(self,max_pair_pd):
         """寻找到更优位置之后更新"""
@@ -448,7 +451,7 @@ class GSMPD(object):
             self.all_polygons.append(polygons)
         self.all_nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv") # 获得NFP
 
-    def showPolys(self,saving=False,coloring=None):
+    def showPolys(self,saving = False, coloring = None):
         '''展示全部形状以及边框'''
         for poly in self.polys:
             if coloring != None and poly == coloring:
