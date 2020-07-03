@@ -80,8 +80,7 @@ class GSMPD(object):
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
                 if search_status == 1:
-                    # self.shrinkBorder()
-                    self.extendBorder()
+                    self.shrinkBorder()
                     search_status = 0
                 else:
                     self.extendBorder() # 扩大边界并进行下一次检索
@@ -117,7 +116,7 @@ class GSMPD(object):
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
-                    # print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
+                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
@@ -138,7 +137,7 @@ class GSMPD(object):
                         self.orientation[choose_index] = final_ori # 更新方向
                         self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                     else:
-                        # print(choose_index,"未寻找到更优位置")
+                        print(choose_index,"未寻找到更优位置")
                         pass
             if self.TEST_MODEL == True: # 测试模式
                 return
@@ -388,7 +387,7 @@ class GSMPD(object):
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
         # 收缩边界宽度
-        self.cur_length = self.cur_length*(1 - self.ration_dec)
+        self.cur_length = self.best_length*(1 - self.ration_dec)
         # 如果超过了100%就定位100%
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
@@ -403,7 +402,7 @@ class GSMPD(object):
     
     def extendBorder(self):
         '''扩大边界'''
-        self.cur_length = self.cur_length*(1 + self.ration_inc)
+        self.cur_length = self.best_length*(1 + self.ration_inc)
 
     def getPolygon(self, index, orientation):
         '''获得某个形状'''

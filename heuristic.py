@@ -51,29 +51,31 @@ class BottomLeftFill(object):
         # self.showAll()
 
     def placeFirstPoly(self):
-        poly=self.polygons[0]
-        left_index,bottom_index,right_index,top_index=GeoFunc.checkBound(poly) # 获得边界        
+        poly = self.polygons[0]
+        left_index,bottom_index,right_index,top_index = GeoFunc.checkBound(poly) # 获得边界        
         GeoFunc.slidePoly(poly,-poly[left_index][0],-poly[bottom_index][1]) # 平移到左下角
 
     def placePoly(self,index):
-        adjoin=self.polygons[index]
+        adjoin = self.polygons[index]
         # 是否垂直
-        if self.vertical==True:
-            ifr=packing.PackingUtil.getInnerFitRectangle(self.polygons[index],self.width,self.length)
+        if self.vertical == True:
+            ifr = packing.PackingUtil.getInnerFitRectangle(self.polygons[index],self.width,self.length)
         else:
-            ifr=packing.PackingUtil.getInnerFitRectangle(self.polygons[index],self.length,self.width)            
-        differ_region=Polygon(ifr)
+            ifr = packing.PackingUtil.getInnerFitRectangle(self.polygons[index],self.length,self.width)            
+        differ_region = Polygon(ifr)
         
         for main_index in range(0,index):
-            main=self.polygons[main_index]
-            if self.NFPAssistant==None:
-                nfp = NFP(main,adjoin,rectangle=self.rectangle).nfp
+            main = self.polygons[main_index]
+            if self.NFPAssistant == None:
+                nfp = NFP(main,adjoin,rectangle = self.rectangle).nfp
             else:
                 nfp = self.NFPAssistant.getDirectNFP(main,adjoin)
             nfp_poly = Polygon(nfp)
             try:
                 differ_region = differ_region.difference(nfp_poly)
             except:
+                print(differ_region)
+                print(nfp_poly)
                 print('NFP failure, polys and nfp are:')
                 print([main,adjoin])
                 print(nfp)
@@ -127,7 +129,7 @@ class BottomLeftFill(object):
         # for i in range(0,2):
         for i in range(0,len(self.polygons)):
             PltFunc.addPolygon(self.polygons[i])
-        length=max(self.width,self.contain_length)
+        length = max(self.width,self.contain_length)
         # PltFunc.addLine([[self.width,0],[self.width,self.contain_height]],color="blue")
         PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width),minus=100)    
 
@@ -135,7 +137,7 @@ class BottomLeftFill(object):
         for i in range(0,len(polys)-1):
             PltFunc.addPolygon(polys[i])
         PltFunc.addPolygonColor(polys[len(polys)-1])
-        length=max(self.width,self.contain_length)
+        length = max(self.width,self.contain_length)
         PltFunc.showPlt(width=max(length,self.width),height=max(length,self.width),minus=200)    
 
     def getLength(self):
@@ -284,32 +286,74 @@ class newNFPAssistant(object):
     def getDirectNFP(self,main,adjoin):
         # 分别为固定i/移动j的形状
         i,j = self.judgeType(main),self.judgeType(adjoin)
-        row = len(self.all_polys)*self.allowed_rotation*self.allowed_rotation*i + self.allowed_rotation*self.allowed_rotation*j + self.allowed_rotation*0 + 1*0
+        row = self.all_polys.shape[0]*self.allowed_rotation*self.allowed_rotation*i + self.allowed_rotation*self.allowed_rotation*j + self.allowed_rotation*0 + 1*0
         bottom_pt = GeometryAssistant.getBottomPoint(main)
+        # print(row)
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return nfp 
 
     def judgeType(self,poly):
         # 判断形状类别，用于计算具体的NFP
         area = int(Polygon(poly).area)
+        # print(area)
         for i in range(self.all_polys.shape[0]):
             test_poly_area = Polygon(json.loads(self.all_polys["o_0"][i])).area
+            # print(test_poly_area)
             if abs(test_poly_area - area) < 2:
                 return i
     
-
-def getDataNew():
-    index = 1 
-    targets = [{
+index = 4
+targets = [{
         "index" : 0,
         "name" : "blaz",
-        "scale" : 10
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 750
     },{
         "index" : 1,
         "name" : "shapes2_clus",
-        "scale" : 1
+        "scale" : 1,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 2,
+        "name" : "shapes0",
+        "scale" : 20,
+        "allowed_rotation": 1,
+        "width": 800
+    },{
+        "index" : 3,
+        "name" : "marques",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 1040
+    },{
+        "index" : 4,
+        "name" : "mao",
+        "scale" : 1,
+        "allowed_rotation": 4,
+        "width": 2550
+    },{
+        "index" : 5,
+        "name" : "shirts",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 6,
+        "name" : "albano",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 980
+    },{
+        "index" : 7,
+        "name" : "shapes1",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
     }]
-    
+
+def getDataNew():
     print(targets[index]["name"])
     print("缩放",targets[index]["scale"],"倍")
 
@@ -317,7 +361,6 @@ def getDataNew():
     polygons=[]
     polys_type = []
     for i in range(0,df.shape[0]):
-    # for i in range(0,4):
         for j in range(0,df['num'][i]):
             polys_type.append(i)
             poly = json.loads(df['polygon'][i])
@@ -337,18 +380,12 @@ if __name__=='__main__':
     print([0 for i in range(len(polys))])
 
     # 计算NFP时间
-    # print(datetime.datetime.now(),"开始计算NFP")
     # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
-    nfp_ass = newNFPAssistant("shapes2_clus",allowed_rotation=2)
+    nfp_ass = newNFPAssistant(targets[index]["name"],allowed_rotation=targets[index]["allowed_rotation"])
     
     # nfp_ass.getDirectNFP(polys[10],polys[12])
-    # starttime = datetime.datetime.now()
 
-    bfl = BottomLeftFill(750,polys,vertical=False,NFPAssistant=nfp_ass)
-    
-    # print(datetime.datetime.now(),"计算完成BLF")
+    bfl = BottomLeftFill(targets[index]["width"],polys,vertical=False,NFPAssistant=nfp_ass)
 
-    endtime = datetime.datetime.now()
-    # print (endtime - starttime)
     bfl.showAll()
