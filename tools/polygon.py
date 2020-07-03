@@ -535,8 +535,8 @@ class PltFunc(object):
             PltFunc.addPolygon(poly)
         PltFunc.showPlt(width=2000,height=2000)
 
-    def saveFig(name):
-        plt.savefig('figs\\'+name+'.png')
+    def saveFig(path):
+        plt.savefig(path)
         plt.cla()
     
     

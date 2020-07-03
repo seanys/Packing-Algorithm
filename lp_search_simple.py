@@ -35,9 +35,8 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(41) # 获得全部
+        self.initialProblem(24) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
-        self.T = 100
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
@@ -62,6 +61,7 @@ class GSMPD(object):
         while time.time() - self.start_time < max_time:
             self.intialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
+            self.showPolys(saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -103,7 +103,6 @@ class GSMPD(object):
             np.random.shuffle(permutation)
             # print(permutation)
             # permutation = [7,4,2,6,10,9,0,1,3,5,11,8]
-            self.T = 100/math.log(time.time() - self.start_time,2) # 更新退火温度
             for i in range(len(self.polys)):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
@@ -118,7 +117,7 @@ class GSMPD(object):
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
+                    # print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
@@ -130,8 +129,8 @@ class GSMPD(object):
                     sub_best.sort(key=lambda x:x[0])
                     final_pd=sub_best[0][0]
                     delta_pd=cur_pd-final_pd
-                    if math.exp(delta_pd/self.T)>random.random():
-                        # print(choose_index,"接受次优位置",cur_pd,"->",final_pd)
+                    if random.random()>0.5:
+                        print(choose_index,"接受次优位置",cur_pd,"->",final_pd)
                         final_ori=sub_best[0][2]
                         final_pt=sub_best[0][1]
                         self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
@@ -448,7 +447,7 @@ class GSMPD(object):
                 PltFunc.addPolygon(poly)
         PltFunc.addPolygonColor([[0,0], [self.cur_length,0], [self.cur_length,self.width], [0,self.width]])
         if saving:
-            PltFunc.savefig('figs/LP-Search/'+str(time.time())+'.png')
+            PltFunc.saveFig('figs/LP_Search/'+str(time.time())+'.png')
         else:
             PltFunc.showPlt(width=1500, height=1500)
         
