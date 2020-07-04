@@ -597,7 +597,6 @@ class NFP(object):
         self.locus_index = GeoFunc.checkTop(self.sliding)
         # 如果不加list则original_top是指针
         self.original_top = list(self.sliding[self.locus_index])
-        print(self.start_point)
         GeoFunc.slideToPoint(self.sliding,self.sliding[self.locus_index],self.start_point)
         self.start = True # 判断是否初始
         self.nfp = []
@@ -894,7 +893,6 @@ class NFP(object):
         # 首先是如果直接划过去了
         if len(self.nfp) >= 3 and GeoFunc.almostContain([self.nfp[-2],self.nfp[-1]],main_bt) == True:
             self.nfp[-1] = [main_bt[0],main_bt[1]]
-            print(self.nfp)
             return True
         # 其次是如果是正好移到位置
         if abs(sliding_locus[0]-main_bt[0]) < 0.1 and abs(sliding_locus[1]-main_bt[1]) < 0.1:
@@ -911,6 +909,9 @@ class NFP(object):
 
     # 显示最终结果
     def showResult(self):
+        GeoFunc.slidePoly(self.sliding,200,200)
+        GeoFunc.slidePoly(self.stationary,200,200)
+        GeoFunc.slidePoly(self.nfp,200,200)
         PltFunc.addPolygon(self.sliding)
         PltFunc.addPolygon(self.stationary)
         PltFunc.addPolygonColor(self.nfp)
@@ -954,18 +955,17 @@ class NFP(object):
 def tryNFP():
     df = pd.read_csv("data/mao_orientation.csv")
 
-    # poly1 = json.loads(df['o_1'][3])
-    # poly2 = json.loads(df['o_3'][2])
-    poly1 = [[0.0, 0.0], [191.0, 0.0], [310.0, 384.0], [240.0, 384.0], [241.0, 759.0], [0.0, 758.0], [0.0, 0.0]]
-    poly2 = [[82.0, 161.0], [81.0, -78.0], [161.0, -81.0], [159.0, 161.0], [82.0, 161.0]]
-    # GeoFunc.normData(poly1,20)
-    # GeoFunc.normData(poly2,20)
-    # PltFunc.addPolygon(poly1)
-    # PltFunc.addPolygon(poly2)
-    # PltFunc.showPlt()
-    # GeoFunc.slidePoly(poly1,500,500)
-    nfp = NFP(poly1,poly2,show=True,rectangle=False)
-    # print(nfp.nfp)
+    for i in range(df.shape[0]):
+        for j in range(df.shape[0]):
+            poly1 = json.loads(df['o_0'][i])
+            poly2 = json.loads(df['o_0'][j])
+            GeoFunc.normData(poly1,0.2)
+            GeoFunc.normData(poly2,0.2)
+            nfp = NFP(poly1,poly2,show=True,rectangle=False)
+            print(nfp.nfp)
+        # PltFunc.addPolygon(poly1)
+        # PltFunc.addPolygon(poly2)
+        # PltFunc.showPlt()
     # bfp=bestFitPosition(nfp,True)
     # print("Final fitness:",bfp.fitness)
 
