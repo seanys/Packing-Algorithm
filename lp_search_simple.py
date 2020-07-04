@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(47) # 获得全部
+        self.initialProblem(50) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -143,7 +143,7 @@ class GSMPD(object):
                         pass
             if self.TEST_MODEL == True: # 测试模式
                 return
-            self.showPolys()
+            # self.showPolys()
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < max_overlap:
                 self.outputWarning("结果可行")                
@@ -232,9 +232,9 @@ class GSMPD(object):
                 if i == index or j == index or NFPs[i].is_empty == True or NFPs[j].is_empty == True:
                     continue
                 '''根据边界判断交集情况，否则需要计算差集比较麻烦'''
-                # bounds_i, bounds_j = NFPs[i].bounds,NFPs[j].bounds # 获得边界
-                # if bounds_i[2] < bounds_j[0] or bounds_i[0] > bounds_j[2] or bounds_i[3] < bounds_j[1] or bounds_i[1] > bounds_j[3]:
-                #     continue
+                bounds_i, bounds_j = NFPs[i].bounds,NFPs[j].bounds # 获得边界
+                if bounds_i[2] < bounds_j[0] or bounds_i[0] > bounds_j[2] or bounds_i[3] < bounds_j[1] or bounds_i[1] > bounds_j[3]:
+                    continue
                 '''有相交的可能性再求想交区域'''
                 INTER = NFPs[i].intersection(NFPs[j]) # 求解交集
                 if INTER.geom_type == "String" or INTER.is_empty == True: # 如果为空或者仅为直线相交
@@ -313,11 +313,11 @@ class GSMPD(object):
         convex_status = self.getConexStatus(i, j, oi, oj)
         nfp = self.getNFP(i, j, oi, oj)
         min_pd = self.getPtNFPPD(pt,nfp) # 获得所有边的情况
-        # for k,nfp_pt in enumerate(nfp):
-        #     if convex_status[k] == 0:
-        #         non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
-        #         if non_convex_pd < min_pd:
-        #             min_pd = non_convex_pd
+        for k,nfp_pt in enumerate(nfp):
+            if convex_status[k] == 0:
+                non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
+                if non_convex_pd < min_pd:
+                    min_pd = non_convex_pd
         return min_pd
 
     def getPtNFPPD(self, pt, nfp):
