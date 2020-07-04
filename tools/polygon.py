@@ -958,11 +958,14 @@ def tryNFP():
     # line = 11
     # line = index
     # nfp = pd.read_csv("data/dagli_clus_nfp.csv")
-    polys = pd.read_csv("data/dagli_clus_orientation.csv")
+    polys = pd.read_csv("data/swim.csv")
     for i in range(polys.shape[0]):
-        poly1 = json.loads(polys['o_0'][i])
-        poly2 = json.loads(polys['o_0'][12])
-        nfp = NFP(poly1,poly2,show=True,rectangle=False)
+        poly1 = json.loads(polys['polygon'][i])
+        PltFunc.addPolygon(poly1)
+        print(poly1)
+        PltFunc.showPlt()
+        # poly2 = json.loads(polys['o_0'][12])
+        # nfp = NFP(poly1,poly2,show=True,rectangle=False)
     # nfp = json.loads(nfp['nfp'][index])
     # PltFunc.addPolygon(poly1)
     # PltFunc.addPolygon(poly2)

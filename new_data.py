@@ -17,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "trousers"
-        self.min_angle = 180
+        self.set_name = "jakobs2_clus"
+        self.min_angle = 90
         self.zoom = 10
         self.orientation()
-        self.main()
+        # self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -31,7 +31,7 @@ class PreProccess(object):
         with open("data/" + self.set_name + "_orientation.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
-                Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
+                Poly_i = Polygon(self.normData(json.loads(fu["polygon"][i])))
                 all_poly=[]
                 for oi in rotation_range:
                     all_poly.append(self.rotation(Poly_i,oi,min_angle))

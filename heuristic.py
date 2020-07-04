@@ -289,7 +289,6 @@ class newNFPAssistant(object):
         i,j = self.judgeType(main),self.judgeType(adjoin)
         row = self.all_polys.shape[0]*self.allowed_rotation*self.allowed_rotation*i + self.allowed_rotation*self.allowed_rotation*j + self.allowed_rotation*0 + 1*0
         bottom_pt = GeometryAssistant.getBottomPoint(main)
-        # print(row)
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return nfp 
 
@@ -304,7 +303,7 @@ class newNFPAssistant(object):
                 return i
         print("NFP错误")
     
-index = 10
+index = 11
 targets = [{
         "index" : 0,
         "name" : "blaz",
@@ -371,6 +370,12 @@ targets = [{
         "scale" : 10,
         "allowed_rotation": 2,
         "width": 790
+    },{
+        "index" : 11,
+        "name" : "jakobs2_clus",
+        "scale" : 10,
+        "allowed_rotation": 4,
+        "width": 700
     }]
 
 def getDataNew():
