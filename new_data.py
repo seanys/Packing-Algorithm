@@ -17,9 +17,9 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "dagli_clus"
+        self.set_name = "trousers"
         self.min_angle = 180
-        self.zoom = 20
+        self.zoom = 10
         self.orientation()
         self.main()
 

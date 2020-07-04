@@ -956,13 +956,27 @@ def tryNFP():
     # 3 2 和 2 3  
     # line = 2*2*2*4+3*2*2+1*2+1
     # line = 11
-    # nfp = pd.read_csv("data/jakobs1_clus_nfp.csv")
-    polys = pd.read_csv("data/jakobs1_clus_orientation.csv")
-    # poly1 = json.loads(polys['polygon'][0])
-    # poly2 = json.loads(polys['polygon'][1])
+    # line = index
+    # nfp = pd.read_csv("data/dagli_clus_nfp.csv")
+    polys = pd.read_csv("data/dagli_clus_orientation.csv")
+    for i in range(polys.shape[0]):
+        poly1 = json.loads(polys['o_0'][i])
+        poly2 = json.loads(polys['o_0'][12])
+        nfp = NFP(poly1,poly2,show=True,rectangle=False)
+    # nfp = json.loads(nfp['nfp'][index])
+    # PltFunc.addPolygon(poly1)
+    # PltFunc.addPolygon(poly2)
+    # PltFunc.addPolygonColor(nfp)
     # GeoFunc.normData(poly1,20)
     # GeoFunc.normData(poly2,20)
-    # nfp = NFP(poly1,poly2,show=True,rectangle=False)
+    
+
+    # nfp = json.loads(nfp['nfp'][index])
+    # PltFunc.addPolygon(poly1)
+    # PltFunc.addPolygon(poly2)
+    # PltFunc.addPolygonColor(nfp)
+    # GeoFunc.normData(poly1,20)
+    # GeoFunc.normData(poly2,20)
 
     # PltFunc.addPolygon(poly1)
     # print(df['i'][line],df['j'][line],df['oi'][line],df['oj'][line])
@@ -973,12 +987,15 @@ def tryNFP():
     # poly2 = json.loads(polys['o_0'][j])
 
 
-    for i in range(polys.shape[0]):
-        for j in range(polys.shape[0]):
-            poly1 = json.loads(polys['o_0'][i])
-            poly2 = json.loads(polys['o_0'][j])
-            nfp = NFP(poly1,poly2,show=True,rectangle=False)
-            print(nfp.nfp)
+    # for i in range(polys.shape[0]):
+    #     poly1 = json.loads(polys['o_0'][i])
+    #     PltFunc.addPolygon(poly1)
+    #     PltFunc.showPlt()
+    #     for j in range(polys.shape[0]):
+    #         poly1 = json.loads(polys['o_0'][i])
+    #         poly2 = json.loads(polys['o_0'][j])
+    #         nfp = NFP(poly1,poly2,show=True,rectangle=False)
+    #         print(nfp.nfp)
         # PltFunc.addPolygon(poly1)
         # PltFunc.addPolygon(poly2)
         # PltFunc.showPlt()
