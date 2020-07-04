@@ -115,9 +115,9 @@ class GeometryAssistant(object):
     def getBottomPoint(poly):
         bottom_pt,min_y=[],999999999
         for pt in poly:
-            if pt[1]<min_y:
-                min_y=pt[1]
-                bottom_pt=[pt[0],pt[1]]
+            if pt[1] < min_y:
+                min_y = pt[1]
+                bottom_pt = [pt[0],pt[1]]
         return bottom_pt
 
     @staticmethod

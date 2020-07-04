@@ -953,14 +953,30 @@ class NFP(object):
 
 # 计算NFP然后寻找最合适位置
 def tryNFP():
-    df = pd.read_csv("data/mao_orientation.csv")
+    # 3 2 和 2 3  
+    # line = 2*2*2*4+3*2*2+1*2+1
+    # line = 11
+    # nfp = pd.read_csv("data/jakobs1_clus_nfp.csv")
+    polys = pd.read_csv("data/jakobs1_clus_orientation.csv")
+    # poly1 = json.loads(polys['polygon'][0])
+    # poly2 = json.loads(polys['polygon'][1])
+    # GeoFunc.normData(poly1,20)
+    # GeoFunc.normData(poly2,20)
+    # nfp = NFP(poly1,poly2,show=True,rectangle=False)
 
-    for i in range(df.shape[0]):
-        for j in range(df.shape[0]):
-            poly1 = json.loads(df['o_0'][i])
-            poly2 = json.loads(df['o_0'][j])
-            GeoFunc.normData(poly1,0.2)
-            GeoFunc.normData(poly2,0.2)
+    # PltFunc.addPolygon(poly1)
+    # print(df['i'][line],df['j'][line],df['oi'][line],df['oj'][line])
+    # PltFunc.showPlt()
+    # return 
+    # i,j = 2,3
+    # poly1 = json.loads(polys['o_0'][i])
+    # poly2 = json.loads(polys['o_0'][j])
+
+
+    for i in range(polys.shape[0]):
+        for j in range(polys.shape[0]):
+            poly1 = json.loads(polys['o_0'][i])
+            poly2 = json.loads(polys['o_0'][j])
             nfp = NFP(poly1,poly2,show=True,rectangle=False)
             print(nfp.nfp)
         # PltFunc.addPolygon(poly1)

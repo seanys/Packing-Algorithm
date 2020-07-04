@@ -302,7 +302,7 @@ class newNFPAssistant(object):
             if abs(test_poly_area - area) < 2:
                 return i
     
-index = 1
+index = 9
 targets = [{
         "index" : 0,
         "name" : "blaz",
@@ -350,6 +350,18 @@ targets = [{
         "name" : "shapes1",
         "scale" : 20,
         "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 8,
+        "name" : "dagli_clus",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },{
+        "index" : 9,
+        "name" : "jakobs1_clus",
+        "scale" : 20,
+        "allowed_rotation": 4,
         "width": 800
     }]
 

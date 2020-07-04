@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(50) # 获得全部
+        self.initialProblem(41) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -43,6 +43,7 @@ class GSMPD(object):
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
         # self.showPolys()
+        # print(len(self.polys))
         self.main()
 
     def main(self):
@@ -109,7 +110,7 @@ class GSMPD(object):
                 if cur_pd < bias: # 如果没有重叠就直接退出
                     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
-                sub_best=[]
+                sub_best = []
                 for ori in self.allowed_rotation: # 测试全部的方向
                     min_pd,best_pt,sub_min_pd,sub_best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
                     sub_best.append([sub_min_pd,sub_best_pt,ori])
