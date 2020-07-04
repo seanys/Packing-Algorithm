@@ -71,6 +71,12 @@ class GeometryAssistant(object):
         return new_vertex
 
     @staticmethod
+    def normData(poly,num):
+        for ver in poly:
+            ver[0]=ver[0]*num
+            ver[1]=ver[1]*num
+
+    @staticmethod
     def slidePoly(poly,x,y):
         '''将对象平移'''
         for point in poly:

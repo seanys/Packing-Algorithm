@@ -21,7 +21,7 @@ import operator
 import multiprocessing
 
 bias = 0.5
-max_overlap = 2.5
+max_overlap = 5
 
 class GSMPD(object):
     """
@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(71) # 获得全部
+        self.initialProblem(66) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0

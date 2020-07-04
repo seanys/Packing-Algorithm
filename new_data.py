@@ -17,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "jakobs2_clus"
-        self.min_angle = 90
-        self.zoom = 10
+        self.set_name = "swim_clus"
+        self.min_angle = 180
+        self.zoom = 0.2
         self.orientation()
-        # self.main()
+        self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -253,13 +253,6 @@ class ReverseFunction(object):
             new_polys.append(polys[i])
             i = i - 1
         return new_polys
-
-def testCPlusResult():
-    fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/c_test.csv")
-    _len = fu.shape[0]
-    for i in range(_len):
-        PltFunc.addPolygon(json.loads(fu["polygon"][i]))
-    PltFunc.showPlt()
 
 def showLPResult():
     fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv")
