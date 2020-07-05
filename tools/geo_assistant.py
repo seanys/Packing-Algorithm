@@ -71,6 +71,12 @@ class GeometryAssistant(object):
         return new_vertex
 
     @staticmethod
+    def normData(poly,num):
+        for ver in poly:
+            ver[0]=ver[0]*num
+            ver[1]=ver[1]*num
+
+    @staticmethod
     def slidePoly(poly,x,y):
         '''将对象平移'''
         for point in poly:
@@ -115,9 +121,9 @@ class GeometryAssistant(object):
     def getBottomPoint(poly):
         bottom_pt,min_y=[],999999999
         for pt in poly:
-            if pt[1]<min_y:
-                min_y=pt[1]
-                bottom_pt=[pt[0],pt[1]]
+            if pt[1] < min_y:
+                min_y = pt[1]
+                bottom_pt = [pt[0],pt[1]]
         return bottom_pt
 
     @staticmethod

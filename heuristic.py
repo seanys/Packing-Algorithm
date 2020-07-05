@@ -45,7 +45,8 @@ class BottomLeftFill(object):
         for i in range(1,len(self.polygons)):
             print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
-        
+            # self.showAll()
+
         self.getLength()
         print(self.polygons)
         # self.showAll()
@@ -288,7 +289,6 @@ class newNFPAssistant(object):
         i,j = self.judgeType(main),self.judgeType(adjoin)
         row = self.all_polys.shape[0]*self.allowed_rotation*self.allowed_rotation*i + self.allowed_rotation*self.allowed_rotation*j + self.allowed_rotation*0 + 1*0
         bottom_pt = GeometryAssistant.getBottomPoint(main)
-        # print(row)
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return nfp 
 
@@ -297,12 +297,13 @@ class newNFPAssistant(object):
         area = int(Polygon(poly).area)
         # print(area)
         for i in range(self.all_polys.shape[0]):
-            test_poly_area = Polygon(json.loads(self.all_polys["o_0"][i])).area
-            # print(test_poly_area)
-            if abs(test_poly_area - area) < 2:
+            new_poly = json.loads(self.all_polys["o_0"][i])
+            test_poly_area = Polygon(new_poly).area
+            if abs(test_poly_area - area) < 2 and abs((new_poly[1][0] - new_poly[0][0]) - (poly[1][0] - poly[0][0])) < 2:
                 return i
+        print("NFP错误")
     
-index = 1
+index = 11
 targets = [{
         "index" : 0,
         "name" : "blaz",
@@ -351,6 +352,30 @@ targets = [{
         "scale" : 20,
         "allowed_rotation": 2,
         "width": 800
+    },{
+        "index" : 8,
+        "name" : "dagli_clus",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },{
+        "index" : 9,
+        "name" : "jakobs1_clus",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 800
+    },{
+        "index" : 10,
+        "name" : "trousers",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 790
+    },{
+        "index" : 11,
+        "name" : "jakobs2_clus",
+        "scale" : 10,
+        "allowed_rotation": 4,
+        "width": 700
     }]
 
 def getDataNew():

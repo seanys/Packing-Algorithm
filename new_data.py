@@ -17,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "dagli"
+        self.set_name = "swim_clus"
         self.min_angle = 180
-        self.zoom = 0.4
-        # self.orientation()
-        # self.main()
+        self.zoom = 0.2
+        self.orientation()
+        self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -31,7 +31,7 @@ class PreProccess(object):
         with open("data/" + self.set_name + "_orientation.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
-                Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
+                Poly_i = Polygon(self.normData(json.loads(fu["polygon"][i])))
                 all_poly=[]
                 for oi in rotation_range:
                     all_poly.append(self.rotation(Poly_i,oi,min_angle))
@@ -45,15 +45,15 @@ class PreProccess(object):
         with open("data/" + self.set_name + "_nfp.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             for i in range(_len):
-                Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i])))
+                Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i]))) # 固定形状
                 for j in range(_len):
-                    Poly_j=Polygon(self.normData(json.loads(fu["polygon"][j])))
+                    Poly_j=Polygon(self.normData(json.loads(fu["polygon"][j]))) # 移动的形状
                     for oi in rotation_range:
                         new_poly_i=self.rotation(Poly_i,oi,min_angle)
                         self.slideToOrigin(new_poly_i)
                         for oj in rotation_range:
                             print(i,j,oi,oj)
-                            new_poly_j=self.rotation(Poly_j,oj,min_angle)
+                            new_poly_j = self.rotation(Poly_j,oj,min_angle) 
                             nfp = NFP(new_poly_i,new_poly_j)
                             new_nfp = LPAssistant.deleteOnline(nfp.nfp)
                             convex_status = self.getConvexStatus(new_nfp)
@@ -95,11 +95,11 @@ class PreProccess(object):
         return [new_x,new_y]
 
     def slideToOrigin(self,poly):
-        bottom_pt,min_y=[],999999999
+        bottom_pt,min_y = [],999999999
         for pt in poly:
-            if pt[1]<min_y:
-                min_y=pt[1]
-                bottom_pt=[pt[0],pt[1]]
+            if pt[1] < min_y:
+                min_y = pt[1]
+                bottom_pt = [pt[0],pt[1]]
         GeoFunc.slidePoly(poly,-bottom_pt[0],-bottom_pt[1])
 
     def normData(self,poly):
@@ -254,13 +254,6 @@ class ReverseFunction(object):
             i = i - 1
         return new_polys
 
-def testCPlusResult():
-    fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/data/c_test.csv")
-    _len = fu.shape[0]
-    for i in range(_len):
-        PltFunc.addPolygon(json.loads(fu["polygon"][i]))
-    PltFunc.showPlt()
-
 def showLPResult():
     fu = pd.read_csv("/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv")
     _len = fu.shape[0]
@@ -299,14 +292,29 @@ def cluster():
     PltFunc.showPlt()
     # print(_arr)
 
+def removeOverlap():
+    _input = pd.read_csv("record/lp_initial.csv")
+    polys = json.loads(_input["polys"][73])
+    GeoFunc.slidePoly(polys[20],0,499.77968278349886-496.609895730301)
+    GeoFunc.slidePoly(polys[5],5,0)
+    PltFunc.addPolygon(polys[20])
+    PltFunc.addPolygon(polys[8])
+    PltFunc.addPolygon(polys[5])
+    
+    print(polys[8])
+    print(polys[20])
+    PltFunc.showPlt()
+    # PltFunc.showPolys(polys)
+
 
 if __name__ == '__main__':
+    removeOverlap()
     # cluster()
     # initialResult(getData())
     # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
     # ReverseFunction()
     # testCPlusResult()
     # showLPResult()
-    PreProccess()
+    # PreProccess()
     # ReverseFunction()
     # print([i for i in range(16)])
