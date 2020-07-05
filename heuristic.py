@@ -376,6 +376,12 @@ targets = [{
         "scale" : 10,
         "allowed_rotation": 4,
         "width": 700
+    },{
+        "index" : 12,
+        "name" : "swim_clus",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 1150.4
     }]
 
 def getDataNew():
@@ -407,10 +413,10 @@ if __name__=='__main__':
     # 计算NFP时间
     # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
-    nfp_ass = newNFPAssistant(targets[index]["name"],allowed_rotation=targets[index]["allowed_rotation"])
+    nfp_ass = newNFPAssistant(targets[index]["name"], allowed_rotation = targets[index]["allowed_rotation"])
     
     # nfp_ass.getDirectNFP(polys[10],polys[12])
 
-    bfl = BottomLeftFill(targets[index]["width"],polys,vertical=False,NFPAssistant=nfp_ass)
+    bfl = BottomLeftFill(targets[index]["width"], polys, vertical=False, NFPAssistant=nfp_ass)
 
     bfl.showAll()

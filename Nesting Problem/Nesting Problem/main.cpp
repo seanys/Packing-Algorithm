@@ -16,6 +16,7 @@
 #include <algorithm>
 
 
+
 class LPSearch{
 protected:
     VectorPoints cur_ifr; // 获得当前的IFR
@@ -41,7 +42,7 @@ protected:
     vector<vector <VectorPoints>> all_polygons; // 全部形状的加载
     
     int choosed_index; // 当前选择的index
-        
+    
     NFPAssistant *nfp_assistant; // NFP辅助操作
     
     vector<list<Polygon>> nfp_sub_ifr; // 除去IFR后的NFP，全部存为Vector<VectorPoints>（计算相交情况）

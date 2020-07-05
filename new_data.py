@@ -17,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "swim_clus"
-        self.min_angle = 180
-        self.zoom = 0.2
+        self.set_name = "jakobs2_clus"
+        self.min_angle = 90
+        self.zoom = 10
         self.orientation()
-        self.main()
+        # self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -34,7 +34,12 @@ class PreProccess(object):
                 Poly_i = Polygon(self.normData(json.loads(fu["polygon"][i])))
                 all_poly=[]
                 for oi in rotation_range:
-                    all_poly.append(self.rotation(Poly_i,oi,min_angle))
+                    new_Poly_i = self.newRotation(Poly_i,oi,min_angle)
+                    new_poly_i = self.getPoint(new_Poly_i)
+                    all_poly.append(new_poly_i)
+                    x0, y0 = new_poly_i[0][0], new_poly_i[0][1] # 第一个点
+                    min_x, min_y, max_x, max_y = new_Poly_i.bounds
+                    all_poly.append([min_x - x0, min_y - y0, max_x - x0, max_y - y0])
                 writer.writerows([all_poly])
 
     def main(self):
@@ -109,15 +114,21 @@ class PreProccess(object):
         return new_poly
 
     def rotation(self,Poly,orientation,min_angle):
-        if orientation==0:
+        if orientation == 0:
             return self.getPoint(Poly)
-        new_Poly=affinity.rotate(Poly,min_angle*orientation)
+        new_Poly = affinity.rotate(Poly,min_angle*orientation)
         return self.getPoint(new_Poly)
-    
+
+    def newRotation(self,Poly,orientation,min_angle):
+        if orientation == 0:
+            return Poly
+        new_Poly = affinity.rotate(Poly,min_angle*orientation)
+        return new_Poly
+
     def getPoint(self,shapely_object):
-        mapping_res=mapping(shapely_object)
-        coordinates=mapping_res["coordinates"][0]
-        new_poly=[]
+        mapping_res = mapping(shapely_object)
+        coordinates = mapping_res["coordinates"][0]
+        new_poly = []
         for pt in coordinates:
             new_poly.append([pt[0],pt[1]])
         return new_poly
@@ -308,13 +319,13 @@ def removeOverlap():
 
 
 if __name__ == '__main__':
-    removeOverlap()
+    # removeOverlap()
     # cluster()
     # initialResult(getData())
     # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
     # ReverseFunction()
     # testCPlusResult()
     # showLPResult()
-    # PreProccess()
+    PreProccess()
     # ReverseFunction()
     # print([i for i in range(16)])

@@ -35,16 +35,16 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(73) # 获得全部
+        self.initialProblem(54) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
-        # self.showPolys()
+        self.showPolys()
         # print(len(self.polys))
-        self.main()
+        # self.main()
 
     def main(self):
         '''核心算法部分'''
@@ -196,15 +196,8 @@ class GSMPD(object):
             random_index = random.randint(0, len(potential_points) - 1)
             return 0,potential_points[random_index],0,potential_points[random_index]
         
-        # print(i)
-        # if i == 2 or i == 3:
-        #     PltFunc.addPolygonColor(basic_nfps[9])
-        #     PltFunc.addPolygon(self.polys[9])
-        #     PltFunc.addPolygon(self.polys[i])
-        #     PltFunc.showPlt(height=2500,width=2500)
-        
         '''计算各个阶段的NFP情况'''
-        all_pt_neighbors = self.getPtNegibors(cutted_NFPs,i) # 获得邻接NFP和交集
+        all_pt_neighbors = self.getPtNeighbors(cutted_NFPs,i) # 获得邻接NFP和交集
         min_pd,best_pt = 99999999999,[]
         pd_list=[] # 记录所有的位置
         for k,pt_neighbors in enumerate(all_pt_neighbors):
@@ -224,7 +217,7 @@ class GSMPD(object):
 
         return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和次优位置
 
-    def getPtNegibors(self, NFPs, index):
+    def getPtNeighbors(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''
         all_search_targets,nfp_neighbor = [],[[w] for w in range(len(NFPs))] # 全部的点及其对应区域，NFP的邻接多边形
         # 计算两两之间的情况
@@ -430,7 +423,7 @@ class GSMPD(object):
         self.width = _input["width"][index]
         self.bias = _input["bias"][index]
         self.max_overlap = _input["max_overlap"][index]
-        self.allowed_rotation = json.loads(_input["allow_rotation"][index])
+        self.allowed_rotation = json.loads(_input["allowed_rotation"][index])
         self.total_area = _input["total_area"][index]
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
         self.polys_type = json.loads(_input["polys_type"][index]) # 记录全部形状的种类
