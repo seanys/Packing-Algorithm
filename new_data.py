@@ -292,14 +292,29 @@ def cluster():
     PltFunc.showPlt()
     # print(_arr)
 
+def removeOverlap():
+    _input = pd.read_csv("record/lp_initial.csv")
+    polys = json.loads(_input["polys"][73])
+    GeoFunc.slidePoly(polys[20],0,499.77968278349886-496.609895730301)
+    GeoFunc.slidePoly(polys[5],5,0)
+    PltFunc.addPolygon(polys[20])
+    PltFunc.addPolygon(polys[8])
+    PltFunc.addPolygon(polys[5])
+    
+    print(polys[8])
+    print(polys[20])
+    PltFunc.showPlt()
+    # PltFunc.showPolys(polys)
+
 
 if __name__ == '__main__':
+    removeOverlap()
     # cluster()
     # initialResult(getData())
     # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
     # ReverseFunction()
     # testCPlusResult()
     # showLPResult()
-    PreProccess()
+    # PreProccess()
     # ReverseFunction()
     # print([i for i in range(16)])

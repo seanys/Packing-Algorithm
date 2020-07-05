@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(66) # 获得全部
+        self.initialProblem(73) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -107,7 +107,7 @@ class GSMPD(object):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
                 cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
-                if cur_pd < bias: # 如果没有重叠就直接退出
+                if cur_pd < self.bias: # 如果没有重叠就直接退出
                     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
                 sub_best = []
@@ -146,7 +146,7 @@ class GSMPD(object):
                 return
             # self.showPolys()
             total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
-            if total_pd < max_overlap:
+            if total_pd < self.max_overlap:
                 self.outputWarning("结果可行")                
                 return True
             elif total_pd < Fitness:
@@ -191,7 +191,7 @@ class GSMPD(object):
             cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
 
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
-        if feasible_IFR.area > bias:
+        if feasible_IFR.area > self.bias:
             potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
             random_index = random.randint(0, len(potential_points) - 1)
             return 0,potential_points[random_index],0,potential_points[random_index]
@@ -332,7 +332,7 @@ class GSMPD(object):
             pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
             if  pd < min_pd:
                 min_pd,min_edge,final_foot_pt = pd,copy.deepcopy(edge),copy.deepcopy(foot_pt)
-                if min_pd < bias:
+                if min_pd < self.bias:
                     min_pd = 0
                     break
         return min_pd
@@ -428,6 +428,8 @@ class GSMPD(object):
         _input = pd.read_csv("record/lp_initial.csv")
         self.set_name = _input["set_name"][index]
         self.width = _input["width"][index]
+        self.bias = _input["bias"][index]
+        self.max_overlap = _input["max_overlap"][index]
         self.allowed_rotation = json.loads(_input["allow_rotation"][index])
         self.total_area = _input["total_area"][index]
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
