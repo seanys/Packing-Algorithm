@@ -21,7 +21,7 @@ import operator
 import multiprocessing
 
 bias = 0.5
-max_overlap = 2
+max_overlap = 1
 
 class GSMPD(object):
     """
