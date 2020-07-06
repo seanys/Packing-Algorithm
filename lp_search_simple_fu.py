@@ -20,8 +20,8 @@ import numpy as np
 import operator
 import multiprocessing
 
-bias = 0.0000001
-max_overlap = 5
+bias = 0.5
+max_overlap = 1
 
 class GSMPD(object):
     """
@@ -35,21 +35,18 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(24) # 获得全部
+        self.initialProblem(76) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
-        self.TEST_MODEL = True
-        self.chaos = False
+        self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
-        # self.showPolys()
         self.main()
 
     def main(self):
         '''核心算法部分'''
-        self.cur_length=600
-        _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
+        _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))  
         self.outputAttention(_str)
         # self.showPolys()
         # return 
@@ -63,9 +60,8 @@ class GSMPD(object):
         while time.time() - self.start_time < max_time:
             self.intialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            self.showPolys(saving=True)
-            self.chaos=False
             if feasible == True:
+                self.showPolys(saving=True)
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
                 self.outputInfo(_str)
@@ -79,90 +75,74 @@ class GSMPD(object):
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 self.outputWarning("结果不可行，重新进行检索")
+                self.polys=copy.deepcopy(self.best_polys)
+                self.orientation=copy.deepcopy(self.best_oris)
+                self.showPolys(saving=True)
                 with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
                 if search_status == 1:
-                    self.shrinkBorder()
+                    self.extendBorder()
                     search_status = 0
                 else:
                     self.extendBorder() # 扩大边界并进行下一次检索
-                    search_status = 1    
+                    search_status = 1   
             if self.total_area/(self.best_length*self.width) > 0.99:
                 break
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
         self.miu = [[1]*len(self.polys) for _ in range(len(self.polys))] # 计算重叠权重调整（每次都会更新）
-        N,it = 50,0 # 记录计算次数
+        N,it = 200,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 1
         unchange_times,last_pd = 0,0
-        if random.random()<0.1:
-            self.chaos=True
-            self.outputWarning('进入混乱模式')
         while it < N:
             print("第",it,"轮")
             permutation = np.arange(len(self.polys))
             np.random.shuffle(permutation)
             # print(permutation)
-            permutation = [j for j in range(len(self.polys))]
+            # permutation = [j for j in range(len(self.polys))]
             for i in range(len(self.polys)):
-                choose_index = permutation[i] if not self.TEST_MODEL else 1
+                choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
                 cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
-                if cur_pd < bias: # 如果没有重叠就直接退出
-                    continue
+                # if cur_pd < bias: # 如果没有重叠就直接退出
+                #     continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
-                sub_best=[]
                 for ori in self.allowed_rotation: # 测试全部的方向
-                    min_pd,best_pt,sub_min_pd,sub_best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
-                    sub_best.append([sub_min_pd,sub_best_pt,ori])
-                    if min_pd < final_pd:
+                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
+                    if min_pd <= final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
-                if self.chaos==False and final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置:",cur_pd,"->",final_pd)
-                    # if i >= 2 and i <= 3:
-                    # self.showPolys(self.polys[choose_index])
+                if not (top_pt[0]==final_pt[0] and top_pt[1]==final_pt[1]): # 更新最佳情况
+                    print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                    # if i >= 2 and i <= 3:
-                    # self.showPolys(self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
-                    '''有一定概率进入混乱模式'''
-                    if self.chaos:
-                        sub_best.sort(key=lambda x:x[0])
-                        final_pd=sub_best[0][0]
-                        delta_pd=cur_pd-final_pd
-                        print(choose_index,"移至最差位置",cur_pd,"->",final_pd)
-                        final_ori=sub_best[0][2]
-                        final_pt=sub_best[0][1]
-                        self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
-                        GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                        self.orientation[choose_index] = final_ori # 更新方向
-                        self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
-                    else:
-                        print(choose_index,"未寻找到更优位置")
-                        pass
+                    print(choose_index,"未寻找到更优位置")
+                    pass
             if self.TEST_MODEL == True: # 测试模式
                 return
-            total_pd,max_pair_pd = self.getPDStatus() # 获得当前的PD情况
+            # self.showPolys()
+            total_pd,max_pair_pd,miu_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < max_overlap:
                 self.outputWarning("结果可行")                
                 return True
-            elif total_pd < Fitness:
-                Fitness = total_pd
+            elif miu_pd < Fitness:
+                Fitness = miu_pd
                 it = 0
-                _str = "更新最少重叠:" + str(total_pd)
+                _str = "更新最少重叠(miu):" + str(miu_pd)
                 self.outputAttention(_str)
+                self.best_polys=copy.deepcopy(self.polys)
+                self.best_oris=copy.deepcopy(self.orientation)
 
             self.updateMiu(max_pair_pd) # 更新参数
             it = it + 1 # 更新计数次数
 
-            _str = "当前全部重叠:" + str(total_pd)
+            _str = "当前全部重叠(miu):" + str(miu_pd)
             self.outputInfo(_str) # 输出当前重叠情况
 
             # if total_pd == last_pd:
@@ -196,9 +176,10 @@ class GSMPD(object):
 
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
-            potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
+            #potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
+            potential_points=ifr
             random_index = random.randint(0, len(potential_points) - 1)
-            return 0,potential_points[random_index],0,potential_points[random_index]
+            return 0,potential_points[random_index]
         
         # print(i)
         # if i == 2 or i == 3:
@@ -206,26 +187,29 @@ class GSMPD(object):
         #     PltFunc.addPolygon(self.polys[9])
         #     PltFunc.addPolygon(self.polys[i])
         #     PltFunc.showPlt(height=2500,width=2500)
-        
         '''计算各个阶段的NFP情况'''
         all_pt_neighbors = self.getPtNegibors(cutted_NFPs,i) # 获得邻接NFP和交集
-        min_pd,best_pt = 99999999999,[]
-        pd_list=[] # 记录所有的位置
+        min_pd,best_ifr_x,best_ifr_y,best_pt= 99999999999,99999999999,99999999999,[]
         for k,pt_neighbors in enumerate(all_pt_neighbors):
             total_pd = 0
             # 逐一判断与多边形的交集情况
+            # for j in range(len(self.polys)):
             for j in pt_neighbors[2]:
                 if Polygon(basic_nfps[j]).contains(Point([pt_neighbors[0],pt_neighbors[1]])) == True:
                     pd = self.getNonConvexPtPD([pt_neighbors[0],pt_neighbors[1]],i,j,oi,self.orientation[j])
                     total_pd = total_pd + pd * self.miu[i][j]
-            best_pt = [pt_neighbors[0],pt_neighbors[1]]
-            pd_list.append([total_pd,best_pt])
-
-        pd_list.sort(key = lambda x:x[0]) # 排序
-        min_pd,sub_min_pd = pd_list[0][0],pd_list[len(pd_list)-1][0]
-        best_pt,sub_best_pt = pd_list[0][1],pd_list[len(pd_list)-1][1]
-        print(min_pd,best_pt)
-        return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和最差位置
+            ifr_x=pt_neighbors[0]-ifr[0][0]
+            ifr_y=min(ifr[2][1]-pt_neighbors[1],pt_neighbors[1]-ifr[0][1])
+            if total_pd<min_pd or (total_pd==min_pd and (ifr_x<best_ifr_x or (ifr_x==best_ifr_x and ifr_y<best_ifr_y))):
+                min_pd=total_pd
+                best_ifr_x=ifr_x
+                best_ifr_y=ifr_y
+                best_pt = [pt_neighbors[0],pt_neighbors[1]]
+        # pd_list.sort(key = lambda x:x[0]) # 排序
+        # min_pd,sub_min_pd = pd_list[0][0],pd_list[1][0]
+        # best_pt,sub_best_pt = pd_list[0][1],pd_list[1][1]
+        # return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和次优位置
+        return min_pd,best_pt
 
     def getPtNegibors(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''
@@ -283,16 +267,18 @@ class GSMPD(object):
                 continue
             pd = self.getPolysPD(choose_index,i)
             self.pair_pd_record[i][choose_index],self.pair_pd_record[choose_index][i] = pd,pd # 更新对应的pd
+            # print(self.pair_pd_record[i])
 
     def getPDStatus(self):
         '''获得当前的最佳情况'''
-        total_pd,max_pair_pd = 0,0
+        total_pd,max_pair_pd,miu_pd = 0,0,0
         for i in range(len(self.polys)-1):
             for j in range(i+1,len(self.polys)):
                 total_pd = total_pd + self.pair_pd_record[i][j]
+                miu_pd=miu_pd+self.pair_pd_record[i][j]*self.miu[i][j]
                 if self.pair_pd_record[i][j] > max_pair_pd:
                     max_pair_pd = self.pair_pd_record[i][j]
-        return total_pd,max_pair_pd
+        return total_pd,max_pair_pd,miu_pd
 
     def intialPairPD(self):
         '''获得当前全部形状间的PD，无需调整'''
@@ -311,6 +297,34 @@ class GSMPD(object):
         else:
             return 0
 
+    def getNonConvexPtPD(self,pt,i,j,oi,oj):
+        '''考虑凹点的PD计算'''
+        convex_status = self.getConexStatus(i, j, oi, oj)
+        nfp = self.getNFP(i, j, oi, oj)
+        min_pd = self.getPtNFPPD(pt,nfp) # 获得所有边的情况
+        for k,nfp_pt in enumerate(nfp):
+            if convex_status[k] == 0:
+                non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
+                if non_convex_pd < min_pd:
+                    min_pd = non_convex_pd
+        return min_pd
+
+    def getPtNFPPD(self, pt, nfp):
+        '''根据顶点和nfp计算PD，仅仅考虑边'''
+        min_pd,min_edge,final_foot_pt = 999999999999,[],[]
+        edges = GeometryAssistant.getPolyEdges(nfp)
+        for edge in edges:
+            foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
+            if foot_pt[0] < min(edge[0][0],edge[1][0]) or foot_pt[0] > max(edge[0][0],edge[1][0]) or foot_pt[1] < min(edge[0][1],edge[1][1]) or foot_pt[1] > max(edge[0][1],edge[1][1]):
+                continue # 垂足不在直线上
+            pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
+            if  pd < min_pd:
+                min_pd,min_edge,final_foot_pt = pd,copy.deepcopy(edge),copy.deepcopy(foot_pt)
+                if min_pd < bias:
+                    min_pd = 0
+                    break
+        return min_pd
+
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
         row = self.computeRow(i, j, oi, oj)
@@ -319,8 +333,6 @@ class GSMPD(object):
         return nfp
 
     def getConexStatus(self, i, j, oi, oj):
-        if self.set_name=='fu':
-            return np.ones(12)
         return json.loads(self.all_nfps["convex_status"][self.computeRow(i, j, oi, oj)])
 
     def getVerticalDirection(self, i, j, oi, oj):
@@ -335,34 +347,6 @@ class GSMPD(object):
         for j in range(len(self.polys)):
             total_pd = total_pd + self.pair_pd_record[i][j]*self.miu[i][j] # 计算PD，比较简单
         return total_pd
-    
-    def getNonConvexPtPD(self,pt,i,j,oi,oj):
-        '''考虑凹点的PD计算'''
-        convex_status = self.getConexStatus(i, j, oi, oj)
-        nfp = self.getNFP(i, j, oi, oj)
-        min_pd = self.getPtNFPPD(pt,nfp) # 获得所有边的情况
-        # for k,nfp_pt in enumerate(nfp):
-        #     if convex_status[k] == 0:
-        #         non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
-        #         if non_convex_pd < min_pd:
-        #             min_pd = non_convex_pd
-        return min_pd
-
-    def getPtNFPPD(self, pt, nfp):
-        '''根据顶点和nfp计算PD，仅仅考虑边'''
-        min_pd,min_edge = 999999999999,[]
-        edges = GeometryAssistant.getPolyEdges(nfp)
-        for edge in edges:
-            foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
-            if foot_pt[0] < min(edge[0][0],edge[1][0]) or foot_pt[0] > max(edge[0][0],edge[1][0]):
-                continue # 垂足不在直线上
-            pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
-            if  pd < min_pd:
-                min_pd,min_edge = pd,copy.deepcopy(edge)
-                if min_pd < bias:
-                    min_pd = 0
-                    break
-        return min_pd
 
     def updateMiu(self,max_pair_pd):
         """寻找到更优位置之后更新"""
@@ -404,7 +388,7 @@ class GSMPD(object):
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
         # 收缩边界宽度
-        self.cur_length = self.best_length*(1 - self.ration_dec)
+        self.cur_length = self.cur_length*(1 - self.ration_dec)
         # 如果超过了100%就定位100%
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
@@ -419,7 +403,7 @@ class GSMPD(object):
     
     def extendBorder(self):
         '''扩大边界'''
-        self.cur_length = self.best_length*(1 + self.ration_inc)
+        self.cur_length = self.cur_length*(1 + self.ration_inc)
 
     def getPolygon(self, index, orientation):
         '''获得某个形状'''
@@ -430,7 +414,7 @@ class GSMPD(object):
         _input = pd.read_csv("record/lp_initial.csv")
         self.set_name = _input["set_name"][index]
         self.width = _input["width"][index]
-        self.allowed_rotation = json.loads(_input["allow_rotation"][index])
+        self.allowed_rotation = json.loads(_input["allowed_rotation"][index])
         self.total_area = _input["total_area"][index]
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
         self.polys_type = json.loads(_input["polys_type"][index]) # 记录全部形状的种类
@@ -454,7 +438,7 @@ class GSMPD(object):
             self.all_polygons.append(polygons)
         self.all_nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv") # 获得NFP
 
-    def showPolys(self,saving=False,coloring=None):
+    def showPolys(self,saving = False, coloring = None):
         '''展示全部形状以及边框'''
         for poly in self.polys:
             if coloring != None and poly == coloring:
@@ -463,25 +447,24 @@ class GSMPD(object):
                 PltFunc.addPolygon(poly)
         PltFunc.addPolygonColor([[0,0], [self.cur_length,0], [self.cur_length,self.width], [0,self.width]])
         if saving:
-            PltFunc.saveFig('figs/LP_Search/{}.png'.format(str(time.time())))
+            PltFunc.saveFig('figs/LP_Search/{}.png'.format(str(time.strftime("%H:%M:%S", time.localtime()))))
         else:
             PltFunc.showPlt(width=1500, height=1500)
         # PltFunc.showPlt(width=2500, height=2500)
-        
 
     def outputWarning(self,_str):
         '''输出红色字体'''
-        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
+        _str = self.set_name + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;31m",_str,"\033[0m")
 
     def outputAttention(self,_str):
         '''输出绿色字体'''
-        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
+        _str = self.set_name + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;32m",_str,"\033[0m")
 
     def outputInfo(self,_str):
         '''输出浅黄色字体'''
-        _str = str(time.strftime("%H:%M:%S", time.localtime())) + " " + _str
+        _str = self.set_name + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;33m",_str,"\033[0m")
 
 if __name__=='__main__':
