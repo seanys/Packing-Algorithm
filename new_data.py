@@ -37,9 +37,9 @@ class PreProccess(object):
                     new_Poly_i = self.newRotation(Poly_i,oi,min_angle)
                     new_poly_i = self.getPoint(new_Poly_i)
                     all_poly.append(new_poly_i)
-                    x0, y0 = new_poly_i[0][0], new_poly_i[0][1] # 第一个点
-                    min_x, min_y, max_x, max_y = new_Poly_i.bounds
-                    all_poly.append([min_x - x0, min_y - y0, max_x - x0, max_y - y0])
+                    # x0, y0 = new_poly_i[0][0], new_poly_i[0][1] # 第一个点
+                    # min_x, min_y, max_x, max_y = new_Poly_i.bounds
+                    # all_poly.append([min_x - x0, min_y - y0, max_x - x0, max_y - y0])
                 writer.writerows([all_poly])
 
     def main(self):
@@ -317,8 +317,29 @@ def removeOverlap():
     PltFunc.showPlt()
     # PltFunc.showPolys(polys)
 
+def addBound():
+    data = pd.read_csv("data/fu_nfp.csv")
+    with open("data/new_fu_nfp.csv","a+") as csvfile:
+        writer = csv.writer(csvfile)
+        for row in range(data.shape[0]):
+        # for row in range(500,550):
+            nfp = json.loads(data["nfp"][row])
+            first_pt = nfp[0]
+            new_NFP = Polygon(nfp)
+            bound = new_NFP.bounds
+            bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
+            vertical_direction = json.loads(data["vertical_direction"][row])
+            new_vertical_direction = []
+            for item in vertical_direction:
+                if item == []:
+                    new_vertical_direction.append([[],[]])
+                else:
+                    new_vertical_direction.append(item)
+            writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),new_vertical_direction,bound]])
+ 
 
 if __name__ == '__main__':
+    addBound()
     # removeOverlap()
     # cluster()
     # initialResult(getData())
@@ -326,6 +347,6 @@ if __name__ == '__main__':
     # ReverseFunction()
     # testCPlusResult()
     # showLPResult()
-    PreProccess()
+    # PreProccess()
     # ReverseFunction()
     # print([i for i in range(16)])

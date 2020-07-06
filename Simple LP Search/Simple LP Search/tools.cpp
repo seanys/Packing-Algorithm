@@ -136,6 +136,17 @@ public:
             old_list.push_back(item);
         }
     };
+    // 初始化一个多维向量
+    static void initial3DVector(int _size, double target_val, vector<vector<double>> &target_list){
+        target_list.clear(); // 部分情况下是不一定为空的
+        for(int i = 0; i < _size; i++){
+            target_list.push_back({});
+            for(int j = 0; j < _size; j++){
+                target_list[i].push_back(target_val);
+            }
+        }
+    };
+    
 };
 
 /*
@@ -268,12 +279,12 @@ public:
     // 移动多边形到某个位置（参考点）
     static void slideToPosition(Polygon &polygon,vector<double> target_pt){
         vector<double> refer_pt;
-        getReferPt(polygon,refer_pt);
-        double delta_x=target_pt[0]-refer_pt[0];
-        double delta_y=target_pt[1]-refer_pt[1];
+        getTopPt(polygon,refer_pt);
+        double delta_x = target_pt[0]-refer_pt[0];
+        double delta_y = target_pt[1]-refer_pt[1];
         for(int i=0;i<polygon.size();i++){
-            polygon[i][0]=polygon[i][0]+delta_x;
-            polygon[i][1]=polygon[i][1]+delta_y;
+            polygon[i][0] = polygon[i][0] + delta_x;
+            polygon[i][1] = polygon[i][1] + delta_y;
         }
     };
     // 获得多边形的所有的边界情况min_x min_y max_x max_y
@@ -304,13 +315,13 @@ public:
         }
     };
     // 获得多边形参考点
-    static void getReferPt(Polygon polygon,vector<double> &refer_pt){
+    static void getTopPt(Polygon polygon,vector<double> &refer_pt){
         refer_pt={0,-9999999999};
         int poly_size=(int)polygon.size();
         for(int i=poly_size-1;i>=0;i--){
-            if(polygon[i][1]>refer_pt[1]){
-                refer_pt[0]=polygon[i][0];
-                refer_pt[1]=polygon[i][1];
+            if(polygon[i][1] > refer_pt[1]){
+                refer_pt[0] = polygon[i][0];
+                refer_pt[1] = polygon[i][1];
             }
         }
     };
@@ -370,6 +381,16 @@ public:
             }
         }
         return length;
+    };
+    // 获得全部的边（从头到尾）
+    static void getPolyEdges(Polygon poly, vector<Polygon> &all_edges){
+        int pt_num = (int)poly.size();
+        for(int i = 0; i < pt_num - 1; i++){
+            all_edges.push_back({poly[i],poly[i+1]});
+        }
+        if(poly[0][0] != poly[pt_num-1][0] || poly[0][1] != poly[pt_num-1][1]){
+            all_edges.push_back({poly[pt_num-1],poly[0]});
+        }
     }
 };
 

@@ -37,8 +37,8 @@ protected:
     vector<vector<int>> polys_type; // 当前形状的类别
     
     vector<vector<Polygon>> all_polygons; // 全部的形状
-    vector<vector<vector<double>>> all_bounds; // 全部的边界情况
     
+    vector<vector<double>> all_bounds; // 全部的边界情况
     vector<Polygon> all_nfps; // 全部的nfp，通过row访问
     vector<vector<double>> all_convex_status; // 全部的凹集状态
     vector<vector<vector<double>>> all_vertical_direction; // 全部凹集处的垂线
@@ -48,7 +48,7 @@ protected:
     
     string root_path = "/Users/sean/Documents/Projects/Packing-Algorithm/data/"; // 数据根目录
     
-    int target_line = 70; // 目标的lp_initial的函数
+    int target_line = 24; // 目标的lp_initial的函数
 public:
     LPSearch(){
         initialProblem();
@@ -70,20 +70,54 @@ public:
     }
     // 更新某个形状对应的PD（平移后更新）
     void updatePD(int choose_index){
-        
+        for(int i = 0; i < poly_num; i++){
+            if(i == choose_index){
+                continue;
+            }
+            double pd = getPolysPD(choose_index, i);
+            pair_pd_record[i][choose_index] = pd;
+            pair_pd_record[choose_index][i] = pd;
+        }
     };
     // 获得当前的全部PD和最大的PD
     void getPDStatus(double &total_pd, double &max_pair_pd){
-        
+        total_pd = 0; max_pair_pd = 0;
+        for(int i = 0; i < poly_num - 1; i++){
+            for(int j = i + 1; j < poly_num; j++){
+                total_pd = total_pd + pair_pd_record[i][j];
+                if(pair_pd_record[i][j] > max_pair_pd){
+                    max_pair_pd = pair_pd_record[i][j];
+                }
+            }
+        }
     }
-    // 初始化全部的PD
-    void intialPairPD(){
-        
-    };
     // 获得当前两两形状的PD
     double getPolysPD(int i, int j){
-        double pd = 0;
+        // 获得基础的模型
+        Polygon nfp;
+        vector<double> top_pt,bounds;
+        vector<Polygon> all_edges;
+        PackingAssistant::getTopPt(polys[i], top_pt);
+        getNFPBounds(i, j, orientation[i], orientation[j], nfp,bounds);
+        PackingAssistant::getPolyEdges(nfp,all_edges);
+        // 判断是否在边界内
         
+        // 遍历全部的边计算左右侧及距离
+        double pd = 0;
+        for(auto edge:all_edges){
+            vector<double> vec1 = {edge[1][0] - edge[0][0], edge[1][1] - edge[0][1]};
+            vector<double> vec2 = {top_pt[0] - edge[0][0], top_pt[1] - edge[0][1]};
+            double dot_res = vec1[0]*vec2[1] - vec2[0]*vec1[1]; // x1y2-x2y1 交叉
+             // 如果包含则进一步计算距离和长度，不包含则直接退出
+            if(dot_res >= 0){
+//                double vec1_len = sqrt(vec1[0]*vec1[0] + vec1[1]*vec1[1]);
+//                double vec2_len = sqrt(vec2[0]*vec2[0] + vec2[1]*vec2[1]);
+                
+
+            }else{
+                return 0;
+            }
+        }
         
         return pd;
     };
@@ -95,6 +129,18 @@ public:
         }
         return total_pd;
     }
+    // 初始化全部的PD
+    void intialPairPD(){
+        TOOLS::initial3DVector(poly_num,0,pair_pd_record); // 初始化之后
+        for(int i = 0; i < poly_num-1; i++){
+            for(int j = i+1; j < poly_num; j++){
+                double pd = getPolysPD(i, j);
+                pair_pd_record[i][j] = pd;
+                pair_pd_record[j][i] = pd;
+            }
+
+        }
+    };
     // 更新Miu的值
     void updateMiu(double max_pair_pd){
         for(int i = 0; i < poly_num; i++){
@@ -124,13 +170,19 @@ public:
     void extendBorder(){
         cur_length = best_length * (1 + ration_inc);
     };
-    // 根据对应的情况获得NFP
-    void getNFP(int i,int j, int oi, int oj, Polygon poly_j, Polygon &nfp){
+    // 获得对应的边界情况
+    void getNFPBounds(int i, int j, int oi, int oj, Polygon &nfp, vector<double> &bounds){
+        // 计算行数
         int row_num = j*rotation_num*rotation_num*types_num + i*rotation_num*rotation_num + oj*rotation_num + oi;
+        // 获得NFP并按照Stationary Poly的底部平移
         nfp = all_nfps[row_num];
         vector<double> bottom_pt;
-        PackingAssistant::getBottomPt(poly_j,bottom_pt);
-        PackingAssistant::slidePoly(nfp,bottom_pt[0],bottom_pt[1]);
+        PackingAssistant::getBottomPt(polys[j], bottom_pt);
+        PackingAssistant::slidePoly(nfp, bottom_pt[0], bottom_pt[1]);
+        // 获得边界并按照第一个点平移
+        bounds = all_bounds[row_num];
+        vector<double> first_pt = nfp[0];
+        bounds = {bounds[0]+first_pt[0],bounds[1]+first_pt[1],bounds[2]+first_pt[0],bounds[3]+first_pt[1]};
     };
     // 获得凹集状态
     void getConvexStatus(int i,int j, int oi, int oj, vector<double> &convex_status){
@@ -166,8 +218,8 @@ public:
         loadAllPolygon(); // 加载全部的形状
         cur_length = PackingAssistant::getPolysRight(polys); // 当前的形状
         best_length = cur_length; // 最佳的形状
-        rotation_num = allowed_rotation.size(); // 可以旋转的角度
-        poly_num = orientation.size(); // 多边形的数目
+        rotation_num = (int)allowed_rotation.size(); // 可以旋转的角度
+        poly_num = (int)orientation.size(); // 多边形的数目
         cout << "此次检索" << set_name << "共有" << poly_num << "个形状，" << "总面积" << total_area << "，当前利用率" << total_area/(cur_length*width) << endl;
     };
     // 加载全部的形状和NFP
@@ -179,14 +231,15 @@ public:
             if (foo.ready()) {
                 auto row = foo.next_row();
                 Polygon nfp;
-                vector<double> convex_status;
+                vector<double> convex_status,bounds;
                 vector<vector<double>> vertical_direction;
                 TOOLS::load1DVector(row["convex_status"],convex_status);
                 TOOLS::load2DVector(row["nfp"],nfp);
-//                TOOLS::load2DVector(row["vertical_direction"],vertical_direction); // 由于部分情况是空集，需要进行预处理
+                TOOLS::load2DVector(row["vertical_direction"],vertical_direction); // 由于部分情况是空集，需要进行预处理
                 all_nfps.push_back(nfp);
+                all_bounds.push_back(bounds);
                 all_convex_status.push_back(convex_status);
-//                all_vertical_direction.push_back(vertical_direction);
+                all_vertical_direction.push_back(vertical_direction);
             }
         }
     };
@@ -199,7 +252,6 @@ public:
             if (foo.ready()) {
                 auto row = foo.next_row();
                 all_polygons.push_back({});
-                all_bounds.push_back({});
                 for(auto ori:allowed_rotation){
                     Polygon new_poly;
                     vector<double> new_bounds;
