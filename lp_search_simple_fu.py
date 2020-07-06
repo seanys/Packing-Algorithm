@@ -35,14 +35,13 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(24) # 获得全部
+        self.initialProblem(76) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
-        # self.showPolys()
         self.main()
 
     def main(self):
@@ -177,7 +176,8 @@ class GSMPD(object):
 
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
         if feasible_IFR.area > bias:
-            potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
+            #potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
+            potential_points=ifr
             random_index = random.randint(0, len(potential_points) - 1)
             return 0,potential_points[random_index]
         
@@ -414,7 +414,7 @@ class GSMPD(object):
         _input = pd.read_csv("record/lp_initial.csv")
         self.set_name = _input["set_name"][index]
         self.width = _input["width"][index]
-        self.allowed_rotation = json.loads(_input["allow_rotation"][index])
+        self.allowed_rotation = json.loads(_input["allowed_rotation"][index])
         self.total_area = _input["total_area"][index]
         self.polys, self.best_polys = json.loads(_input["polys"][index]), json.loads(_input["polys"][index]) # 获得形状
         self.polys_type = json.loads(_input["polys_type"][index]) # 记录全部形状的种类
