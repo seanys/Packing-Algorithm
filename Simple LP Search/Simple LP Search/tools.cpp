@@ -63,6 +63,11 @@ public:
         str_poly = str_poly+"]\"";
         return str_poly;
     }
+    // 保留小数的计算
+    static void round(double &value, int precison){
+        double m = pow(10, precison);
+        value = floor(value * m + 0.5)/m;
+    };
     // 打印一维度数组
     template <typename T>
     static void print1DVector (vector<T> &vec, bool with_endle)
@@ -253,7 +258,7 @@ public:
         colors.push_back(color);
     };
     // 多个形状的加载
-    static void polysShow(vector<Polygon> all_polys, double width, double length){
+    static void showPolys(vector<Polygon> all_polys, double width, double length){
         string polys_path = "/Users/sean/Documents/Projects/Packing-Algorithm/record/c_plt/c_record.csv";
         CSVAssistant::recordPolys(polys_path,all_polys);
         string container_path = "/Users/sean/Documents/Projects/Packing-Algorithm/record/c_plt/container.csv";
@@ -289,7 +294,7 @@ public:
         double x2 = edge[1][0];
         double y2 = edge[1][1];
         
-        double k = -((x1 - x0) * (x2 - x1) + (y1 - y0) * (y2 - y1)) / ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))*1.0;
+        double k = -((x1 - x0) * (x2 - x1) + (y1 - y0) * (y2 - y1)) / ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) * 1.0;
         
         foot_pt = {k * (x2 - x1) + x1, k * (y2 - y1) + y1};
     };
@@ -317,12 +322,12 @@ public:
         }
     };
     // 移动多边形到某个位置（参考点）
-    static void slideToPosition(Polygon &polygon,vector<double> target_pt){
+    static void slideToPoint(Polygon &polygon,vector<double> target_pt){
         vector<double> refer_pt;
         getTopPt(polygon,refer_pt);
-        double delta_x = target_pt[0]-refer_pt[0];
-        double delta_y = target_pt[1]-refer_pt[1];
-        for(int i=0;i<polygon.size();i++){
+        double delta_x = target_pt[0] - refer_pt[0];
+        double delta_y = target_pt[1] - refer_pt[1];
+        for(int i = 0; i < polygon.size(); i ++){
             polygon[i][0] = polygon[i][0] + delta_x;
             polygon[i][1] = polygon[i][1] + delta_y;
         }
@@ -331,48 +336,38 @@ public:
     static void getBound(Polygon polygon,vector<double> &bound){
         Polygon border_points;
         getBorder(polygon,border_points);
-        bound={border_points[0][0],border_points[1][1],border_points[2][0],border_points[3][1]};
-    };
-    // 遍历获得一个多边形的最左侧点
-    static void getBottomLeft(Polygon polygon,vector<double> &bl_point){
-        bl_point={999999999,999999999};
-        for(auto point:polygon){
-            if(point[0]<bl_point[0] || (point[0]==bl_point[0]&&point[1]<bl_point[1]) ){
-                bl_point[0]=point[0];
-                bl_point[1]=point[1];
-            }
-        };
+        bound = {border_points[0][0],border_points[1][1],border_points[2][0],border_points[3][1]};
     };
     // 仅仅获得最右侧点，同样为逆时针处理（用于判断是逗超出界限）
     static void getRightPt(Polygon polygon,vector<double> &right_pt){
-        right_pt={-9999999999,0};
-        int poly_size=(int)polygon.size();
-        for(int i=poly_size-1;i>=0;i--){
-            if(polygon[i][0]>right_pt[0]){
-                right_pt[0]=polygon[i][0];
-                right_pt[1]=polygon[i][1];
+        right_pt = {-9999999999,0};
+        int poly_size = (int)polygon.size();
+        for(int i = 0; i < poly_size; i ++){
+            if(polygon[i][0] > right_pt[0]){
+                right_pt[0] = polygon[i][0];
+                right_pt[1] = polygon[i][1];
             }
         }
     };
     // 获得多边形参考点
-    static void getTopPt(Polygon polygon,vector<double> &refer_pt){
-        refer_pt={0,-9999999999};
-        int poly_size=(int)polygon.size();
-        for(int i=poly_size-1;i>=0;i--){
-            if(polygon[i][1] > refer_pt[1]){
-                refer_pt[0] = polygon[i][0];
-                refer_pt[1] = polygon[i][1];
+    static void getTopPt(Polygon polygon,vector<double> &top_pt){
+        top_pt = {0,-9999999999};
+        int poly_size = (int)polygon.size();
+        for(int i = 0; i < poly_size; i ++){
+            if(polygon[i][1] > top_pt[1]){
+                top_pt[0] = polygon[i][0];
+                top_pt[1] = polygon[i][1];
             }
         }
     };
     // 获得多边形的底部的点
     static void getBottomPt(Polygon polygon,vector<double> &bottom_pt){
-        bottom_pt={0,9999999999};
-        int poly_size=(int)polygon.size();
-        for(int i=poly_size-1;i>=0;i--){
-            if(polygon[i][1]<bottom_pt[1]){
-                bottom_pt[0]=polygon[i][0];
-                bottom_pt[1]=polygon[i][1];
+        bottom_pt = {0,9999999999};
+        int poly_size = (int)polygon.size();
+        for(int i = 0; i < poly_size; i ++){
+            if(polygon[i][1] < bottom_pt[1]){
+                bottom_pt[0] = polygon[i][0];
+                bottom_pt[1] = polygon[i][1];
             }
         }
     };
@@ -385,8 +380,8 @@ public:
         border_points.push_back(vector<double>{-999999999,0});
         border_points.push_back(vector<double>{0,-999999999});
         // 遍历所有的点，分别判断是否超出界限
-        int poly_size=(int)polygon.size();
-        for(int i=poly_size-1;i>=0;i--){
+        int poly_size = (int)polygon.size();
+        for(int i = 0; i < poly_size; i ++){
             // 左侧点判断
             if(polygon[i][0]<border_points[0][0]){
                 border_points[0][0]=polygon[i][0];
@@ -416,8 +411,8 @@ public:
         for(Polygon poly:all_polys){
             vector<double> pt;
             getRightPt(poly,pt);
-            if(pt[0]>length){
-                length=pt[0];
+            if(pt[0] > length){
+                length = pt[0];
             }
         }
         return length;
@@ -488,27 +483,52 @@ public:
         }
     };
     // 计算IFR/NFP1/NFP2的交集
-    static void getNFPIFRInter(Polygon nfp1, Polygon nfp2, Polygon ifr, vector<vector<double>> &inter_points){
+    static void getNFPInter(Polygon nfp1, Polygon nfp2, Polygon ifr, vector<vector<double>> &inter_points){
         PolygonBoost NFP1, NFP2, IFR;
         convertPoly(nfp1, NFP1); convertPoly(nfp2, NFP2); convertPoly(ifr, IFR);
-//        deque<PolygonBoost> inter =
-        // 需要判断是否是直线，需要删除直线！！！！删除直线！！！
-        
+        list<PolygonBoost> nfp_inter, temp_inter, ifr_inter;
+        intersection(NFP1, NFP2, nfp_inter);
+        // 对交集逐一与IFR计算交点
+        for(auto GeoItem: nfp_inter){
+            intersection(IFR, GeoItem, temp_inter);
+            appendList(ifr_inter, temp_inter);
+        }
+        // 遍历全部的相交区域
+        for(auto GeoItem: ifr_inter){
+            vector<vector<double>> temp_pts;
+            boostToVector(GeoItem, temp_pts);
+            if((int)temp_pts.size() == 2) continue; // 如果是直线则不处理
+            inter_points.insert(inter_points.end(), temp_pts.begin(), temp_pts.end());
+        }
+    };
+    // 计算IFR/NFP1/NFP2的交集
+    static void getNFPIFRInter(Polygon nfp, Polygon ifr, vector<vector<double>> &inter_points){
+        PolygonBoost NFP, IFR;
+        convertPoly(nfp, NFP); convertPoly(ifr, IFR);
+        list<PolygonBoost> ifr_inter, temp_inter;
+        intersection(NFP, IFR, ifr_inter);
+        // 遍历全部的相交区域
+        for(auto GeoItem: ifr_inter){
+            vector<vector<double>> temp_pts;
+            boostToVector(GeoItem, temp_pts);
+            if((int)temp_pts.size() == 2) continue; // 如果是直线则不处理
+            inter_points.insert(inter_points.end(), temp_pts.begin(), temp_pts.end());
+        }
     };
     // 数组转化为多边形
     static void convertPoly(Polygon poly, PolygonBoost &Poly){
         reversePolygon(poly);
         // 空集的情况
-        if(poly.size()==0){
+        if(poly.size() == 0){
             read_wkt("POLYGON(())", Poly);
             return;
         }
         // 首先全部转化为wkt格式
-        string wkt_poly="POLYGON((";
+        string wkt_poly = "POLYGON((";
         for (int i = 0; i < poly.size();i++){
-            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1]) + ",";
-            if(i==poly.size()-1){
-                wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1]) + "))";
+            wkt_poly += to_string(poly[i][0]) + " " + to_string(poly[i][1]) + ",";
+            if(i == poly.size()-1){
+                wkt_poly += to_string(poly[0][0]) + " " + to_string(poly[0][1]) + "))";
             }
         };
         // 然后读取到Poly中

@@ -56,14 +56,64 @@ public:
     };
     void main(){
         shrinkBorder();
+        intialPairPD();
+        
         minimizeOverlap();
+        PltFunc::showPolys(polys, width, cur_length);
     };
-    void minimizeOverlap(){
-        vector<double> best_pt;
-        lpSearch(11,0,best_pt);
+    bool minimizeOverlap(){
+        TOOLS::initial3DVector(poly_num,0,miu);
+        int N = 1, it = 0;
+        double Fitness = 9999999999;
+       
+        while(it < N){
+            cout << "第" << it << "轮" <<endl;
+            vector<int> permutation; randomPermutation(permutation);
+//            vector<int> permutation = {11};
+            for(auto choose_index: permutation){
+                vector<double> top_pt;
+                PackingAssistant::getTopPt(polys[choose_index], top_pt);
+                double cur_pd = getIndexPD(choose_index, top_pt);
+                cout << choose_index << ":" << cur_pd << endl;
+                if(cur_pd < bias){
+                    continue;
+                }
+                vector<double> final_pt = top_pt;
+                double final_pd = cur_pd, final_ori = orientation[choose_index];
+                for(auto ori: allowed_rotation){
+                    vector<double> best_pt;
+                    double min_pd = lpSearch(choose_index, ori, best_pt);
+                    if(min_pd < final_pd){
+                        final_pd = min_pd; final_pt = best_pt; final_ori = ori;
+                    }
+                }
+                if(final_pd < cur_pd){
+                    cout << choose_index << "寻找到更优位置:" << cur_pd << "->" << final_pd;
+                    polys[choose_index] = all_polygons[choose_index][final_ori];
+                    PackingAssistant::slideToPoint(polys[choose_index], final_pt);
+                    orientation[choose_index] = final_ori;
+                    updatePD(choose_index);
+                }else{
+                    cout << choose_index << "没有找到更优位置" <<endl;
+                }
+            }
+            double total_pd,max_pair_pd; getPDStatus(total_pd,max_pair_pd);
+            if(total_pd < max_overlap){
+                cout << endl << "结果可行" << endl;
+                return false;
+            }else if (total_pd < Fitness){
+                Fitness = total_pd;
+                it = 0;
+                cout << endl << "寻找到更小重叠:" << total_pd << endl;
+            }
+            updateMiu(max_pair_pd);
+            it ++;
+            cout << endl << "当前全部重叠:" << total_pd << endl;
+        }
+        return true;
     };
     // 检索更优位置部分
-    void lpSearch(int i,int oi, vector<double> &best_pt){
+    double lpSearch(int i,int oi, vector<double> &best_pt){
         Polygon poly = all_polygons[i][oi], ifr;
         PackingAssistant::getIFR(poly, width, cur_length, ifr);
         // 首先获得全部的NFP
@@ -82,6 +132,7 @@ public:
             nfps_bounds.push_back(bounds);
             nfps.push_back(nfp);
         }
+
         // 然后IFR切除所有的NFP计算是否仍有剩余
         vector<vector<double>> feasible_points;
         GeometryAssistant::cutIFR(ifr, nfps, feasible_points);
@@ -89,26 +140,30 @@ public:
             srand((unsigned)time(NULL));
             int random_index = rand()%(int)feasible_points.size();
             best_pt = feasible_points[random_index];
-            return;
+            return 0;
         }
         // 计算获得所有的邻接点(IFR/NFP1/NFP2的交点)
         vector<vector<double>> all_possible_points;
         getAllPossiblePt(nfps, nfps_bounds, i, ifr, all_possible_points);
-        return;
+        deleteRedundancy(all_possible_points);
+        
         double min_pd = 999999;
         for(auto pt: all_possible_points){
             double total_pd = 0;
             for(int j = 0; j < poly_num; j ++){
-                vector<double> bounds,convex_status; Polygon nfp;
-                getNFPStatus(i, j, oi, orientation[j], nfp, bounds, convex_status);
-                if(pt[0] <= bounds[0] || pt[0] >= bounds[2] || pt[1] <= bounds[1] || pt[1] >= bounds[3]) continue;
-                total_pd += getPtNFPPD(nfp, convex_status, pt);
+                if(j == i) continue;
+                vector<double> bounds = nfps_bounds[j];
+                vector<double> convex_status = nfps_bounds[j];
+                Polygon nfp = nfps[j];
+                if(pt[0] <= bounds[0] || pt[0] >= bounds[2] || pt[1] <= bounds[1] || pt[1] >= bounds[3] || GeometryAssistant::containPoint(nfp, pt)==false) continue;
+                total_pd += getPtNFPPD(nfp, convex_status, pt) * miu[i][j];
             }
             if(total_pd < min_pd){
                 min_pd = total_pd;
                 best_pt = pt;
             }
         }
+        return min_pd;
     };
     // 获得全部的交点和他们对应的区域
     void getAllPossiblePt(vector<Polygon> nfps, vector<vector<double>> nfps_bounds, int index, Polygon ifr, vector<vector<double>> &all_possible_points){
@@ -117,12 +172,34 @@ public:
                 if(i == index or j == index) continue;
                 // xi_max < xj_min or xi_min > xj_max or yi_max < yj_min or yi_min > yj_max
                 if(nfps_bounds[i][2] <= nfps_bounds[j][0] || nfps_bounds[i][0] >= nfps_bounds[j][2] || nfps_bounds[i][3] <= nfps_bounds[j][1] || nfps_bounds[i][1] >= nfps_bounds[j][3]) continue;
-                vector<vector<double>> inter_points;
-                GeometryAssistant::getNFPIFRInter(nfps[i], nfps[j], ifr, inter_points);
-                all_possible_points.insert(all_possible_points.end(),inter_points.begin(),inter_points.end());
+                GeometryAssistant::getNFPInter(nfps[i], nfps[j], ifr, all_possible_points);
             }
         }
+        for(int i = 0; i < poly_num; i++){
+            if(i == index) continue;
+            GeometryAssistant::getNFPIFRInter(nfps[i], ifr, all_possible_points);
+        }
     }
+    // 删除多余的点（包括近似计算）
+    void deleteRedundancy(vector<vector<double>> &target_points){
+        double pt_num = (int)target_points.size();
+        // 全部归化到标准差之内
+        for(int i = 0; i < pt_num; i++){
+            TOOLS::round(target_points[i][0],5); TOOLS::round(target_points[i][1],5);
+        }
+        // 删除冗余的点
+        sort(target_points.begin(), target_points.end());
+        vector<vector<double>> new_target_points;
+        for(int i = 0; i < pt_num; i++){
+            if(i == 0){
+                new_target_points.push_back(target_points[i]);
+                continue;
+            }
+            if(abs(target_points[i][0] - target_points[i-1][0]) < 0.0001 && abs(target_points[i][1] - target_points[i-1][1]) < 0.0001) continue;
+            new_target_points.push_back(target_points[i]);
+        }
+        target_points = new_target_points;
+    };
     // 更新某个形状对应的PD（平移后更新）
     void updatePD(int choose_index){
         for(int i = 0; i < poly_num; i++){
@@ -169,7 +246,7 @@ public:
             if(foot_pt[0] < min(edge[0][0],edge[1][0]) || foot_pt[0] > max(edge[0][0],edge[1][0]) || foot_pt[1] < min(edge[0][1],edge[1][1]) || foot_pt[1] > max(edge[0][1],edge[1][1])){
                 continue;
             }
-            pd = sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2));
+            pd = sqrt(pow(foot_pt[0] - pt[0],2) + pow(foot_pt[1] - pt[1],2));
             if(pd < min_pd){
                 min_pd = pd;
                 if(min_pd < bias){
@@ -264,7 +341,7 @@ public:
     // 获得随机序列
     void randomPermutation(vector<int> &permutation){
         srand((unsigned)time(NULL));
-        for(int i=0;i<poly_num;i++){
+        for(int i = 0; i < poly_num; i ++){
             permutation.push_back(i);
         }
         random_shuffle(permutation.begin(),permutation.end());

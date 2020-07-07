@@ -35,16 +35,16 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(54) # 获得全部
+        self.initialProblem(1) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
-        self.showPolys()
+        # self.showPolys()
         # print(len(self.polys))
-        # self.main()
+        self.main()
 
     def main(self):
         '''核心算法部分'''
