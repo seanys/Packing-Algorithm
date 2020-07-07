@@ -21,7 +21,7 @@ typedef vector<vector<double>> Polygon;
 class LPSearch{
 protected:
     double ration_dec = 0.04,ration_inc = 0.01; // 扩大和伸缩的值
-    double max_time = 300000; // 允许检索的时间
+    double max_time = 30; // 允许检索的时间
     
     string set_name; // 数据集的名称
     int poly_num; // 形状的数目
@@ -55,15 +55,38 @@ public:
         initialProblem();
     };
     void main(){
+        CSVAssistant::recordSuccess(set_name, cur_length, 0.90, orientation, polys);
+        return;
         shrinkBorder();
-        intialPairPD();
-        
-        minimizeOverlap();
-        PltFunc::showPolys(polys, width, cur_length);
+        clock_t start_time = clock();
+        int search_status = 0;
+        while(double(clock() - start_time)/CLOCKS_PER_SEC < max_time){
+            bool feasible = minimizeOverlap();
+            if(feasible == true){
+                search_status = 0;
+                cout << endl << "当前利用率为:" << total_area/(cur_length*width) << endl;
+                best_orientation = orientation;
+                best_polys = polys;
+                best_length = cur_length;
+                PltFunc::showPolys(polys, width, cur_length);
+                shrinkBorder();
+            }else{
+                if(search_status == 1){
+                    shrinkBorder();
+                    search_status = 0;
+                }else{
+                    extendBorder();
+                    search_status = 1;
+                }
+            }
+            if(total_area/(best_length/width) > 0.99){
+                break;
+            }
+        }
     };
     bool minimizeOverlap(){
-        TOOLS::initial3DVector(poly_num,0,miu);
-        int N = 1, it = 0;
+        TOOLS::initial3DVector(poly_num,1,miu);
+        int N = 50, it = 0;
         double Fitness = 9999999999;
        
         while(it < N){
@@ -73,7 +96,7 @@ public:
             for(auto choose_index: permutation){
                 vector<double> top_pt;
                 PackingAssistant::getTopPt(polys[choose_index], top_pt);
-                double cur_pd = getIndexPD(choose_index, top_pt);
+                double cur_pd = getIndexPD(choose_index);
                 cout << choose_index << ":" << cur_pd << endl;
                 if(cur_pd < bias){
                     continue;
@@ -227,12 +250,13 @@ public:
     double getPolysPD(int i, int j){
         // 获得基础的模型
         Polygon nfp;
-        vector<double> top_pt,bounds,convex_status;
+        vector<double> top_pt, bounds, convex_status;
         PackingAssistant::getTopPt(polys[i], top_pt);
         getNFPStatus(i, j, orientation[i], orientation[j], nfp, bounds, convex_status);
         // 首先判断是否包含多边形（已经默认在外包多边形内部了）
         if(GeometryAssistant::containPoint(nfp, top_pt)==false) return 0;
-        return getPtNFPPD(nfp, convex_status, top_pt);
+        double pd = getPtNFPPD(nfp, convex_status, top_pt);
+        return pd;
     };
     // 获得点和NFP的PD
     double getPtNFPPD(Polygon nfp, vector<double> convex_status, vector<double> pt){
@@ -269,7 +293,7 @@ public:
         return min_pd;
     }
     // 获得某个形状的全部PD（直接求和）
-    double getIndexPD(int i, vector<double> top_pt){
+    double getIndexPD(int i){
         double total_pd = 0;
         for(int j = 0; j < poly_num; j++){
             total_pd = total_pd + pair_pd_record[i][j]*miu[i][j];
@@ -278,7 +302,7 @@ public:
     }
     // 初始化全部的PD
     void intialPairPD(){
-        TOOLS::initial3DVector(poly_num,0,pair_pd_record); // 初始化之后
+        TOOLS::initial3DVector(poly_num, 0, pair_pd_record); // 初始化之后
         for(int i = 0; i < poly_num-1; i++){
             for(int j = i+1; j < poly_num; j++){
                 double pd = getPolysPD(i, j);

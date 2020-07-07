@@ -26,6 +26,8 @@
 #include <boost/foreach.hpp>
 #include <boost/geometry/algorithms/for_each.hpp>
 #include <algorithm>
+#include <fstream>
+#include <time.h>
 
 #define BIAS 0.000001
 
@@ -162,7 +164,57 @@ public:
             }
         }
     };
-    
+    // 获得字符串时间
+    static string getTimeString(){
+        time_t rawtime;
+        struct tm * timeinfo;
+        char buffer[80];
+
+        time (&rawtime);
+        timeinfo = localtime(&rawtime);
+
+        strftime(buffer,sizeof(buffer),"%m-%d %H:%M:%S",timeinfo);
+        string str(buffer);
+        return str;
+    };
+    template <typename T>
+    static string vector1DToString(vector<T> &vec){
+        string str = "[";
+        for (int i = 0; i < vec.size(); i++){
+            str += to_string(vec[i]);
+            if(i < (int)vec.size() - 1){
+                str += ",";
+            }
+        }
+        str += "]";
+        return str;
+    };
+    template <typename T>
+    static string vector2DToString(vector<vector<T>> &vec){
+        string str = "[", temp_str;
+        for (int i = 0; i < vec.size(); i++){
+            string temp_str = vector1DToString(vec[i]);
+            str += temp_str;
+            if(i < (int)vec.size() - 1){
+                str += ",";
+            }
+        }
+        str += "]";
+        return str;
+    };
+    template <typename T>
+    static string vector3DToString(vector<vector<vector<T>>> &vec){
+        string str = "[", temp_str;
+        for (int i = 0; i < vec.size(); i++){
+            string temp_str = vector2DToString(vec[i]);
+            str += temp_str;
+            if(i < (int)vec.size() - 1){
+                str += ",";
+            }
+        }
+        str += "]";
+        return str;
+    }
 };
 
 /*
@@ -197,45 +249,14 @@ public:
         foo.write_row(to_string(length));
         foo.close();
     };
-    // 根据形状结果是否成功，将其存储到目标的文件
-    static void recordResult(string _path,vector<vector<vector<double>>> all_polys){
-        // 读取并设置文件头
-        csv::Writer foo(_path);
-        foo.configure_dialect()
-        .delimiter(", ")
-        .column_names("polygon");
-        
-        // 将形状全部写入
-        for (long i = 0; i < all_polys.size(); i++) {
-            string res = TOOLS::vectorToString(all_polys[i]);
-            foo.write_row(res);
-        }
-        foo.close();
-    };
-    // 读取CSV文件
-    static void readCSV(){
-        csv::Reader foo;
-        foo.read("/Users/sean/Documents/Projects/Packing-Algorithm/record/c_blf.csv");
-        auto rows = foo.rows();
-        cout<<rows[1]["orientation"]<<endl;
-    };
-    // 写文件
-    static void writeCSV(){
-        csv::Writer foo("/Users/sean/Documents/Projects/Packing-Algorithm/record/test.csv");
-        // 设置头文件
-        foo.configure_dialect()
-          .delimiter(", ")
-          .column_names("a", "b", "c");
-        
-        // 需要现转化为String再写入
-        for (long i = 0; i < 10; i++) {
-            // 可以直接写入
-            foo.write_row("1", "2", "3");
-            // 也可以按mapping写入
-            foo.write_row(map<string, string>{
-              {"a", "7"}, {"b", "8"}, {"c", "9"} });
-        }
-        foo.close();
+    // 记录成功的情况
+    static void recordSuccess(string set_name, double length, double ratio, vector<double> orientation, vector<Polygon> polys){
+        ofstream ofs;
+        string root = "/Users/sean/Documents/Projects/Packing-Algorithm/record/c_plt/";
+        string path = root + set_name + ".csv";
+        ofs.open (path, ofstream::out | ofstream::app);
+
+        ofs << TOOLS::getTimeString() << "," << length << "," << ratio << ",\"" << TOOLS::vector1DToString(orientation) << "\",\"" << TOOLS::vector3DToString(polys) << "\"" << endl;
     };
 };
 
