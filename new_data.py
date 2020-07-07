@@ -17,11 +17,11 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "jakobs2_clus"
-        self.min_angle = 90
+        self.set_name = "dighe2"
+        self.min_angle = 360
         self.zoom = 10
-        self.orientation()
-        # self.main()
+        # self.orientation()
+        self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -63,7 +63,12 @@ class PreProccess(object):
                             new_nfp = LPAssistant.deleteOnline(nfp.nfp)
                             convex_status = self.getConvexStatus(new_nfp)
                             vertical_direction = self.getVerticalDirection(convex_status,new_nfp)
-                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction]])
+                            first_pt = new_nfp[0]
+                            new_NFP = Polygon(new_nfp)
+                            bounds = new_NFP.bounds
+                            bounds = [bounds[0]-first_pt[0],bounds[1]-first_pt[1],bounds[2]-first_pt[0],bounds[3]-first_pt[1]]
+
+                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction,bounds]])
 
     def getConvexStatus(self,nfp):
         '''判断凹点还是凸点'''
@@ -78,7 +83,7 @@ class PreProccess(object):
             else:
                 convex_status.append(1)
         return convex_status
-
+    
     def getVerticalDirection(self,convex_status,nfp):
         '''获得某个凹点的两个垂线'''
         target_NFP,extend_nfp = Polygon(nfp), nfp + nfp
@@ -90,7 +95,7 @@ class PreProccess(object):
                 vec2 = self.rotationDirection([extend_nfp[i+1][0]-extend_nfp[i][0],extend_nfp[i+1][1]-extend_nfp[i][1]])
                 vertical_direction.append([vec1,vec2])
             else:
-                vertical_direction.append([])
+                vertical_direction.append([[],[]])
         return vertical_direction
 
     def rotationDirection(self,vec):
@@ -318,8 +323,8 @@ def removeOverlap():
     # PltFunc.showPolys(polys)
 
 def addBound():
-    data = pd.read_csv("data/fu_nfp.csv")
-    with open("data/new_fu_nfp.csv","a+") as csvfile:
+    data = pd.read_csv("data/dighe1_nfp.csv")
+    with open("data/dighe1_nfp.csv","a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
@@ -328,7 +333,9 @@ def addBound():
             new_NFP = Polygon(nfp)
             bound = new_NFP.bounds
             bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
-            vertical_direction = json.loads(data["vertical_direction"][row])
+
+            vertical_direction = PreProccess.getVerticalDirection(json.loads(data["convex_status"][row]),new_nfp)
+            # vertical_direction = json.loads(data["vertical_direction"][row])
             new_vertical_direction = []
             for item in vertical_direction:
                 if item == []:
@@ -339,7 +346,7 @@ def addBound():
  
 
 if __name__ == '__main__':
-    addBound()
+    # addBound()
     # removeOverlap()
     # cluster()
     # initialResult(getData())
@@ -347,6 +354,6 @@ if __name__ == '__main__':
     # ReverseFunction()
     # testCPlusResult()
     # showLPResult()
-    # PreProccess()
+    PreProccess()
     # ReverseFunction()
     # print([i for i in range(16)])

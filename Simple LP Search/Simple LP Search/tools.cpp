@@ -250,10 +250,10 @@ public:
         foo.close();
     };
     // 记录成功的情况
-    static void recordSuccess(string set_name, double length, double ratio, vector<double> orientation, vector<Polygon> polys){
+    static void recordResult(string set_name, double length, double ratio, vector<int> orientation, vector<Polygon> polys, string res_type){
         ofstream ofs;
         string root = "/Users/sean/Documents/Projects/Packing-Algorithm/record/c_plt/";
-        string path = root + set_name + ".csv";
+        string path = root + set_name + "_" + res_type +".csv";
         ofs.open (path, ofstream::out | ofstream::app);
 
         ofs << TOOLS::getTimeString() << "," << length << "," << ratio << ",\"" << TOOLS::vector1DToString(orientation) << "\",\"" << TOOLS::vector3DToString(polys) << "\"" << endl;

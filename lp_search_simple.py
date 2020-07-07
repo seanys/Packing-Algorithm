@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(1) # 获得全部
+        self.initialProblem(25) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -60,7 +60,7 @@ class GSMPD(object):
         self.start_time = time.time()
         search_status = 0
         while time.time() - self.start_time < max_time:
-            self.intialPairPD() # 初始化当前两两间的重叠
+            self.initialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             # self.showPolys(saving=True)
             if feasible == True:
@@ -285,7 +285,7 @@ class GSMPD(object):
                     max_pair_pd = self.pair_pd_record[i][j]
         return total_pd,max_pair_pd
 
-    def intialPairPD(self):
+    def initialPairPD(self):
         '''获得当前全部形状间的PD，无需调整'''
         self.pair_pd_record = [[0]*len(self.polys) for _ in range(len(self.polys))] # 两两之间的pd和总的pd
         for i in range(len(self.polys)-1):

@@ -20,8 +20,9 @@ typedef vector<vector<double>> Polygon;
 
 class LPSearch{
 protected:
+    int target_line = 25; // 目标的lp_initial的函数
     double ration_dec = 0.04,ration_inc = 0.01; // 扩大和伸缩的值
-    double max_time = 30; // 允许检索的时间
+    double max_time = 3000; // 允许检索的时间
     
     string set_name; // 数据集的名称
     int poly_num; // 形状的数目
@@ -33,7 +34,7 @@ protected:
     int rotation_num; // 允许旋转较低
 
     double cur_length, best_length; // 当前的宽度和最佳宽度
-    vector<double> orientation, best_orientation;
+    vector<int> orientation, best_orientation;
     vector<Polygon> polys, best_polys; // 当前的全部形状
     vector<vector<int>> polys_type; // 当前形状的类别
     
@@ -49,28 +50,29 @@ protected:
     
     string root_path = "/Users/sean/Documents/Projects/Packing-Algorithm/data/"; // 数据根目录
     
-    int target_line = 1; // 目标的lp_initial的函数
 public:
     LPSearch(){
         initialProblem();
     };
     void main(){
-        CSVAssistant::recordSuccess(set_name, cur_length, 0.90, orientation, polys);
-        return;
         shrinkBorder();
         clock_t start_time = clock();
         int search_status = 0;
-        while(double(clock() - start_time)/CLOCKS_PER_SEC < max_time){
+        while(double(clock() - start_time)/CLOCKS_PER_SEC <
+              max_time){
+            initialPairPD();
             bool feasible = minimizeOverlap();
             if(feasible == true){
                 search_status = 0;
-                cout << endl << "当前利用率为:" << total_area/(cur_length*width) << endl;
+                cout << endl << TOOLS::getTimeString() << "  当前利用率为:" << total_area/(cur_length*width) << endl;
                 best_orientation = orientation;
                 best_polys = polys;
                 best_length = cur_length;
-                PltFunc::showPolys(polys, width, cur_length);
+                CSVAssistant::recordResult(set_name, cur_length, total_area/(cur_length*width), orientation, polys,"success");
+//                PltFunc::showPolys(polys, width, cur_length);
                 shrinkBorder();
             }else{
+                CSVAssistant::recordResult(set_name, cur_length, total_area/(cur_length*width), orientation, polys,"fail");
                 if(search_status == 1){
                     shrinkBorder();
                     search_status = 0;
@@ -78,8 +80,9 @@ public:
                     extendBorder();
                     search_status = 1;
                 }
+                cout << endl << TOOLS::getTimeString() << "  结果不可行" << endl << "目标利用率修正为:" << total_area/(cur_length*width) << endl;
             }
-            if(total_area/(best_length/width) > 0.99){
+            if(total_area/(best_length*width) > 0.99){
                 break;
             }
         }
@@ -92,17 +95,17 @@ public:
         while(it < N){
             cout << "第" << it << "轮" <<endl;
             vector<int> permutation; randomPermutation(permutation);
+//            TOOLS::print1DVector(permutation,true);
 //            vector<int> permutation = {11};
             for(auto choose_index: permutation){
                 vector<double> top_pt;
                 PackingAssistant::getTopPt(polys[choose_index], top_pt);
                 double cur_pd = getIndexPD(choose_index);
-                cout << choose_index << ":" << cur_pd << endl;
                 if(cur_pd < bias){
                     continue;
                 }
                 vector<double> final_pt = top_pt;
-                double final_pd = cur_pd, final_ori = orientation[choose_index];
+                double final_pd = cur_pd; int final_ori = orientation[choose_index];
                 for(auto ori: allowed_rotation){
                     vector<double> best_pt;
                     double min_pd = lpSearch(choose_index, ori, best_pt);
@@ -111,19 +114,19 @@ public:
                     }
                 }
                 if(final_pd < cur_pd){
-                    cout << choose_index << "寻找到更优位置:" << cur_pd << "->" << final_pd;
+//                    cout << choose_index << "寻找到更优位置:" << cur_pd << "->" << final_pd;
                     polys[choose_index] = all_polygons[choose_index][final_ori];
                     PackingAssistant::slideToPoint(polys[choose_index], final_pt);
                     orientation[choose_index] = final_ori;
                     updatePD(choose_index);
                 }else{
-                    cout << choose_index << "没有找到更优位置" <<endl;
+//                    cout << choose_index << "没有找到更优位置" <<endl;
                 }
             }
             double total_pd,max_pair_pd; getPDStatus(total_pd,max_pair_pd);
             if(total_pd < max_overlap){
                 cout << endl << "结果可行" << endl;
-                return false;
+                return true;
             }else if (total_pd < Fitness){
                 Fitness = total_pd;
                 it = 0;
@@ -133,7 +136,7 @@ public:
             it ++;
             cout << endl << "当前全部重叠:" << total_pd << endl;
         }
-        return true;
+        return false;
     };
     // 检索更优位置部分
     double lpSearch(int i,int oi, vector<double> &best_pt){
@@ -301,7 +304,7 @@ public:
         return total_pd;
     }
     // 初始化全部的PD
-    void intialPairPD(){
+    void initialPairPD(){
         TOOLS::initial3DVector(poly_num, 0, pair_pd_record); // 初始化之后
         for(int i = 0; i < poly_num-1; i++){
             for(int j = i+1; j < poly_num; j++){
