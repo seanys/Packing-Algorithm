@@ -72,34 +72,55 @@ public:
         Polygon nfp;
         vector<double> convex_status, bounds;
         for(int j = 0; j < poly_num; j++){
+            if(j == i){
+                nfps_convex_status.push_back({});
+                nfps_bounds.push_back({});
+                nfps.push_back({});
+            }
             getNFPStatus(i, j, oi, orientation[j], nfp, bounds, convex_status);
             nfps_convex_status.push_back(convex_status);
             nfps_bounds.push_back(bounds);
             nfps.push_back(nfp);
         }
         // 然后IFR切除所有的NFP计算是否仍有剩余
-        vector<vector<double>> possible_points;
-        GeometryAssistant::cutIFR(ifr, nfps, possible_points);
-        if((int)possible_points.size() > 0){
+        vector<vector<double>> feasible_points;
+        GeometryAssistant::cutIFR(ifr, nfps, feasible_points);
+        if((int)feasible_points.size() > 0){
             srand((unsigned)time(NULL));
-            int random_index = rand()%(int)possible_points.size();
-            best_pt = possible_points[random_index];
+            int random_index = rand()%(int)feasible_points.size();
+            best_pt = feasible_points[random_index];
             return;
         }
         // 计算获得所有的邻接点(IFR/NFP1/NFP2的交点)
-        
-        
-        
+        vector<vector<double>> all_possible_points;
+        getAllPossiblePt(nfps, nfps_bounds, i, ifr, all_possible_points);
+        return;
+        double min_pd = 999999;
+        for(auto pt: all_possible_points){
+            double total_pd = 0;
+            for(int j = 0; j < poly_num; j ++){
+                vector<double> bounds,convex_status; Polygon nfp;
+                getNFPStatus(i, j, oi, orientation[j], nfp, bounds, convex_status);
+                if(pt[0] <= bounds[0] || pt[0] >= bounds[2] || pt[1] <= bounds[1] || pt[1] >= bounds[3]) continue;
+                total_pd += getPtNFPPD(nfp, convex_status, pt);
+            }
+            if(total_pd < min_pd){
+                min_pd = total_pd;
+                best_pt = pt;
+            }
+        }
     };
     // 获得全部的交点和他们对应的区域
-    void getPtNeighbors(vector<Polygon> nfps, vector<vector<double>> nfps_bounds, int index){
-        // 求NFPs之间的交集
-        
-        // 先求解可能的NFPs求其交集
-        vector<int> possible_j;
-        for(int j = 0; j < poly_num; j ++){
-            if(j == index) continue;
-            
+    void getAllPossiblePt(vector<Polygon> nfps, vector<vector<double>> nfps_bounds, int index, Polygon ifr, vector<vector<double>> &all_possible_points){
+        for(int i = 0; i < poly_num - 1; i++){
+            for(int j = i+1; j < poly_num; j++){
+                if(i == index or j == index) continue;
+                // xi_max < xj_min or xi_min > xj_max or yi_max < yj_min or yi_min > yj_max
+                if(nfps_bounds[i][2] <= nfps_bounds[j][0] || nfps_bounds[i][0] >= nfps_bounds[j][2] || nfps_bounds[i][3] <= nfps_bounds[j][1] || nfps_bounds[i][1] >= nfps_bounds[j][3]) continue;
+                vector<vector<double>> inter_points;
+                GeometryAssistant::getNFPIFRInter(nfps[i], nfps[j], ifr, inter_points);
+                all_possible_points.insert(all_possible_points.end(),inter_points.begin(),inter_points.end());
+            }
         }
     }
     // 更新某个形状对应的PD（平移后更新）
@@ -133,20 +154,22 @@ public:
         PackingAssistant::getTopPt(polys[i], top_pt);
         getNFPStatus(i, j, orientation[i], orientation[j], nfp, bounds, convex_status);
         // 首先判断是否包含多边形（已经默认在外包多边形内部了）
-        if(GeometryAssistant::containPoint(nfp, top_pt)==false){
-            return 0;
-        }
+        if(GeometryAssistant::containPoint(nfp, top_pt)==false) return 0;
+        return getPtNFPPD(nfp, convex_status, top_pt);
+    };
+    // 获得点和NFP的PD
+    double getPtNFPPD(Polygon nfp, vector<double> convex_status, vector<double> pt){
         // 然后开始遍历所有的边
         double min_pd = 999999999999, pd = 0;
         vector<Polygon> all_edges;
         PackingAssistant::getPolyEdges(nfp,all_edges);
         for(auto edge:all_edges){
             vector<double> foot_pt;
-            PackingAssistant::getFootPoint(top_pt, edge, foot_pt); // 获得底部点
+            PackingAssistant::getFootPoint(pt, edge, foot_pt); // 获得底部点
             if(foot_pt[0] < min(edge[0][0],edge[1][0]) || foot_pt[0] > max(edge[0][0],edge[1][0]) || foot_pt[1] < min(edge[0][1],edge[1][1]) || foot_pt[1] > max(edge[0][1],edge[1][1])){
                 continue;
             }
-            pd = sqrt(pow(foot_pt[0]-top_pt[0],2) + pow(foot_pt[1]-top_pt[1],2));
+            pd = sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2));
             if(pd < min_pd){
                 min_pd = pd;
                 if(min_pd < bias){
@@ -157,7 +180,7 @@ public:
         // 最后遍历所有的凹点
         for(int k = 0; k < (int)nfp.size(); k++){
             if(convex_status[k] == 0){
-                pd = abs(top_pt[0]-nfp[k][0]) + abs(top_pt[1]-nfp[k][1]); // 计算PD
+                pd = abs(pt[0]-nfp[k][0]) + abs(pt[1]-nfp[k][1]); // 计算PD
                 if(pd < min_pd){
                     min_pd = pd;
                     if(min_pd < bias){
@@ -167,7 +190,7 @@ public:
             }
         }
         return min_pd;
-    };
+    }
     // 获得某个形状的全部PD（直接求和）
     double getIndexPD(int i, vector<double> top_pt){
         double total_pd = 0;

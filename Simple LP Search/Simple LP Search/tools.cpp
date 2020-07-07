@@ -305,9 +305,9 @@ public:
 
         // IFR具体计算（从左上角顺时针计算）
         IFR.push_back({poly_width_left, width});
-        IFR.push_back({length - poly_width_right,width});
-        IFR.push_back({length - poly_width_right,poly_height});
         IFR.push_back({poly_width_left, poly_height});
+        IFR.push_back({length - poly_width_right,poly_height});
+        IFR.push_back({length - poly_width_right,width});
     };
     // 移动某个多边形
     static void slidePoly(Polygon &polygon,double delta_x,double delta_y){
@@ -465,56 +465,36 @@ public:
         reverse(poly.begin(),poly.end());
     };
     // 切割IFR计算差集
-    static void cutIFR(Polygon ifr, vector<Polygon> nfps, vector<vector<double>> &possible_points){
-        PolygonBoost IFR;
-        convertPoly(ifr, IFR);
-        
-        
+    static void cutIFR(Polygon ifr, vector<Polygon> nfps, vector<vector<double>> &feasible_points){
+        PolygonBoost IFR; convertPoly(ifr, IFR);
+        list<PolygonBoost> all_feasible_regions = {IFR}, temp_feasible_region;
+        for(auto nfp: nfps){
+            PolygonBoost NFP; convertPoly(nfp, NFP); temp_feasible_region.clear();
+            for(auto feasible_region: all_feasible_regions){
+                list<PolygonBoost> output;
+                difference(feasible_region, NFP, output);
+                appendList(temp_feasible_region, output);
+            }
+            all_feasible_regions = temp_feasible_region;
+        }
+        if((int)all_feasible_regions.size()==0){
+            feasible_points = {};
+            return;
+        }
+        vector<Polygon> feasible_polys;
+        boostListToVector(all_feasible_regions, feasible_polys); // 转存到可行的多边形
+        for(auto poly:feasible_polys){
+            feasible_points.insert(feasible_points.end(),poly.begin(),poly.end());
+        }
     };
     // 计算IFR/NFP1/NFP2的交集
-    static void getPolysInter(vector<Polygon> polys){
+    static void getNFPIFRInter(Polygon nfp1, Polygon nfp2, Polygon ifr, vector<vector<double>> &inter_points){
+        PolygonBoost NFP1, NFP2, IFR;
+        convertPoly(nfp1, NFP1); convertPoly(nfp2, NFP2); convertPoly(ifr, IFR);
+//        deque<PolygonBoost> inter =
+        // 需要判断是否是直线，需要删除直线！！！！删除直线！！！
         
     };
-    
-    // 计算多边形的差集合
-//    static void polysDifference(list<Polygon> &feasible_region, Polygon sub_region){
-//        // 逐一遍历求解重叠
-//        list<PolygonBoost> new_feasible_region;
-//        for(auto region_item:feasible_region){
-//            list<PolygonBoost> output;
-//            difference(region_item, sub_region, output);
-//            appendList(new_feasible_region, output);
-//        };
-//        // 将新的Output全部输入进去
-//        feasible_region.clear();
-//        copy(new_feasible_region.begin(), new_feasible_region.end(), back_inserter(feasible_region));
-//    };
-//    // 逐一遍历求差集
-//    static void polyListDifference(list<Polygon> &feasible_region, list<Polygon> sub_region){
-//        for(auto region_item:sub_region){
-//            polysDifference(feasible_region,region_item);
-//        }
-//    }
-//    // List和一个Poly的差集
-//    static void listToPolyIntersection(list<Polygon> region_list, Polygon region, list<Polygon> &inter_region){
-//        for(auto region_item:region_list){
-//            list<Polygon> output;
-//            intersection(region_item, region, output);
-//            appendList(inter_region,output);
-//        }
-//    }
-//    // List和List之间的交集
-//    static void listToListIntersection(list<Polygon> region1, list<Polygon> region2, list<Polygon> &inter_region){
-//        for(auto region_item1:region1){
-//            for(auto region_item2:region2){
-//                list<Polygon> output;
-//                intersection(region_item1, region_item2, output);
-//                appendList(inter_region,output);
-//            }
-//        }
-//    }
-
-    
     // 数组转化为多边形
     static void convertPoly(Polygon poly, PolygonBoost &Poly){
         reversePolygon(poly);
@@ -534,27 +514,25 @@ public:
         // 然后读取到Poly中
         read_wkt(wkt_poly, Poly);
     };
-    // 获得vector<list<VectorPoints>>的多边形（并非全部点）
-    static void getListPolys(vector<list<PolygonBoost>> list_polys,vector<Polygon> &all_polys){
-        for(auto _list:list_polys){
-            for(PolygonBoost poly_item:_list){
-                Polygon poly_points;
-                getGemotryPoints(poly_item,poly_points);
-                all_polys.push_back(poly_points);
-            }
+    // 获得某个集合对象的全部点
+    static void boostToVector(PolygonBoost poly,Polygon &temp_points){
+        for_each_point(poly, AllPoint<PointBoost>(&temp_points));
+    };
+    // 将List Boost对象转化为
+    static void boostListToVector(list<PolygonBoost> Polys,vector<Polygon> &all_polys){
+        for(PolygonBoost poly_item: Polys){
+            Polygon poly_points;
+            boostToVector(poly_item,poly_points);
+            all_polys.push_back(poly_points);
         }
     };
     // 获得多边形的全部点
     static void getAllPoints(list<PolygonBoost> all_polys,Polygon &all_points){
         for(auto poly_item:all_polys){
             Polygon temp_points;
-            getGemotryPoints(poly_item,temp_points);
+            boostToVector(poly_item,temp_points);
             all_points.insert(all_points.end(),temp_points.begin(),temp_points.end());
         }
-    };
-    // 获得某个集合对象的全部点
-    static void getGemotryPoints(PolygonBoost poly,Polygon &temp_points){
-        for_each_point(poly, AllPoint<PointBoost>(&temp_points));
     };
     // 增加List链接
     template <typename T>
