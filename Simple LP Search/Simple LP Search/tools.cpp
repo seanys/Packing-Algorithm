@@ -20,13 +20,24 @@
 #include <csv/reader.hpp>
 #include <x2struct/x2struct.hpp>
 #include <assert.h>
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/foreach.hpp>
+#include <boost/geometry/algorithms/for_each.hpp>
+#include <algorithm>
 
 #define BIAS 0.000001
 
 using namespace std;
 using namespace x2struct;
+using namespace boost::geometry;
 
 typedef vector<vector<double>> Polygon;
+
+typedef model::d2::point_xy<double> PointBoost;
+typedef model::polygon<PointBoost> PolygonBoost;
+typedef model::linestring<PointBoost> LineStringBoost;
 
 class TOOLS{
 public:
@@ -155,7 +166,7 @@ public:
 class CSVAssistant{
 public:
     // 将形状输出到目标的文件夹
-    static void recordPoly(string _path,vector<vector<vector<double>>> all_polys){
+    static void recordPolys(string _path,vector<Polygon> all_polys){
         // 读取并设置文件头
         csv::Writer foo(_path);
         foo.configure_dialect()
@@ -167,6 +178,18 @@ public:
             string res = TOOLS::vectorToString(all_polys[i]);
             foo.write_row(res);
         }
+        foo.close();
+    };
+    // 记录一下容器的宽度
+    static void recordContainer(string _path, double width, double length){
+        // 读取并设置文件头
+        csv::Writer foo(_path);
+        foo.configure_dialect()
+        .delimiter(", ")
+        .column_names("container");
+        
+        foo.write_row(to_string(width));
+        foo.write_row(to_string(length));
         foo.close();
     };
     // 根据形状结果是否成功，将其存储到目标的文件
@@ -230,14 +253,17 @@ public:
         colors.push_back(color);
     };
     // 多个形状的加载
-    static void polysShow(vector<vector<vector<double>>> all_polys){
-        string _path = "/Users/sean/Documents/Projects/Packing-Algorithm/record/lp_result.csv";
-        system("/Library/Frameworks/Python.framework/Versions/3.7/bin/python3.7 /Users/sean/Documents/Projects/Packing-Algorithm/new_data.py");
+    static void polysShow(vector<Polygon> all_polys, double width, double length){
+        string polys_path = "/Users/sean/Documents/Projects/Packing-Algorithm/record/c_plt/c_record.csv";
+        CSVAssistant::recordPolys(polys_path,all_polys);
+        string container_path = "/Users/sean/Documents/Projects/Packing-Algorithm/record/c_plt/container.csv";
+        CSVAssistant::recordContainer(container_path, width, length);
+        system("/Library/Frameworks/Python.framework/Versions/3.7/bin/python3.7 /Users/sean/Documents/Projects/Packing-Algorithm/tools/cplt.py");
     };
     // 单个形状的加载
-    static void polyShow(vector<vector<double>> poly){
-        vector<vector<vector<double>>> all_polys = {poly};
-        polysShow(all_polys);
+    static void polyShow(Polygon poly){
+        vector<Polygon> all_polys = {poly};
+//        polysShow(all_polys);
     }
 };
 
@@ -252,22 +278,36 @@ public:
             (*poly)[i][1]=(*poly)[i][1]*multiplier;
         }
     };
-
+    // 获得垂直点
+    static void getFootPoint(vector<double> point, Polygon edge, vector<double> &foot_pt){
+        double x0 = point[0];
+        double y0 = point[1];
+        
+        double x1 = edge[0][0];
+        double y1 = edge[0][1];
+        
+        double x2 = edge[1][0];
+        double y2 = edge[1][1];
+        
+        double k = -((x1 - x0) * (x2 - x1) + (y1 - y0) * (y2 - y1)) / ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))*1.0;
+        
+        foot_pt = {k * (x2 - x1) + x1, k * (y2 - y1) + y1};
+    };
     // 获得Inner Fit Rectangle
-    static void getIFR(vector<vector<double>> polygon,double container_width,double container_length,Polygon &IFR){
+    static void getIFR(Polygon poly,double width,double length,Polygon &IFR){
         // 初始参数，获得多边形特征
         Polygon border_points;
-        getBorder(polygon,border_points);
-                
-        double poly_width_left = border_points[3][0]-border_points[0][0];
-        double poly_width_right = border_points[2][0]-border_points[3][0];
-        double poly_height = border_points[3][1]-border_points[1][1];
+        getBorder(poly,border_points);
+        
+        double poly_width_left = border_points[3][0] - border_points[0][0];
+        double poly_width_right = border_points[2][0] - border_points[3][0];
+        double poly_height = border_points[3][1] - border_points[1][1];
 
         // IFR具体计算（从左上角顺时针计算）
-        IFR.push_back({poly_width_left,container_width});
-        IFR.push_back({container_length-poly_width_right,container_width});
-        IFR.push_back({container_length-poly_width_right,poly_height});
-        IFR.push_back({poly_width_left,poly_height});
+        IFR.push_back({poly_width_left, width});
+        IFR.push_back({length - poly_width_right,width});
+        IFR.push_back({length - poly_width_right,poly_height});
+        IFR.push_back({poly_width_left, poly_height});
     };
     // 移动某个多边形
     static void slidePoly(Polygon &polygon,double delta_x,double delta_y){
@@ -394,3 +434,133 @@ public:
     }
 };
 
+// 封装获得全部点的函数
+template <typename Point>
+class AllPoint{
+private :
+    Polygon *temp_all_points;
+public :
+    AllPoint(Polygon *all_points){
+        temp_all_points=all_points;
+    };
+    inline void operator()(Point& pt)
+    {
+        vector<double> new_pt={get<0>(pt),get<1>(pt)};
+        (*temp_all_points).push_back(new_pt);
+    }
+};
+
+//主要包含注册多边形、转化多边形
+class GeometryAssistant{
+public:
+    // 判断多边形是否包含点（注意需要考虑）
+    static bool containPoint(Polygon poly, vector<double> pt){
+        PolygonBoost Poly;
+        convertPoly(poly, Poly); // 转化为多边形
+        PointBoost PT(pt[0],pt[1]); // 处理点的对象
+        return  within(PT, Poly);
+    };
+    // 将形状换一个方向才，再进一步处理
+    static void reversePolygon(Polygon &poly){
+        reverse(poly.begin(),poly.end());
+    };
+    // 切割IFR计算差集
+    static void cutIFR(Polygon ifr, vector<Polygon> nfps, vector<vector<double>> &possible_points){
+        PolygonBoost IFR;
+        convertPoly(ifr, IFR);
+        
+        
+    };
+    // 计算IFR/NFP1/NFP2的交集
+    static void getPolysInter(vector<Polygon> polys){
+        
+    };
+    
+    // 计算多边形的差集合
+//    static void polysDifference(list<Polygon> &feasible_region, Polygon sub_region){
+//        // 逐一遍历求解重叠
+//        list<PolygonBoost> new_feasible_region;
+//        for(auto region_item:feasible_region){
+//            list<PolygonBoost> output;
+//            difference(region_item, sub_region, output);
+//            appendList(new_feasible_region, output);
+//        };
+//        // 将新的Output全部输入进去
+//        feasible_region.clear();
+//        copy(new_feasible_region.begin(), new_feasible_region.end(), back_inserter(feasible_region));
+//    };
+//    // 逐一遍历求差集
+//    static void polyListDifference(list<Polygon> &feasible_region, list<Polygon> sub_region){
+//        for(auto region_item:sub_region){
+//            polysDifference(feasible_region,region_item);
+//        }
+//    }
+//    // List和一个Poly的差集
+//    static void listToPolyIntersection(list<Polygon> region_list, Polygon region, list<Polygon> &inter_region){
+//        for(auto region_item:region_list){
+//            list<Polygon> output;
+//            intersection(region_item, region, output);
+//            appendList(inter_region,output);
+//        }
+//    }
+//    // List和List之间的交集
+//    static void listToListIntersection(list<Polygon> region1, list<Polygon> region2, list<Polygon> &inter_region){
+//        for(auto region_item1:region1){
+//            for(auto region_item2:region2){
+//                list<Polygon> output;
+//                intersection(region_item1, region_item2, output);
+//                appendList(inter_region,output);
+//            }
+//        }
+//    }
+
+    
+    // 数组转化为多边形
+    static void convertPoly(Polygon poly, PolygonBoost &Poly){
+        reversePolygon(poly);
+        // 空集的情况
+        if(poly.size()==0){
+            read_wkt("POLYGON(())", Poly);
+            return;
+        }
+        // 首先全部转化为wkt格式
+        string wkt_poly="POLYGON((";
+        for (int i = 0; i < poly.size();i++){
+            wkt_poly+=to_string(poly[i][0]) + " " + to_string(poly[i][1]) + ",";
+            if(i==poly.size()-1){
+                wkt_poly+=to_string(poly[0][0]) + " " + to_string(poly[0][1]) + "))";
+            }
+        };
+        // 然后读取到Poly中
+        read_wkt(wkt_poly, Poly);
+    };
+    // 获得vector<list<VectorPoints>>的多边形（并非全部点）
+    static void getListPolys(vector<list<PolygonBoost>> list_polys,vector<Polygon> &all_polys){
+        for(auto _list:list_polys){
+            for(PolygonBoost poly_item:_list){
+                Polygon poly_points;
+                getGemotryPoints(poly_item,poly_points);
+                all_polys.push_back(poly_points);
+            }
+        }
+    };
+    // 获得多边形的全部点
+    static void getAllPoints(list<PolygonBoost> all_polys,Polygon &all_points){
+        for(auto poly_item:all_polys){
+            Polygon temp_points;
+            getGemotryPoints(poly_item,temp_points);
+            all_points.insert(all_points.end(),temp_points.begin(),temp_points.end());
+        }
+    };
+    // 获得某个集合对象的全部点
+    static void getGemotryPoints(PolygonBoost poly,Polygon &temp_points){
+        for_each_point(poly, AllPoint<PointBoost>(&temp_points));
+    };
+    // 增加List链接
+    template <typename T>
+    static void appendList(list<T> &old_list,list<T> &new_list){
+        for(auto item:new_list){
+            old_list.push_back(item);
+        }
+    };
+};

@@ -13,6 +13,7 @@
 #include <iostream>
 #include "tools.cpp"
 #include <time.h>
+#include <cstdlib>
 
 using namespace std;
 typedef vector<vector<double>> Polygon;
@@ -48,7 +49,7 @@ protected:
     
     string root_path = "/Users/sean/Documents/Projects/Packing-Algorithm/data/"; // 数据根目录
     
-    int target_line = 24; // 目标的lp_initial的函数
+    int target_line = 1; // 目标的lp_initial的函数
 public:
     LPSearch(){
         initialProblem();
@@ -58,15 +59,48 @@ public:
         minimizeOverlap();
     };
     void minimizeOverlap(){
-        lpSearch(11,0);
+        vector<double> best_pt;
+        lpSearch(11,0,best_pt);
     };
     // 检索更优位置部分
-    void lpSearch(int i,int io){
+    void lpSearch(int i,int oi, vector<double> &best_pt){
+        Polygon poly = all_polygons[i][oi], ifr;
+        PackingAssistant::getIFR(poly, width, cur_length, ifr);
+        // 首先获得全部的NFP
+        vector<Polygon> nfps;
+        vector<vector<double>> nfps_convex_status, nfps_bounds;
+        Polygon nfp;
+        vector<double> convex_status, bounds;
+        for(int j = 0; j < poly_num; j++){
+            getNFPStatus(i, j, oi, orientation[j], nfp, bounds, convex_status);
+            nfps_convex_status.push_back(convex_status);
+            nfps_bounds.push_back(bounds);
+            nfps.push_back(nfp);
+        }
+        // 然后IFR切除所有的NFP计算是否仍有剩余
+        vector<vector<double>> possible_points;
+        GeometryAssistant::cutIFR(ifr, nfps, possible_points);
+        if((int)possible_points.size() > 0){
+            srand((unsigned)time(NULL));
+            int random_index = rand()%(int)possible_points.size();
+            best_pt = possible_points[random_index];
+            return;
+        }
+        // 计算获得所有的邻接点(IFR/NFP1/NFP2的交点)
+        
+        
         
     };
     // 获得全部的交点和他们对应的区域
-    void getPtNeighbors(){
+    void getPtNeighbors(vector<Polygon> nfps, vector<vector<double>> nfps_bounds, int index){
+        // 求NFPs之间的交集
         
+        // 先求解可能的NFPs求其交集
+        vector<int> possible_j;
+        for(int j = 0; j < poly_num; j ++){
+            if(j == index) continue;
+            
+        }
     }
     // 更新某个形状对应的PD（平移后更新）
     void updatePD(int choose_index){
@@ -95,31 +129,44 @@ public:
     double getPolysPD(int i, int j){
         // 获得基础的模型
         Polygon nfp;
-        vector<double> top_pt,bounds;
-        vector<Polygon> all_edges;
+        vector<double> top_pt,bounds,convex_status;
         PackingAssistant::getTopPt(polys[i], top_pt);
-        getNFPBounds(i, j, orientation[i], orientation[j], nfp,bounds);
+        getNFPStatus(i, j, orientation[i], orientation[j], nfp, bounds, convex_status);
+        // 首先判断是否包含多边形（已经默认在外包多边形内部了）
+        if(GeometryAssistant::containPoint(nfp, top_pt)==false){
+            return 0;
+        }
+        // 然后开始遍历所有的边
+        double min_pd = 999999999999, pd = 0;
+        vector<Polygon> all_edges;
         PackingAssistant::getPolyEdges(nfp,all_edges);
-        // 判断是否在边界内
-        
-        // 遍历全部的边计算左右侧及距离
-        double pd = 0;
         for(auto edge:all_edges){
-            vector<double> vec1 = {edge[1][0] - edge[0][0], edge[1][1] - edge[0][1]};
-            vector<double> vec2 = {top_pt[0] - edge[0][0], top_pt[1] - edge[0][1]};
-            double dot_res = vec1[0]*vec2[1] - vec2[0]*vec1[1]; // x1y2-x2y1 交叉
-             // 如果包含则进一步计算距离和长度，不包含则直接退出
-            if(dot_res >= 0){
-//                double vec1_len = sqrt(vec1[0]*vec1[0] + vec1[1]*vec1[1]);
-//                double vec2_len = sqrt(vec2[0]*vec2[0] + vec2[1]*vec2[1]);
-                
-
-            }else{
-                return 0;
+            vector<double> foot_pt;
+            PackingAssistant::getFootPoint(top_pt, edge, foot_pt); // 获得底部点
+            if(foot_pt[0] < min(edge[0][0],edge[1][0]) || foot_pt[0] > max(edge[0][0],edge[1][0]) || foot_pt[1] < min(edge[0][1],edge[1][1]) || foot_pt[1] > max(edge[0][1],edge[1][1])){
+                continue;
+            }
+            pd = sqrt(pow(foot_pt[0]-top_pt[0],2) + pow(foot_pt[1]-top_pt[1],2));
+            if(pd < min_pd){
+                min_pd = pd;
+                if(min_pd < bias){
+                    return 0;
+                }
             }
         }
-        
-        return pd;
+        // 最后遍历所有的凹点
+        for(int k = 0; k < (int)nfp.size(); k++){
+            if(convex_status[k] == 0){
+                pd = abs(top_pt[0]-nfp[k][0]) + abs(top_pt[1]-nfp[k][1]); // 计算PD
+                if(pd < min_pd){
+                    min_pd = pd;
+                    if(min_pd < bias){
+                        return 0;
+                    }
+                }
+            }
+        }
+        return min_pd;
     };
     // 获得某个形状的全部PD（直接求和）
     double getIndexPD(int i, vector<double> top_pt){
@@ -171,7 +218,7 @@ public:
         cur_length = best_length * (1 + ration_inc);
     };
     // 获得对应的边界情况
-    void getNFPBounds(int i, int j, int oi, int oj, Polygon &nfp, vector<double> &bounds){
+    void getNFPStatus(int i, int j, int oi, int oj, Polygon &nfp, vector<double> &bounds, vector<double> &convex_status){
         // 计算行数
         int row_num = j*rotation_num*rotation_num*types_num + i*rotation_num*rotation_num + oj*rotation_num + oi;
         // 获得NFP并按照Stationary Poly的底部平移
@@ -183,6 +230,8 @@ public:
         bounds = all_bounds[row_num];
         vector<double> first_pt = nfp[0];
         bounds = {bounds[0]+first_pt[0],bounds[1]+first_pt[1],bounds[2]+first_pt[0],bounds[3]+first_pt[1]};
+        // 获得凹凸状态
+        convex_status = all_convex_status[row_num];
     };
     // 获得凹集状态
     void getConvexStatus(int i,int j, int oi, int oj, vector<double> &convex_status){
@@ -232,14 +281,15 @@ public:
                 auto row = foo.next_row();
                 Polygon nfp;
                 vector<double> convex_status,bounds;
-                vector<vector<double>> vertical_direction;
+//                vector<vector<double>> vertical_direction;
                 TOOLS::load1DVector(row["convex_status"],convex_status);
+                TOOLS::load1DVector(row["bounds"],bounds);
                 TOOLS::load2DVector(row["nfp"],nfp);
-                TOOLS::load2DVector(row["vertical_direction"],vertical_direction); // 由于部分情况是空集，需要进行预处理
+//                TOOLS::load2DVector(row["vertical_direction"],vertical_direction); // 由于部分情况是空集，需要进行预处理
                 all_nfps.push_back(nfp);
                 all_bounds.push_back(bounds);
                 all_convex_status.push_back(convex_status);
-                all_vertical_direction.push_back(vertical_direction);
+//                all_vertical_direction.push_back(vertical_direction);
             }
         }
     };
@@ -256,12 +306,9 @@ public:
                     Polygon new_poly;
                     vector<double> new_bounds;
                     string poly_line = "o_" + to_string(ori);
-                    string bounds_line = "b_" + to_string(ori);
                     TOOLS::load2DVector(row[poly_line],new_poly);
-                    TOOLS::load1DVector(row[bounds_line],new_bounds);
                     all_polygons[row_index].push_back(new_poly);
                 }
-                vector <string> all_bounds = {"b_0","b_1","b_2","b_3"};
                 row_index++;
             }
         }
