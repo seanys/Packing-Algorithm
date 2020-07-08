@@ -36,6 +36,10 @@ using namespace x2struct;
 using namespace boost::geometry;
 
 typedef vector<vector<double>> Polygon;
+typedef vector<vector<double>> Points;
+typedef vector<vector<double>> Edge;
+typedef vector<vector<double>> Line;
+typedef vector<double> Point;
 
 typedef model::d2::point_xy<double> PointBoost;
 typedef model::polygon<PointBoost> PolygonBoost;
@@ -320,7 +324,7 @@ public:
         foot_pt = {k * (x2 - x1) + x1, k * (y2 - y1) + y1};
     };
     // 获得Inner Fit Rectangle
-    static void getIFR(Polygon poly,double width,double length,Polygon &IFR){
+    static void getIFR(Polygon poly,double width,double length,Polygon &IFR, vector<double> &ifr_bounds){
         // 初始参数，获得多边形特征
         Polygon border_points;
         getBorder(poly,border_points);
@@ -334,6 +338,8 @@ public:
         IFR.push_back({poly_width_left, poly_height});
         IFR.push_back({length - poly_width_right,poly_height});
         IFR.push_back({length - poly_width_right,width});
+        
+        ifr_bounds = {poly_width_left, poly_height, length - poly_width_right, width};
     };
     // 移动某个多边形
     static void slidePoly(Polygon &polygon,double delta_x,double delta_y){
@@ -463,6 +469,91 @@ public :
     {
         vector<double> new_pt={get<0>(pt),get<1>(pt)};
         (*temp_all_points).push_back(new_pt);
+    }
+};
+
+class SimpleGeometry{
+public:
+    // 两条边的交点（排除顶点包含/平行）
+    static bool intersection(Edge edge1, Edge edge2, Point &inter){
+        // 首先检查范围是否包含
+        if(max(edge1[0][0],edge1[1][0]) <= min(edge2[0][0],edge2[1][0]) || min(edge1[0][0],edge1[1][0]) >= max(edge2[0][0],edge2[1][0]))
+            return false;
+        // 判断是否垂直
+        
+        
+        // 求解一般式的基础
+        
+        // 判断是否平行（平行就去掉）
+        
+        // 求解具体交点
+        
+        // 判断交点是否在直线上
+        
+        return true;
+    };
+    // 特定的对于IFR的边和目标边求解方式（包括顶点）
+    static bool intersectionIFR(Edge edge1, Edge edge2, Point &inter){
+        
+        return true;
+    };
+    // 直接通过交线计算二者的交点（需要在ifr内部）
+    static void getNFPInter(Polygon nfp1, Polygon nfp2, vector<double> ifr_bounds, Points &inter_points){
+        vector<Polygon> nfp1_edges, nfp2_edges;
+        PackingAssistant::getPolyEdges(nfp1,nfp1_edges);
+        PackingAssistant::getPolyEdges(nfp2,nfp2_edges);
+        Point inter;
+        for(auto edge1:nfp1_edges){
+            for(auto edge2:nfp2_edges){
+                if(intersection(edge1, edge2, inter) == false) continue;
+                if(inter[0] >= ifr_bounds[0] && inter[0] <= ifr_bounds[2] && inter[1] >= ifr_bounds[1] && inter[1] <= ifr_bounds[3])
+                    inter_points.push_back(inter);
+            }
+        }
+    };
+    // 计算IFR/NFP的相交区域
+    static void getNFPIFRInter(Polygon nfp, Polygon ifr, vector<double> ifr_bounds, vector<vector<double>> &inter_points){
+        bool contain_last = false, contain_this = false; // 是否包含上一个点
+        nfp.push_back(nfp[0]); // nfp前后接上去
+        for(int i = 0; i < (int)nfp.size(); i ++){
+            // 第一个点
+            if(i == 0){
+                if(ifrContain(ifr_bounds, nfp[i]) == true){
+                    inter_points.push_back(nfp[i]);
+                    contain_last = true;
+                }
+                continue;
+            }
+            // 是否需要求解交点
+            contain_this = ifrContain(ifr_bounds, nfp[i]);
+            vector<double> inter_pt;
+            if(contain_this != contain_last){
+                ifr.push_back(ifr[0]);
+                for(int j = 0; j < (int)ifr.size() - 1; j++){
+                    if(intersection({ifr[i],ifr[i+1]}, {nfp[i-1],nfp[i]}, inter_pt) == true){
+                        inter_points.push_back(inter_pt);
+                    }
+                }
+            }
+            // 如果包含了就增加这个点
+            if(contain_this){
+                inter_points.push_back(nfp[i]);
+            }
+            contain_last = contain_this;
+        }
+    };
+    static bool ifrContain(vector<double> ifr_bounds, Point pt){
+        if(pt[0] >= ifr_bounds[0] && pt[0] <= ifr_bounds[2] && pt[1] >= ifr_bounds[1] && pt[1] <= ifr_bounds[3])
+            return true;
+        return false;
+    };
+    // 判断某个多边形是否包含一个点     ————————如何实现？
+    static bool containPoint(Polygon poly, vector<double> pt){
+        return true;
+    };
+    // 计算IFR切割全部NFP后是否有可行位置    ——————————如何实现？
+    static void cutIFR(Polygon ifr, vector<Polygon> nfps, vector<vector<double>> &feasible_points){
+        
     }
 };
 

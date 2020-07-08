@@ -17,6 +17,10 @@
 
 using namespace std;
 typedef vector<vector<double>> Polygon;
+typedef vector<vector<double>> Points;
+typedef vector<vector<double>> Edge;
+typedef vector<vector<double>> Line;
+typedef vector<double> Point;
 
 class LPSearch{
 protected:
@@ -141,7 +145,8 @@ public:
     // 检索更优位置部分
     double lpSearch(int i,int oi, vector<double> &best_pt){
         Polygon poly = all_polygons[i][oi], ifr;
-        PackingAssistant::getIFR(poly, width, cur_length, ifr);
+        vector<double> ifr_bounds;
+        PackingAssistant::getIFR(poly, width, cur_length, ifr, ifr_bounds);
         // 首先获得全部的NFP
         vector<Polygon> nfps;
         vector<vector<double>> nfps_convex_status, nfps_bounds;
