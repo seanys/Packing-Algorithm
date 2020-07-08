@@ -12,16 +12,103 @@ import itertools
 import copy
 import math
 
+targets = [{
+        "index" : 0,
+        "name" : "blaz",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 1,
+        "name" : "shapes2_clus",
+        "scale" : 1,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 2,
+        "name" : "shapes0",
+        "scale" : 20,
+        "allowed_rotation": 1,
+        "width": 800
+    },{
+        "index" : 3,
+        "name" : "marques",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 1040
+    },{
+        "index" : 4,
+        "name" : "mao",
+        "scale" : 1,
+        "allowed_rotation": 4,
+        "width": 2550
+    },{
+        "index" : 5,
+        "name" : "shirts",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 6,
+        "name" : "albano",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 980
+    },{
+        "index" : 7,
+        "name" : "shapes1",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 8,
+        "name" : "dagli_clus",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },{
+        "index" : 9,
+        "name" : "jakobs1_clus",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 800
+    },{
+        "index" : 10,
+        "name" : "trousers",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 790
+    },{
+        "index" : 11,
+        "name" : "jakobs2_clus",
+        "scale" : 10,
+        "allowed_rotation": 4,
+        "width": 700
+    },{
+        "index" : 12,
+        "name" : "swim_clus",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 1150.4
+    },{
+        "index" : 13,
+        "name" : "fu",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 760
+    }]
+
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "dighe2"
-        self.min_angle = 360
-        self.zoom = 10
-        # self.orientation()
-        self.main()
+        index = 12
+        self.set_name = targets[index]["name"]
+        self.min_angle = 360/targets[index]["allowed_rotation"]
+        self.zoom = targets[index]["scale"]
+        self.orientation()
+        # self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -37,9 +124,20 @@ class PreProccess(object):
                     new_Poly_i = self.newRotation(Poly_i,oi,min_angle)
                     new_poly_i = self.getPoint(new_Poly_i)
                     all_poly.append(new_poly_i)
-                    # x0, y0 = new_poly_i[0][0], new_poly_i[0][1] # 第一个点
-                    # min_x, min_y, max_x, max_y = new_Poly_i.bounds
-                    # all_poly.append([min_x - x0, min_y - y0, max_x - x0, max_y - y0])
+                if len(rotation_range) == 4:
+                    ver_sym, hori_sym = 0, 0
+                    if Polygon(all_poly[0]).intersection(Polygon(all_poly[2])).area == Polygon(all_poly[0]).area:
+                        ver_sym = 1
+                    if Polygon(all_poly[1]).intersection(Polygon(all_poly[3])).area == Polygon(all_poly[1]).area:
+                        hori_sym = 1
+                    all_poly.append(ver_sym)
+                    all_poly.append(hori_sym)
+                elif len(rotation_range) == 2:
+                    ver_sym = 0
+                    if Polygon(all_poly[0]).intersection(Polygon(all_poly[1])).area == Polygon(all_poly[0]).area:
+                        ver_sym = 1
+                    all_poly.append(ver_sym)
+
                 writer.writerows([all_poly])
 
     def main(self):

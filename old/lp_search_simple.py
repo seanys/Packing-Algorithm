@@ -112,36 +112,21 @@ class GSMPD(object):
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
                 sub_best = []
                 for ori in self.allowed_rotation: # 测试全部的方向
-                    min_pd,best_pt,sub_min_pd,sub_best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
+                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
                     sub_best.append([sub_min_pd,sub_best_pt,ori])
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
                     print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
-                    # if i >= 2 and i <= 3:
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                    # if i >= 2 and i <= 3:
                     # self.showPolys(self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
-                    '''有一定概率接受次优的位置'''
-                    sub_best.sort(key=lambda x:x[0])
-                    final_pd=sub_best[0][0]
-                    delta_pd=cur_pd-final_pd
-                    if random.random()>1:
-                        print(choose_index,"接受次优位置",cur_pd,"->",final_pd)
-                        final_ori=sub_best[0][2]
-                        final_pt=sub_best[0][1]
-                        self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
-                        GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                        self.orientation[choose_index] = final_ori # 更新方向
-                        self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
-                    else:
-                        print(choose_index,"未寻找到更优位置")
-                        pass
+                    print(choose_index,"未寻找到更优位置")
+                    pass
             if self.TEST_MODEL == True: # 测试模式
                 return
             # self.showPolys()
@@ -213,9 +198,8 @@ class GSMPD(object):
 
         pd_list.sort(key = lambda x:x[0]) # 排序
         min_pd,sub_min_pd = pd_list[0][0],pd_list[1][0]
-        best_pt,sub_best_pt = pd_list[0][1],pd_list[1][1]
 
-        return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和次优位置
+        return min_pd,best_pt # 返回最优位置和次优位置
 
     def getPtNeighbors(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''

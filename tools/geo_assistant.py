@@ -1,5 +1,6 @@
 from shapely.geometry import Polygon,Point,mapping,LineString
 import math
+import time
 
 bias=0.0000001
 
@@ -8,6 +9,66 @@ class GeometryAssistant(object):
     几何相关的算法重新统一
     '''
     @staticmethod
+    def interBetweenNFPs(nfp1_edges,nfp2_edges,ifr_bounds):
+        '''计算直线交点，仅考虑'''
+        inter_points = []
+        for edge1 in nfp1_edges:
+            for edge2 in nfp2_edges:
+                # 首先判断范围
+                if min(edge1[0][0],edge1[1][0]) >= max(edge2[0][0],edge2[1][0]) or max(edge1[0][0],edge1[1][0]) <= min(edge2[0][0],edge2[1][0]) or min(edge1[0][1],edge1[1][1]) >= max(edge2[0][1],edge2[1][1]) or max(edge1[0][1],edge1[1][1]) <= min(edge2[0][1],edge2[1][1]):
+                    continue
+                # 然后求解交点
+                Line1,Line2 = LineString(edge1),LineString(edge2)
+                inter = Line1.intersection(Line2)
+                if inter.is_empty == True or inter.geom_type == "LineString":
+                    continue
+                pt = mapping(inter)["coordinates"]
+                if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
+                    inter_points.append([pt[0], pt[1]])
+        return inter_points
+
+    @staticmethod
+    def interNFPIFR(nfp, ifr_bounds, ifr_edges):
+        final_points = [] # NFP在IFR内部的点及交点
+        contain_last, contain_this = False, False
+        for i, pt in enumerate(nfp):
+            # 第一个点
+            if i == 0:
+                if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
+                    final_points.append([pt[0], pt[1]])
+                    contain_last = True
+                continue
+            # 后续的点求解
+            if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
+                final_points.append([pt[0], pt[1]])
+                contain_this = True
+            else:
+                contain_this = False
+            # 只有两个不全在内侧的时候才需要计算交点
+            if contain_last != True and contain_this != True:
+                Line1 = LineString([nfp[i-1],nfp[i]])
+                for edge in ifr_edges:
+                    inter = Line1.intersection(LineString(edge))
+                    if inter.geom_type == "LineString":
+                        if inter.is_empty == True:
+                            continue
+                        inter_line = mapping(inter)["coordinates"]
+                        if inter_line[0] == nfp[i-1] or inter_line[0] == nfp[i]:
+                            final_points.append([inter_line[1][0], inter_line[1][1]])
+                        else:
+                            final_points.append([inter_line[0][0], inter_line[0][1]])
+                    else:
+                        pt = mapping(inter)["coordinates"]
+                        final_points.append([pt[0], pt[1]])
+        return final_points
+    
+    @staticmethod
+    def boundsContain(bounds, pt):
+        if pt[0] > bounds[0] and pt[0] < bounds[2] and pt[1] > bounds[1] and pt[1] < bounds[3]:
+            return True
+        return False
+        
+    @staticmethod
     def getPolysRight(polys):
         _max=0
         for i in range(0,len(polys)):
@@ -15,7 +76,7 @@ class GeometryAssistant(object):
             if x>_max:
                 _max=x
         return _max
-    
+
     @staticmethod
     def kwtGroupToArray(kwt_group, judge_area):
         '''将几何对象转化为数组，以及是否判断面积大小'''
@@ -50,7 +111,8 @@ class GeometryAssistant(object):
             if index < len(poly)-1:
                 edges.append([poly[index],poly[index+1]])
             else:
-                edges.append([poly[index],poly[0]])
+                if poly[index] != poly[0]:
+                    edges.append([poly[index],poly[0]])
         return edges
 
     @staticmethod
@@ -60,6 +122,14 @@ class GeometryAssistant(object):
         ifr_width = x - right_pt[0] + left_pt[0]  # 获得IFR的宽度
         ifr = [[intial_pt[0], intial_pt[1]], [intial_pt[0] + ifr_width, intial_pt[1]], [intial_pt[0] + ifr_width, y], [intial_pt[0], y]]
         return ifr
+    
+    @staticmethod
+    def getIFRWithBounds(poly,x,y):
+        left_pt, bottom_pt, right_pt, top_pt = GeometryAssistant.getBoundPoint(poly) # 获得全部边界点
+        intial_pt = [top_pt[0] - left_pt[0], top_pt[1] - bottom_pt[1]] # 计算IFR初始的位置
+        ifr_width = x - right_pt[0] + left_pt[0]  # 获得IFR的宽度
+        ifr = [[intial_pt[0], intial_pt[1]], [intial_pt[0] + ifr_width, intial_pt[1]], [intial_pt[0] + ifr_width, y], [intial_pt[0], y]]
+        return ifr, [intial_pt[0],intial_pt[1],intial_pt[0]+ifr_width,y]
     
     @staticmethod
     def getSlide(poly,x,y):
@@ -192,4 +262,23 @@ class GeometryAssistant(object):
         yn = k * (y2 - y1) + y1
     
         return (xn, yn)
-    
+
+class OutputFunc(object):
+    '''输出不同颜色字体'''
+    @staticmethod
+    def outputWarning(prefix,_str):
+        '''输出红色字体'''
+        _str = prefix + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
+        print("\033[0;31m",_str,"\033[0m")
+
+    @staticmethod
+    def outputAttention(prefix,_str):
+        '''输出绿色字体'''
+        _str = prefix + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
+        print("\033[0;32m",_str,"\033[0m")
+
+    @staticmethod
+    def outputInfo(prefix,_str):
+        '''输出浅黄色字体'''
+        _str = prefix + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
+        print("\033[0;33m",_str,"\033[0m")
