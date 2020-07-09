@@ -35,16 +35,16 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(54) # 获得全部
+        self.initialProblem(26) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
         # for poly in self.polys:
         #     total_area = total_area + Polygon(poly).area
         # print(total_area)
-        self.showPolys()
+        # self.showPolys()
         # print(len(self.polys))
-        # self.main()
+        self.main()
 
     def main(self):
         '''核心算法部分'''
@@ -60,7 +60,7 @@ class GSMPD(object):
         self.start_time = time.time()
         search_status = 0
         while time.time() - self.start_time < max_time:
-            self.intialPairPD() # 初始化当前两两间的重叠
+            self.initialPairPD() # 初始化当前两两间的重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             # self.showPolys(saving=True)
             if feasible == True:
@@ -112,36 +112,21 @@ class GSMPD(object):
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
                 sub_best = []
                 for ori in self.allowed_rotation: # 测试全部的方向
-                    min_pd,best_pt,sub_min_pd,sub_best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
+                    min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
                     sub_best.append([sub_min_pd,sub_best_pt,ori])
                     if min_pd < final_pd:
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if final_pd < cur_pd: # 更新最佳情况
                     print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
-                    # if i >= 2 and i <= 3:
                     # self.showPolys(self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                    # if i >= 2 and i <= 3:
                     # self.showPolys(self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
-                    '''有一定概率接受次优的位置'''
-                    sub_best.sort(key=lambda x:x[0])
-                    final_pd=sub_best[0][0]
-                    delta_pd=cur_pd-final_pd
-                    if random.random()>1:
-                        print(choose_index,"接受次优位置",cur_pd,"->",final_pd)
-                        final_ori=sub_best[0][2]
-                        final_pt=sub_best[0][1]
-                        self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
-                        GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
-                        self.orientation[choose_index] = final_ori # 更新方向
-                        self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
-                    else:
-                        print(choose_index,"未寻找到更优位置")
-                        pass
+                    print(choose_index,"未寻找到更优位置")
+                    pass
             if self.TEST_MODEL == True: # 测试模式
                 return
             # self.showPolys()
@@ -213,9 +198,8 @@ class GSMPD(object):
 
         pd_list.sort(key = lambda x:x[0]) # 排序
         min_pd,sub_min_pd = pd_list[0][0],pd_list[1][0]
-        best_pt,sub_best_pt = pd_list[0][1],pd_list[1][1]
 
-        return min_pd,best_pt,sub_min_pd,sub_best_pt # 返回最优位置和次优位置
+        return min_pd,best_pt # 返回最优位置和次优位置
 
     def getPtNeighbors(self, NFPs, index):
         '''获得NFP的重叠情况和交集'''
@@ -285,7 +269,7 @@ class GSMPD(object):
                     max_pair_pd = self.pair_pd_record[i][j]
         return total_pd,max_pair_pd
 
-    def intialPairPD(self):
+    def initialPairPD(self):
         '''获得当前全部形状间的PD，无需调整'''
         self.pair_pd_record = [[0]*len(self.polys) for _ in range(len(self.polys))] # 两两之间的pd和总的pd
         for i in range(len(self.polys)-1):

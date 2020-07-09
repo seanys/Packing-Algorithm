@@ -12,14 +12,101 @@ import itertools
 import copy
 import math
 
+targets = [{
+        "index" : 0,
+        "name" : "blaz",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 1,
+        "name" : "shapes2_clus",
+        "scale" : 1,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 2,
+        "name" : "shapes0",
+        "scale" : 20,
+        "allowed_rotation": 1,
+        "width": 800
+    },{
+        "index" : 3,
+        "name" : "marques",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 1040
+    },{
+        "index" : 4,
+        "name" : "mao",
+        "scale" : 1,
+        "allowed_rotation": 4,
+        "width": 2550
+    },{
+        "index" : 5,
+        "name" : "shirts",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 6,
+        "name" : "albano",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 980
+    },{
+        "index" : 7,
+        "name" : "shapes1",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 8,
+        "name" : "dagli_clus",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },{
+        "index" : 9,
+        "name" : "jakobs1_clus",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 800
+    },{
+        "index" : 10,
+        "name" : "trousers",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 790
+    },{
+        "index" : 11,
+        "name" : "jakobs2_clus",
+        "scale" : 10,
+        "allowed_rotation": 4,
+        "width": 700
+    },{
+        "index" : 12,
+        "name" : "swim_clus",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 1150.4
+    },{
+        "index" : 13,
+        "name" : "fu",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 760
+    }]
+
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        self.set_name = "jakobs2_clus"
-        self.min_angle = 90
-        self.zoom = 10
+        index = 12
+        self.set_name = targets[index]["name"]
+        self.min_angle = 360/targets[index]["allowed_rotation"]
+        self.zoom = targets[index]["scale"]
         self.orientation()
         # self.main()
 
@@ -37,9 +124,20 @@ class PreProccess(object):
                     new_Poly_i = self.newRotation(Poly_i,oi,min_angle)
                     new_poly_i = self.getPoint(new_Poly_i)
                     all_poly.append(new_poly_i)
-                    x0, y0 = new_poly_i[0][0], new_poly_i[0][1] # 第一个点
-                    min_x, min_y, max_x, max_y = new_Poly_i.bounds
-                    all_poly.append([min_x - x0, min_y - y0, max_x - x0, max_y - y0])
+                if len(rotation_range) == 4:
+                    ver_sym, hori_sym = 0, 0
+                    if Polygon(all_poly[0]).intersection(Polygon(all_poly[2])).area == Polygon(all_poly[0]).area:
+                        ver_sym = 1
+                    if Polygon(all_poly[1]).intersection(Polygon(all_poly[3])).area == Polygon(all_poly[1]).area:
+                        hori_sym = 1
+                    all_poly.append(ver_sym)
+                    all_poly.append(hori_sym)
+                elif len(rotation_range) == 2:
+                    ver_sym = 0
+                    if Polygon(all_poly[0]).intersection(Polygon(all_poly[1])).area == Polygon(all_poly[0]).area:
+                        ver_sym = 1
+                    all_poly.append(ver_sym)
+
                 writer.writerows([all_poly])
 
     def main(self):
@@ -63,7 +161,12 @@ class PreProccess(object):
                             new_nfp = LPAssistant.deleteOnline(nfp.nfp)
                             convex_status = self.getConvexStatus(new_nfp)
                             vertical_direction = self.getVerticalDirection(convex_status,new_nfp)
-                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction]])
+                            first_pt = new_nfp[0]
+                            new_NFP = Polygon(new_nfp)
+                            bounds = new_NFP.bounds
+                            bounds = [bounds[0]-first_pt[0],bounds[1]-first_pt[1],bounds[2]-first_pt[0],bounds[3]-first_pt[1]]
+
+                            writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction,bounds]])
 
     def getConvexStatus(self,nfp):
         '''判断凹点还是凸点'''
@@ -78,7 +181,7 @@ class PreProccess(object):
             else:
                 convex_status.append(1)
         return convex_status
-
+    
     def getVerticalDirection(self,convex_status,nfp):
         '''获得某个凹点的两个垂线'''
         target_NFP,extend_nfp = Polygon(nfp), nfp + nfp
@@ -90,7 +193,7 @@ class PreProccess(object):
                 vec2 = self.rotationDirection([extend_nfp[i+1][0]-extend_nfp[i][0],extend_nfp[i+1][1]-extend_nfp[i][1]])
                 vertical_direction.append([vec1,vec2])
             else:
-                vertical_direction.append([])
+                vertical_direction.append([[],[]])
         return vertical_direction
 
     def rotationDirection(self,vec):
@@ -317,8 +420,31 @@ def removeOverlap():
     PltFunc.showPlt()
     # PltFunc.showPolys(polys)
 
+def addBound():
+    data = pd.read_csv("data/dighe1_nfp.csv")
+    with open("data/dighe1_nfp.csv","a+") as csvfile:
+        writer = csv.writer(csvfile)
+        for row in range(data.shape[0]):
+        # for row in range(500,550):
+            nfp = json.loads(data["nfp"][row])
+            first_pt = nfp[0]
+            new_NFP = Polygon(nfp)
+            bound = new_NFP.bounds
+            bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
+
+            vertical_direction = PreProccess.getVerticalDirection(json.loads(data["convex_status"][row]),new_nfp)
+            # vertical_direction = json.loads(data["vertical_direction"][row])
+            new_vertical_direction = []
+            for item in vertical_direction:
+                if item == []:
+                    new_vertical_direction.append([[],[]])
+                else:
+                    new_vertical_direction.append(item)
+            writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),new_vertical_direction,bound]])
+ 
 
 if __name__ == '__main__':
+    # addBound()
     # removeOverlap()
     # cluster()
     # initialResult(getData())
