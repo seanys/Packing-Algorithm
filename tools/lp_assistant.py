@@ -41,8 +41,12 @@ class LPAssistant(object):
         '''删除两条直线在一个延长线情况'''
         new_poly=[]
         for i in range(-2,len(poly)-2):
-            vec1=LPAssistant.getDirectionalVector([poly[i+1][0]-poly[i][0],poly[i+1][1]-poly[i][1]])
-            vec2=LPAssistant.getDirectionalVector([poly[i+2][0]-poly[i+1][0],poly[i+2][1]-poly[i+1][1]])
+            edge1=[poly[i+1][0]-poly[i][0],poly[i+1][1]-poly[i][1]]
+            edge2=[poly[i+2][0]-poly[i+1][0],poly[i+2][1]-poly[i+1][1]]
+            vec1=LPAssistant.getDirectionalVector(edge1)
+            vec2=LPAssistant.getDirectionalVector(edge2)
+            # if [edge1[0]+edge2[0],edge1[1]+edge2[1]]==[0,0]: # 过滤完全相反的向量
+            #     continue
             if abs(vec1[0]-vec2[0])>bias or abs(vec1[1]-vec2[1])>bias:
                 new_poly.append(poly[i+1])
         return new_poly

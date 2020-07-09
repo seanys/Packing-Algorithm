@@ -490,7 +490,7 @@ def getBenchmark(source,width=760):
 def getAllInit():
     # 获取所有数据集的最优初始解
     for index,target in enumerate(targets):
-        if index in [0,2,4]:continue
+        if index not in [0,2,4]:continue
         set_name=target["name"]
         width=target["width"]
         scale=target["scale"]

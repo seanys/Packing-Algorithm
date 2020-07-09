@@ -17,7 +17,7 @@ targets = [{
         "name" : "blaz",
         "scale" : 10,
         "allowed_rotation": 2,
-        "width": 750
+        "width": 150
     },{
         "index" : 1,
         "name" : "shapes2_clus",
@@ -103,12 +103,12 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        index = 12
+        index = 2
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
         self.orientation()
-        # self.main()
+        self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -147,9 +147,11 @@ class PreProccess(object):
         rotation_range = [j for j in range(int(360/self.min_angle))]
         with open("data/" + self.set_name + "_nfp.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
-            for i in range(_len):
+            #for i in range(_len):
+            for i in range(2,3):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i]))) # 固定形状
-                for j in range(_len):
+                #for j in range(_len):
+                for j in range(3,4):
                     Poly_j=Polygon(self.normData(json.loads(fu["polygon"][j]))) # 移动的形状
                     for oi in rotation_range:
                         new_poly_i=self.rotation(Poly_i,oi,min_angle)
@@ -165,7 +167,6 @@ class PreProccess(object):
                             new_NFP = Polygon(new_nfp)
                             bounds = new_NFP.bounds
                             bounds = [bounds[0]-first_pt[0],bounds[1]-first_pt[1],bounds[2]-first_pt[0],bounds[3]-first_pt[1]]
-
                             writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction,bounds]])
 
     def getConvexStatus(self,nfp):
@@ -421,8 +422,8 @@ def removeOverlap():
     # PltFunc.showPolys(polys)
 
 def addBound():
-    data = pd.read_csv("data/dighe1_nfp.csv")
-    with open("data/dighe1_nfp.csv","a+") as csvfile:
+    data = pd.read_csv("data/shapes0_nfp.csv")
+    with open("data/shapes0_nfp.csv","a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
@@ -432,7 +433,7 @@ def addBound():
             bound = new_NFP.bounds
             bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
 
-            vertical_direction = PreProccess.getVerticalDirection(json.loads(data["convex_status"][row]),new_nfp)
+            vertical_direction = PreProccess().getVerticalDirection(json.loads(data["convex_status"][row]),new_NFP)
             # vertical_direction = json.loads(data["vertical_direction"][row])
             new_vertical_direction = []
             for item in vertical_direction:
