@@ -18,6 +18,15 @@ import multiprocessing
 import datetime
 import random
 import copy
+def showPolys(polys,coloring = None):
+    '''展示全部形状以及边框'''
+    for poly in polys:
+        if coloring != None and poly == coloring:
+            PltFunc.addPolygonColor(poly,"red") # 红色突出显示
+        else:
+            PltFunc.addPolygon(poly)
+    #PltFunc.addPolygonColor([[0,0], [1500,0], [self.cur_length,self.width], [0,self.width]])
+    PltFunc.showPlt(width=1500, height=1500)
 
 class BottomLeftFill(object):
     def __init__(self,width,original_polygons,**kw):
@@ -43,12 +52,12 @@ class BottomLeftFill(object):
             self.rectangle=False
         # for i in range(1,3):
         for i in range(1,len(self.polygons)):
-            print("##############################放置第",i+1,"个形状#################################")
+            # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
             # self.showAll()
 
         self.getLength()
-        print(self.polygons)
+        # print(self.getPolys())
         # self.showAll()
 
     def placeFirstPoly(self):
@@ -155,6 +164,9 @@ class BottomLeftFill(object):
         self.contain_length=_max
         # PltFunc.addLine([[0,self.contain_length],[self.width,self.contain_length]],color="blue")
         return _max
+
+    def getPolys(self):
+        return self.polygons
 
 class TOPOS(object):
     '''
@@ -290,6 +302,7 @@ class newNFPAssistant(object):
         row = self.all_polys.shape[0]*self.allowed_rotation*self.allowed_rotation*i + self.allowed_rotation*self.allowed_rotation*j + self.allowed_rotation*0 + 1*0
         bottom_pt = GeometryAssistant.getBottomPoint(main)
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
+        # showPolys([main,adjoin,nfp],coloring=nfp)
         return nfp 
 
     def judgeType(self,poly):
@@ -303,13 +316,13 @@ class newNFPAssistant(object):
                 return i
         print("NFP错误")
     
-index = 11
+index = 4
 targets = [{
         "index" : 0,
         "name" : "blaz",
         "scale" : 10,
         "allowed_rotation": 2,
-        "width": 750
+        "width": 150
     },{
         "index" : 1,
         "name" : "shapes2_clus",
@@ -382,6 +395,12 @@ targets = [{
         "scale" : 0.2,
         "allowed_rotation": 2,
         "width": 1150.4
+    },{
+        "index" : 13,
+        "name" : "fu",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 760
     }]
 
 def getDataNew():
@@ -393,6 +412,8 @@ def getDataNew():
     polys_type = []
     for i in range(0,df.shape[0]):
         for j in range(0,df['num'][i]):
+            # if i not in [2,3]:continue
+            # if i in polys_type:continue
             polys_type.append(i)
             poly = json.loads(df['polygon'][i])
             GeoFunc.normData(poly,targets[index]["scale"])
@@ -401,6 +422,7 @@ def getDataNew():
     return polygons
 
 if __name__=='__main__':
+    # index 0,2,4 有问题
     polys = getDataNew()
     
     total_area = 0
@@ -414,7 +436,7 @@ if __name__=='__main__':
     # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
     nfp_ass = newNFPAssistant(targets[index]["name"], allowed_rotation = targets[index]["allowed_rotation"])
-    
+    # nfp_ass=None
     # nfp_ass.getDirectNFP(polys[10],polys[12])
 
     bfl = BottomLeftFill(targets[index]["width"], polys, vertical=False, NFPAssistant=nfp_ass)
