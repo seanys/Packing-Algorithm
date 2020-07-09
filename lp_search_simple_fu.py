@@ -108,8 +108,8 @@ class GSMPD(object):
                 choose_index = permutation[i] # 选择形状位置
                 top_pt = GeometryAssistant.getTopPoint(self.polys[choose_index]) # 获得最高位置，用于计算PD
                 cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
-                # if cur_pd < bias: # 如果没有重叠就直接退出
-                #     continue
+                if cur_pd < bias: # 如果没有重叠就直接退出
+                    continue
                 final_pt, final_pd, final_ori = copy.deepcopy(top_pt), cur_pd, self.orientation[choose_index] # 记录最佳情况                
                 for ori in self.allowed_rotation: # 测试全部的方向
                     min_pd,best_pt = self.lpSearch(choose_index,ori) # 为某个形状寻找最优和次优的位置
@@ -117,8 +117,10 @@ class GSMPD(object):
                         final_pd,final_pt,final_ori = min_pd,copy.deepcopy(best_pt),ori # 更新高度，位置和方向
                 if not (top_pt[0]==final_pt[0] and top_pt[1]==final_pt[1]): # 更新最佳情况
                     print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
+                    # self.showPolys(coloring=self.polys[choose_index])
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
+                    # self.showPolys(coloring=self.polys[choose_index])
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index) # 更新对应元素的PD，线性时间复杂度
                 else:
@@ -175,12 +177,14 @@ class GSMPD(object):
             cutted_NFPs.append(cutted_res) # 添加切除后的NFP，且不考虑面积过小的
 
         '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
-        if feasible_IFR.area > bias:
-            #potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
-            potential_points=ifr
-            random_index = random.randint(0, len(potential_points) - 1)
-            return 0,potential_points[random_index]
         
+        if feasible_IFR.area > bias:
+            potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
+            # centroid=mapping(feasible_IFR.centroid)
+            # potential_points=[centroid['coordinates'][0],centroid['coordinates'][1]]
+            random_index = random.randint(0, len(potential_points) - 1)
+            # print(time.time()-start)
+            return 0,potential_points[random_index]
         # print(i)
         # if i == 2 or i == 3:
         #     PltFunc.addPolygonColor(basic_nfps[9])
