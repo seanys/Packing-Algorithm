@@ -35,7 +35,7 @@ class GSMPD(object):
     如果要测试新的数据集，需要在new_data中运行函数保证预处理函数
     """
     def __init__(self):
-        self.initialProblem(76) # 获得全部
+        self.initialProblem(90) # 获得全部
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # total_area = 0
@@ -416,6 +416,7 @@ class GSMPD(object):
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''
         _input = pd.read_csv("record/lp_initial.csv")
+        print(_input)
         self.set_name = _input["set_name"][index]
         self.width = _input["width"][index]
         self.allowed_rotation = json.loads(_input["allowed_rotation"][index])
