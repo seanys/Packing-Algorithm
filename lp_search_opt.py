@@ -28,7 +28,7 @@ max_overlap = 5
 
 class GSMPD(object):
     def __init__(self):
-        self.initialProblem(78) # 获得全部
+        self.initialProblem(2) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -58,7 +58,7 @@ class GSMPD(object):
                 with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
-                # self.showPolys()
+                self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 OutputFunc.outputWarning(self.set_name, "结果不可行，重新进行检索")
@@ -163,9 +163,7 @@ class GSMPD(object):
         for k, search_target in enumerate(all_search_targets):
             pt = [search_target[0],search_target[1]]
             total_pd, pd_record = 0, [0 for _ in range(self.polys_num)]
-            # print(search_target[3])
-            for j in range(self.polys_num):
-            # for j in search_target[3]:
+            for j in search_target[3]:
                 if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
                     continue
                 if Polygon(cur_nfps[j]).contains(Point(pt)) == True:
@@ -217,8 +215,8 @@ class GSMPD(object):
         for i,search_target in enumerate(new_all_search_targets):
             neighbor = nfp_neighbor[search_target[2][0]]
             for possible_orignal in search_target[2][1:]:
-                neighbor = list(set(neighbor + nfp_neighbor[possible_orignal]))
-                # neighbor = [k for k in neighbor if k in nfp_neighbor[possible_orignal]]
+                # neighbor = list(set(neighbor + nfp_neighbor[possible_orignal]))
+                neighbor = [k for k in neighbor if k in nfp_neighbor[possible_orignal]]
             simple_neighbor = [k for k in neighbor if k not in search_target[2]]
             new_all_search_targets[i].append(simple_neighbor)
 
