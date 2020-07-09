@@ -525,10 +525,13 @@ class PltFunc(object):
 
     def addLine(line,**kw):
         if len(kw)==0:
-            plt.plot([line[0][0],line[1][0]],[line[0][1],line[1][1]],color="black",linewidth=0.5)
+            plt.plot([line[0][0],line[1][0]],[line[0][1],line[1][1]],color = "black",linewidth=0.5)
         else:
-            plt.plot([line[0][0],line[1][0]],[line[0][1],line[1][1]],color=kw["color"],linewidth=0.5)            
-    
+            plt.plot([line[0][0],line[1][0]],[line[0][1],line[1][1]],color = kw["color"],linewidth=0.5)            
+
+    def addLineColor(line):
+        plt.plot([line[0][0],line[1][0]],[line[0][1],line[1][1]],color = "blue",linewidth=0.5)            
+
     def showPlt(**kw):
         if len(kw)>0:
             if "minus" in kw:

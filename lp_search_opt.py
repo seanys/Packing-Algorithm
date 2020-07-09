@@ -28,7 +28,7 @@ max_overlap = 5
 
 class GSMPD(object):
     def __init__(self):
-        self.initialProblem(2) # 获得全部
+        self.initialProblem(2) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -162,17 +162,14 @@ class GSMPD(object):
         min_pd, best_pt, best_pd_record = 99999999999, [], [0 for _ in range(self.polys_num)]
         for k, search_target in enumerate(all_search_targets):
             pt = [search_target[0],search_target[1]]
-            total_pd, pd_record = 0, [0 for _ in range(len(cur_nfps))]
-            test_range = [w for w in range(len(cur_nfps))]
-            print(search_target[2] + search_target[3])
-            for j in test_range:
-            # for j in search_target[3]:
+            total_pd, pd_record = 0, [0 for _ in range(self.polys_num)]
+            for j in search_target[3]:
                 if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
                     continue
                 if Polygon(cur_nfps[j]).contains(Point(pt)) == True:
                     pd = self.getPolyPtPD(pt,cur_nfps[j],cur_convex_status[j])
                     total_pd, pd_record[j] = total_pd + pd * self.miu[i][j], pd
-                    print(j, "-" , pd)
+                    # print(j, "-" , pd)
             if total_pd < min_pd:
                 min_pd, best_pt, best_pd_record = total_pd, copy.deepcopy(pt), copy.deepcopy(pd_record)
 
@@ -191,11 +188,12 @@ class GSMPD(object):
                 bounds_i, bounds_j = cur_nfps_bounds[i], cur_nfps_bounds[j] # 获得边界
                 if bounds_i[2] <= bounds_j[0] or bounds_i[0] >= bounds_j[2] or bounds_i[3] <= bounds_j[1] or bounds_i[1] >= bounds_j[3]:
                     continue
-                inter_points = GeometryAssistant.interBetweenNFPs(cur_nfps_edges[i], cur_nfps_edges[j],ifr_bounds) # 计算NFP之间的交点
+                inter_points, intersects = GeometryAssistant.interBetweenNFPs(cur_nfps_edges[i], cur_nfps_edges[j],ifr_bounds) # 计算NFP之间的交点
+                if intersects == True:
+                    nfp_neighbor[i].append(j) # 记录邻接情况    
+                    nfp_neighbor[j].append(i) # 记录邻接情况
                 if len(inter_points) == 0:
                     continue
-                nfp_neighbor[i].append(j) # 记录邻接情况    
-                nfp_neighbor[j].append(i) # 记录邻接情况
                 for pt in inter_points:
                     all_search_targets.append([pt[0],pt[1],[i,j]]) # 计算直接取0
         
@@ -217,6 +215,7 @@ class GSMPD(object):
         for i,search_target in enumerate(new_all_search_targets):
             neighbor = nfp_neighbor[search_target[2][0]]
             for possible_orignal in search_target[2][1:]:
+                # neighbor = list(set(neighbor + nfp_neighbor[possible_orignal]))
                 neighbor = [k for k in neighbor if k in nfp_neighbor[possible_orignal]]
             simple_neighbor = [k for k in neighbor if k not in search_target[2]]
             new_all_search_targets[i].append(simple_neighbor)

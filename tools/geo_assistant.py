@@ -1,31 +1,116 @@
 from shapely.geometry import Polygon,Point,mapping,LineString
+from tools.polygon import PltFunc
 import math
 import time
+import copy
 
-bias=0.0000001
+bias = 0.00001
 
 class GeometryAssistant(object):
     '''
     几何相关的算法重新统一
     '''
     @staticmethod
-    def interBetweenNFPs(nfp1_edges,nfp2_edges,ifr_bounds):
+    def bounds(val, bound0, bound1):
+        if min(bound0, bound1)-bias <= val <= max(bound0, bound1) + bias:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def getLineCoe(line):
+        x1, y1, x2, y2 = line[0][0], line[0][1], line[1][0], line[1][1]
+        k = (y2 - y1)/(x2 - x1)
+        b = y1 - k*x1
+        return k, b
+
+    @staticmethod
+    def parallelInter(line1, line2):
+        # 判断是否水平，水平用x做参考，其他用y
+        k = 1
+        if line1[0][1] == line1[1][1] or line2[0][1] == line2[1][1]:
+            k = 0
+        # 第一个点的包含（不考虑为点）
+        if GeometryAssistant.bounds(line1[0][k], line2[0][k], line2[1][k]) == True:
+            if GeometryAssistant.bounds(line1[1][k], line2[0][k], line2[1][k]) == True:
+                return [line1[0], line1[1]], True # 返回中间的直线
+            else:
+                if GeometryAssistant.bounds(line2[0][k], line1[0][k], line1[1][k]) == True:
+                    return [line1[0], line2[0]], True
+                else:
+                    return [line1[0], line2[1]], True
+
+        # 没有包含第一个点，判断第二个
+        if GeometryAssistant.bounds(line1[1][k], line2[0][k], line2[1][k]) == True:
+            if GeometryAssistant.bounds(line2[0][k],line1[0][k], line1[1][k]) == True:
+                return [line1[1], line2[0]], True
+            else:
+                return [line1[1], line2[1]], True
+
+        # Vectical没有包含Line的两个点
+        if GeometryAssistant.bounds(line2[0][k], line1[0][k], line1[1][k]) == True:
+            return [line2[0], line2[1]], True
+        else:
+            return [], False
+
+    @staticmethod
+    def verticalInter(ver_line, line):
+        # 如果另一条直线也垂直
+        if line[0][0] == line[1][0]:
+            if line[0][0] == ver_line[0][0]:
+                return GeometryAssistant.parallelInter(line, ver_line)
+            else:
+                return [], False
+        # 否则求解直线交点
+        k, b = GeometryAssistant.getLineCoe(line)
+        x = ver_line[0][0]
+        y = k * x + b
+        if GeometryAssistant.bounds(y, ver_line[0][1], ver_line[1][1]):
+            return [[x,y]], True
+        else:
+            return [], False
+
+    @staticmethod
+    def lineInter(line1, line2):
+        if min(line1[0][0],line1[1][0]) > max(line2[0][0],line2[1][0]) or max(line1[0][0],line1[1][0]) < min(line2[0][0],line2[1][0]) or min(line1[0][1],line1[1][1]) > max(line2[0][1],line2[1][1]) or max(line1[0][1],line1[1][1]) < min(line2[0][1],line2[1][1]):
+            return [], False
+        # 为点的情况（例外）
+        if line1[0] == line1[1] or line2[0] == line2[1]:
+            return [], False
+        # 出现直线垂直的情况（没有k）
+        if line1[0][0] == line1[1][0]:
+            return GeometryAssistant.verticalInter(line1,line2)
+        if line2[0][0] == line2[1][0]:
+            return GeometryAssistant.verticalInter(line2,line1)
+        # 求解y=kx+b
+        k1, b1 = GeometryAssistant.getLineCoe(line1)
+        k2, b2 = GeometryAssistant.getLineCoe(line2)
+        if k1 == k2:
+            if b1 == b2:
+                return GeometryAssistant.parallelInter(line1, line2)
+            else:
+                return [], False
+        # 求直线交点
+        x = (b2 - b1)/(k1 - k2)
+        y = k1 * x + b1
+        if GeometryAssistant.bounds(x, line1[0][0], line1[1][0]) and GeometryAssistant.bounds(x, line2[0][0], line2[1][0]):
+            return [[x,y]], True
+        return [], False
+    
+    @staticmethod
+    def interBetweenNFPs(nfp1_edges, nfp2_edges, ifr_bounds):
         '''计算直线交点，仅考虑'''
-        inter_points = []
+        inter_points, intersects = [], False
         for edge1 in nfp1_edges:
             for edge2 in nfp2_edges:
-                # 首先判断范围
-                if min(edge1[0][0],edge1[1][0]) >= max(edge2[0][0],edge2[1][0]) or max(edge1[0][0],edge1[1][0]) <= min(edge2[0][0],edge2[1][0]) or min(edge1[0][1],edge1[1][1]) >= max(edge2[0][1],edge2[1][1]) or max(edge1[0][1],edge1[1][1]) <= min(edge2[0][1],edge2[1][1]):
+                pts, inter_or = GeometryAssistant.lineInter(edge1, edge2)
+                if inter_or == False:
                     continue
-                # 然后求解交点
-                Line1,Line2 = LineString(edge1),LineString(edge2)
-                inter = Line1.intersection(Line2)
-                if inter.is_empty == True or inter.geom_type == "LineString":
-                    continue
-                pt = mapping(inter)["coordinates"]
-                if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
-                    inter_points.append([pt[0], pt[1]])
-        return inter_points
+                intersects = True # 只要有直线交点全部认为是
+                for pt in pts:
+                    if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
+                        inter_points.append([pt[0],pt[1]])
+        return inter_points, intersects
 
     @staticmethod
     def interNFPIFR(nfp, ifr_bounds, ifr_edges):
@@ -46,20 +131,11 @@ class GeometryAssistant(object):
                 contain_this = False
             # 只有两个不全在内侧的时候才需要计算交点
             if contain_last != True and contain_this != True:
-                Line1 = LineString([nfp[i-1],nfp[i]])
                 for edge in ifr_edges:
-                    inter = Line1.intersection(LineString(edge))
-                    if inter.geom_type == "LineString":
-                        if inter.is_empty == True:
-                            continue
-                        inter_line = mapping(inter)["coordinates"]
-                        if inter_line[0] == nfp[i-1] or inter_line[0] == nfp[i]:
-                            final_points.append([inter_line[1][0], inter_line[1][1]])
-                        else:
-                            final_points.append([inter_line[0][0], inter_line[0][1]])
-                    else:
-                        pt = mapping(inter)["coordinates"]
-                        final_points.append([pt[0], pt[1]])
+                    inter_pts, inter_or = GeometryAssistant.lineInter([nfp[i-1],nfp[i]], edge)
+                    if inter_or == True:
+                        for inter_pt in inter_pts:
+                            final_points.append([inter_pt[0],inter_pt[1]])
         return final_points
     
     @staticmethod
