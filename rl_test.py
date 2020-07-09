@@ -11,7 +11,7 @@ import itertools
 from shutil import copyfile
 from multiprocessing import Pool
 from tqdm import tqdm
-from heuristic import BottomLeftFill,RatotionPoly
+from heuristic import BottomLeftFill,RatotionPoly,targets,newNFPAssistant
 from sequence import GA
 from shapely.geometry import Polygon
 from tools.packing import NFPAssistant,PolyListProcessor
@@ -270,11 +270,14 @@ class GenerateData_vector(object):
         np.save('{}'.format(export_name),vectors)
 
 class InitSeq(object):
-    def __init__(self,width,polys,nfp_load=None):
+    def __init__(self,width,polys,nfp_load=None,nfp_asst=None):
         self.polys=polys
         self.width=width
+        self.simple=True
         if nfp_load!=None:
             self.NFPAssistant=NFPAssistant(polys,load_history=True,history_path=nfp_load)
+        elif nfp_asst!=None:
+            self.NFPAssistant=nfp_asst
         else:
             self.NFPAssistant=None
         
@@ -301,41 +304,46 @@ class InitSeq(object):
         min_height=999999999
         heights=[]
         best_criteria=''
+        final_polys=[]
         for criteria in ['area','length','height']:
             init_list=self.getDrease(criteria)
-            # 获得全部聚类结果
-            clustering,now_clustering,last_value=[],[],init_list[0][1]
-            for item in init_list:
-                if item[1]==last_value:
-                    now_clustering.append(item)
-                else:
-                    clustering.append(now_clustering)
-                    last_value=item[1]
-                    now_clustering=[item]
-            clustering.append(now_clustering)
-            # 获得全部序列
-            one_lists=[]
-            for item in clustering:
-                one_list=list(itertools.permutations(item))
-                one_lists.append(one_list)
-            all_lists=itertools.product(*one_lists)
-            lists=[]
-            for cur_lists in all_lists:
-                cur_list=[]
-                for polys in cur_lists:
-                    for poly in polys:
-                        cur_list.append(poly)
-                lists.append(cur_list)
+            if not self.simple:
+                # 获得全部聚类结果
+                clustering,now_clustering,last_value=[],[],init_list[0][1]
+                for item in init_list:
+                    if item[1]==last_value:
+                        now_clustering.append(item)
+                    else:
+                        clustering.append(now_clustering)
+                        last_value=item[1]
+                        now_clustering=[item]
+                clustering.append(now_clustering)
+                # 获得全部序列
+                one_lists=[]
+                for item in clustering:
+                    one_list=list(itertools.permutations(item))
+                    one_lists.append(one_list)
+                all_lists=itertools.product(*one_lists)
+                lists=[]
+                for cur_lists in all_lists:
+                    cur_list=[]
+                    for polys in cur_lists:
+                        for poly in polys:
+                            cur_list.append(poly)
+                    lists.append(cur_list)
+            else:
+                lists=[init_list]
             for item in lists:
                 polys_final=[]
                 for poly in item:
                     polys_final.append(poly[0])
-                blf=BottomLeftFill(self.width,polys_final,NFPAssistant=self.NFPAssistant)
+                blf=BottomLeftFill(self.width,polys_final,vertical=False,NFPAssistant=self.NFPAssistant)
                 height=blf.getLength()
                 heights.append(height)
                 if height<min_height:
                     min_height=height
                     best_criteria=criteria
+                    final_polys=blf.getPolys()
         # print(sorted(heights,reverse=False))
         # print(min_height,best_criteria)
         area=0
@@ -343,7 +351,7 @@ class InitSeq(object):
             area=area+Polygon(poly).area
         use_ratio=area/(self.width*min_height)
         # print(area,use_ratio)
-        return min_height
+        return use_ratio,best_criteria,final_polys
 
 
     # 枚举所有序列并选择最优
@@ -479,6 +487,37 @@ def getBenchmark(source,width=760):
     #     np.savetxt('GA.CSV',ga)
     #     print('GA...OK')
 
+def getAllInit():
+    # 获取所有数据集的最优初始解
+    for index,target in enumerate(targets):
+        if index in [0,2,4]:continue
+        set_name=target["name"]
+        width=target["width"]
+        scale=target["scale"]
+        # 加载原始数据并缩放
+        df = pd.read_csv("data/" + set_name + ".csv")
+        polygons=[]
+        polys_type = []
+        for i in range(0,df.shape[0]):
+            for j in range(0,df['num'][i]):
+                polys_type.append(i)
+                poly = json.loads(df['polygon'][i])
+                GeoFunc.normData(poly,scale)
+                polygons.append(poly)
+        total_area = 0
+        for poly in polygons:
+            total_area = total_area + Polygon(poly).area
+        allowed_rotation = target["allowed_rotation"]
+        allowed_rotation_list = np.array(range(allowed_rotation)).tolist()
+        nfp_ass = newNFPAssistant(set_name, allowed_rotation = allowed_rotation)
+        ratio,best_criteria,polys=InitSeq(width,polygons,nfp_asst=nfp_ass).getBest()
+        with open("record/lp_initial.csv","a+") as f:
+            result=str([index+77,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type),str(polys_type),str([0]*len(polygons)),str(polys)])
+            result=result[1:len(result)-1]
+            f.write(result)
+            f.write('\n')
+        
+
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn',True) 
     start=time.time()
@@ -489,7 +528,8 @@ if __name__ == "__main__":
     # getAllNFP('fu999_val_xy.npy','fu999_val')
     # GenerateData_vector.generateTestData('reg10000',10000)
     # getAllNFP('reg10000_xy.npy','reg10000')
-    getBenchmark('reg2379_xy.npy')
+    # getBenchmark('reg2379_xy.npy')
+    getAllInit()
     # data=np.load('fu_val_xy.npy',allow_pickle=True)[0]
     # InitSeq(760,data,nfp_load='record/fu_val/0.csv').getBest()
     #InitSeq(760,data,nfp_load='record/fu_10_val/0.csv').getBest()

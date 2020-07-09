@@ -43,12 +43,12 @@ class BottomLeftFill(object):
             self.rectangle=False
         # for i in range(1,3):
         for i in range(1,len(self.polygons)):
-            print("##############################放置第",i+1,"个形状#################################")
+            # print("##############################放置第",i+1,"个形状#################################")
             self.placePoly(i)
             # self.showAll()
 
         self.getLength()
-        print(self.polygons)
+        # print(self.getPolys())
         # self.showAll()
 
     def placeFirstPoly(self):
@@ -155,6 +155,9 @@ class BottomLeftFill(object):
         self.contain_length=_max
         # PltFunc.addLine([[0,self.contain_length],[self.width,self.contain_length]],color="blue")
         return _max
+
+    def getPolys(self):
+        return self.polygons
 
 class TOPOS(object):
     '''
@@ -303,7 +306,7 @@ class newNFPAssistant(object):
                 return i
         print("NFP错误")
     
-index = 11
+index = 0
 targets = [{
         "index" : 0,
         "name" : "blaz",
@@ -382,6 +385,12 @@ targets = [{
         "scale" : 0.2,
         "allowed_rotation": 2,
         "width": 1150.4
+    },{
+        "index" : 13,
+        "name" : "fu",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 760
     }]
 
 def getDataNew():
@@ -401,6 +410,7 @@ def getDataNew():
     return polygons
 
 if __name__=='__main__':
+    # index 0,2,4 有问题
     polys = getDataNew()
     
     total_area = 0
