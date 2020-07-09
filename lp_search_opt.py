@@ -23,11 +23,12 @@ import multiprocessing
 compute_bias = 0.00001
 bias = 0.5
 max_overlap = 5
+precision = 6
 
 
 class LPSearch(object):
     def __init__(self):
-        self.initialProblem(2) # 获得全部 
+        self.initialProblem(63) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -37,7 +38,8 @@ class LPSearch(object):
         '''核心算法部分'''
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        self.pair_pd_record = [[0]*self.polys_num for _ in range(self.polys_num)]
+        self.showPolys()
+        return
         self.shrinkBorder() # 平移边界并更新宽度
         max_time = 360000
         if self.TEST_MODEL == True:
@@ -58,7 +60,7 @@ class LPSearch(object):
                 with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
-                # self.showPolys()
+                self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 OutputFunc.outputWarning(self.set_name, "结果不可行，重新进行检索")
@@ -96,7 +98,9 @@ class LPSearch(object):
                 final_pt, final_ori = copy.deepcopy(top_pt), self.orientation[choose_index] # 记录最佳情况                
                 final_pd, final_pd_record = cur_pd, [0 for _ in range(self.polys_num)]
                 for ori in self.allowed_rotation: # 测试全部的方向
-                    if (ori == 2 and self.vertical_symmetrical[choose_index] == 1) or (ori == 3 and self.horizon_symmetrical[choose_index] == 1):
+                    if ori == 2 and self.vertical_symmetrical[self.polys_type[choose_index]] == 1:
+                        continue
+                    if ori == 3 and self.horizon_symmetrical[self.polys_type[choose_index]] == 1:
                         continue
                     min_pd,best_pt,best_pd_record = self.lpSearch(choose_index,ori) # 为某个形状寻找最优的位置
                     if min_pd < final_pd:
@@ -105,13 +109,14 @@ class LPSearch(object):
                     if min_pd == 0:
                         break
                 if final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
+                    # print(choose_index,"寻找到更优位置",final_pt,":",cur_pd,"->",final_pd)
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index, final_pd_record) # 更新对应元素的PD，线性时间复杂度
                 else:
-                    print(choose_index,"未寻找到更优位置")
+                    # print(choose_index,"未寻找到更优位置")
+                    pass
             if self.TEST_MODEL == True: # 测试模式
                 return
             # self.showPolys()
@@ -128,8 +133,8 @@ class LPSearch(object):
             self.updateMiu(max_pair_pd) # 更新参数
             it = it + 1 # 更新计数次数
 
-            _str = "当前全部重叠:" + str(total_pd)
-            OutputFunc.outputInfo(self.set_name,_str) # 输出当前重叠情况
+            # _str = "当前全部重叠:" + str(total_pd)
+            # OutputFunc.outputInfo(self.set_name,_str) # 输出当前重叠情况
 
         return False
 
@@ -137,16 +142,15 @@ class LPSearch(object):
         polygon = self.getPolygon(i, oi) # 获得对应的形状
         ifr, ifr_bounds = GeometryAssistant.getIFRWithBounds(polygon, self.cur_length, self.width)
         ifr_edges, feasible_IFR = GeometryAssistant.getPolyEdges(ifr), Polygon(ifr) # 全部的IFR和可行的IFR
-        cur_nfps, cur_nfps_edges, cur_nfps_bounds = [], [], []
+        cur_nfps, cur_nfps_bounds = [], []
 
         '''获得全部的NFP及切除后结果'''
         for j in range(self.polys_num):
             if j == i:
-                cur_nfps.append([]), cur_nfps_edges.append([]), cur_nfps_bounds.append([0,0,0,0])
+                cur_nfps.append([]), cur_nfps_bounds.append([0,0,0,0])
                 continue
             nfp = self.getNFP(i, j, oi, self.orientation[j])
             cur_nfps.append(nfp) # 添加NFP
-            cur_nfps_edges.append(GeometryAssistant.getPolyEdges(nfp)) # 添加NFP
             cur_nfps_bounds.append(self.getBoundsbyRow(i, j, oi, self.orientation[j], nfp[0])) # 添加边界
             feasible_IFR = feasible_IFR.difference(Polygon(nfp)) # 求解可行区域
 
@@ -157,7 +161,7 @@ class LPSearch(object):
             return 0,potential_points[random_index],[0 for _ in range(self.polys_num)]
 
         '''计算各个阶段的NFP情况'''
-        all_search_targets = self.getSearchTargets(i, cur_nfps, cur_nfps_bounds, cur_nfps_edges, ifr_edges, ifr_bounds, ifr) # 获得邻接NFP和交集
+        all_search_targets = self.getSearchTargets(i, oi, cur_nfps, cur_nfps_bounds, ifr_edges, ifr_bounds, ifr) # 获得邻接NFP和交集
         min_pd, best_pt, best_pd_record = 99999999999, [], [0 for _ in range(self.polys_num)]
         for k, search_target in enumerate(all_search_targets):
             pt = [search_target[0],search_target[1]]
@@ -166,13 +170,16 @@ class LPSearch(object):
                 if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
                     continue
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
+                # PltFunc.addPolygon(cur_nfps[j])
+                # PltFunc.addLineColor([pt,[pt[0]+10,pt[1]+10]])
+                # PltFunc.showPlt()
                 total_pd, pd_record[j] = total_pd + pd * self.miu[i][j], pd
             if total_pd < min_pd:
                 min_pd, best_pt, best_pd_record = total_pd, copy.deepcopy(pt), copy.deepcopy(pd_record)
 
         return min_pd, best_pt, best_pd_record
 
-    def getSearchTargets(self, index, cur_nfps, cur_nfps_bounds, cur_nfps_edges, ifr_edges, ifr_bounds, ifr):
+    def getSearchTargets(self, index, ori, cur_nfps, cur_nfps_bounds, ifr_edges, ifr_bounds, ifr):
         '''根据NFP的情况求解交点，并求解最佳位置'''
         nfp_neighbor = [[w] for w in range(len(cur_nfps))] # 全部的点及其对应区域，NFP的邻接多边形
         all_search_targets = [] # [[pt[0],pt[1],[contain_nfp]],[]]
@@ -185,7 +192,7 @@ class LPSearch(object):
                 bounds_i, bounds_j = cur_nfps_bounds[i], cur_nfps_bounds[j] # 获得边界
                 if bounds_i[2] <= bounds_j[0] or bounds_i[0] >= bounds_j[2] or bounds_i[3] <= bounds_j[1] or bounds_i[1] >= bounds_j[3]:
                     continue
-                inter_points, intersects = GeometryAssistant.interBetweenNFPs(cur_nfps_edges[i], cur_nfps_edges[j],ifr_bounds) # 计算NFP之间的交点
+                inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds) # 计算NFP之间的交点
                 if intersects == True:
                     nfp_neighbor[i].append(j) # 记录邻接情况    
                     nfp_neighbor[j].append(i) # 记录邻接情况
@@ -195,9 +202,11 @@ class LPSearch(object):
                     all_search_targets.append([pt[0],pt[1],[i,j]]) # 计算直接取0
         
         # 计算全部NFP的顶点
-        for i,nfp in enumerate(cur_nfps):
-            new_pts = GeometryAssistant.interNFPIFR(nfp, ifr_bounds, ifr_edges)
-            all_search_targets = all_search_targets + [[pt[0],pt[1],[i]] for pt in new_pts]
+        for j,nfp in enumerate(cur_nfps):
+            if j == index:
+                continue
+            new_pts = self.interNFPIFR(nfp, ifr_bounds, ifr_edges, index, ori, j, self.orientation[j])
+            all_search_targets = all_search_targets + [[pt[0],pt[1],[j]] for pt in new_pts]
         
         # 根据第一二个位置排序，合并目标多边形
         all_search_targets = sorted(all_search_targets, key = operator.itemgetter(0, 1))
@@ -218,6 +227,24 @@ class LPSearch(object):
             new_all_search_targets[i].append(simple_neighbor)
 
         return new_all_search_targets
+    
+    def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds):
+        target_key = self.ptToKeyTwo(cur_nfps[m][0], cur_nfps[n][0])
+        if target_key in self.last_nfp_inters[i][oi][m][om][n][on]:
+            [inter_points, intersects] = self.last_nfp_inters[i][oi][m][om][n][on][target_key]
+            return inter_points, intersects
+        nfp1_edges, nfp2_edges = GeometryAssistant.getPolyEdges(cur_nfps[m]), GeometryAssistant.getPolyEdges(cur_nfps[n])
+        inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges, ifr_bounds)
+        self.last_nfp_inters[i][oi][m][om][n][on][target_key] = [inter_points, intersects]
+        return inter_points, intersects
+
+    def interNFPIFR(self, nfp, ifr_bounds, ifr_edges, i, oi, j, oj):
+        target_key = self.ptToKey(nfp[0])
+        if target_key in self.last_nfp_ifr[i][oi][j][oj]:
+            return self.last_nfp_ifr[i][oi][j][oj][target_key]
+        new_pts = GeometryAssistant.interNFPIFR(nfp, ifr_bounds, ifr_edges)
+        self.last_nfp_ifr[i][oi][j][oj][target_key] = new_pts
+        return new_pts
 
     def updatePD(self, choose_index, final_pd_record):
         '''平移某个元素后更新对应的PD'''
@@ -281,14 +308,22 @@ class LPSearch(object):
                         self.last_pds[i][oi][j][oj][target_key] = 0
                         return 0
 
-        self.last_pds[i][oi][j][oj][target_key] = pd
+        self.last_pds[i][oi][j][oj][target_key] = min_pd
         return min_pd
     
+    def ptToKeyTwo(self, pt1, pt2):
+        '''计算NFP交点的时候存储'''
+        return str(int(pt1[0]*pow(10,precision))).zfill(precision+4) + str(int(pt1[1]*pow(10,precision))).zfill(precision+4) + str(int(pt2[0]*pow(10,precision))).zfill(precision+4) + str(int(pt2[1]*pow(10,precision))).zfill(precision+4)
+
     def ptToKeyPD(self, first_nfp_pt, target_pt):
         '''计算PD时用目标位置减去NFP[0]的作为作为相对位置'''
         new_pt = [target_pt[0] - first_nfp_pt[0], target_pt[1] - first_nfp_pt[1]]
-        target_key = str(int(new_pt[0]*10)).zfill(5) + str(int(new_pt[1]*10)).zfill(5) # 最大1000四位数，补5即可
-        return target_key 
+        target_key = str(int(new_pt[0]*pow(10,precision))).zfill(precision+4) + str(int(new_pt[1]*pow(10,precision))).zfill(precision+4) # 最大1000四位数，补5即可
+        return target_key
+
+    def ptToKey(self, pt):
+        '''单纯的PT转化为Key的处理'''
+        return str(int(pt[0]*pow(10,precision))).zfill(precision+4) + str(int(pt[1]*pow(10,precision))).zfill(precision+4)
 
     def getIndexPD(self,i,top_pt,oi):
         '''获得某个形状的全部PD，是调整后的结果'''
@@ -332,7 +367,7 @@ class LPSearch(object):
         for index,poly in enumerate(self.polys):
             right_pt = GeometryAssistant.getRightPoint(poly)
             if right_pt[0] > self.cur_length:
-                delta_x = self.cur_length-right_pt[0]
+                delta_x = self.cur_length - right_pt[0]
                 GeometryAssistant.slidePoly(poly,delta_x,0)
         _str = "当前目标利用率" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputWarning(self.set_name,_str)
@@ -398,7 +433,8 @@ class LPSearch(object):
 
     def initialRecord(self):
         self.last_pds = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
-        self.last_inters = [[[[[[] for n in range(self.polys_num)] for m in range(self.polys_num)]] for j in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
+        self.last_nfp_ifr = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
+        self.last_nfp_inters = [[[[[[{} for on in range(len(self.allowed_rotation))] for n in range(self.polys_num)] for om in range(len(self.allowed_rotation))] for m in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
 
     def showPolys(self,saving = False, coloring = None):
         '''展示全部形状以及边框'''

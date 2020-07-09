@@ -274,11 +274,11 @@ class GeometryAssistant(object):
 
     @staticmethod
     def getRightPoint(poly):
-        right_pt,max_x=[],-999999999
+        right_pt,max_x = [], -999999999
         for pt in poly:
-            if pt[0]>max_x:
-                max_x=pt[0]
-                right_pt=[pt[0],pt[1]]
+            if pt[0] > max_x:
+                max_x = pt[0]
+                right_pt = [pt[0],pt[1]]
         return right_pt
 
     @staticmethod

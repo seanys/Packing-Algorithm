@@ -430,8 +430,8 @@ def removeOverlap():
     # PltFunc.showPolys(polys)
 
 def addBound():
-    data = pd.read_csv("data/shapes0_nfp.csv")
-    with open("data/shapes0_nfp.csv","a+") as csvfile:
+    data = pd.read_csv("data/jakobs2_clus_nfp.csv")
+    with open("data/jakobs2_clus_nfp.csv","a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
@@ -441,8 +441,8 @@ def addBound():
             bound = new_NFP.bounds
             bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
 
-            vertical_direction = PreProccess().getVerticalDirection(json.loads(data["convex_status"][row]),new_NFP)
-            # vertical_direction = json.loads(data["vertical_direction"][row])
+            # vertical_direction = PreProccess().getVerticalDirection(json.loads(data["convex_status"][row]),new_NFP)
+            vertical_direction = json.loads(data["vertical_direction"][row])
             new_vertical_direction = []
             for item in vertical_direction:
                 if item == []:
