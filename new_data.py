@@ -96,19 +96,25 @@ targets = [{
         "scale" : 20,
         "allowed_rotation": 4,
         "width": 760
-    }]
+    },{
+        "index" : 14,
+        "name" : "dagli",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },]
 
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        index = 12
+        index = 14
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
         self.orientation()
-        # self.main()
+        self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -160,12 +166,11 @@ class PreProccess(object):
                             nfp = NFP(new_poly_i,new_poly_j)
                             new_nfp = LPAssistant.deleteOnline(nfp.nfp)
                             convex_status = self.getConvexStatus(new_nfp)
-                            vertical_direction = self.getVerticalDirection(convex_status,new_nfp)
+                            vertical_direction = PreProccess.getVerticalDirection(convex_status,new_nfp)
                             first_pt = new_nfp[0]
                             new_NFP = Polygon(new_nfp)
                             bounds = new_NFP.bounds
                             bounds = [bounds[0]-first_pt[0],bounds[1]-first_pt[1],bounds[2]-first_pt[0],bounds[3]-first_pt[1]]
-
                             writer.writerows([[i,j,oi,oj,new_poly_i,new_poly_j,new_nfp,convex_status,vertical_direction,bounds]])
 
     def getConvexStatus(self,nfp):
@@ -181,22 +186,24 @@ class PreProccess(object):
             else:
                 convex_status.append(1)
         return convex_status
-    
-    def getVerticalDirection(self,convex_status,nfp):
+
+    @staticmethod
+    def getVerticalDirection(convex_status,nfp):
         '''获得某个凹点的两个垂线'''
         target_NFP,extend_nfp = Polygon(nfp), nfp + nfp
         vertical_direction = []
         for i,status in enumerate(convex_status):
             # 如果不垂直，则需要计算垂线了
             if status == 0:
-                vec1 = self.rotationDirection([extend_nfp[i][0]-extend_nfp[i-1][0],extend_nfp[i][1]-extend_nfp[i-1][1]])
-                vec2 = self.rotationDirection([extend_nfp[i+1][0]-extend_nfp[i][0],extend_nfp[i+1][1]-extend_nfp[i][1]])
+                vec1 = PreProccess.rotationDirection([extend_nfp[i][0]-extend_nfp[i-1][0],extend_nfp[i][1]-extend_nfp[i-1][1]])
+                vec2 = PreProccess.rotationDirection([extend_nfp[i+1][0]-extend_nfp[i][0],extend_nfp[i+1][1]-extend_nfp[i][1]])
                 vertical_direction.append([vec1,vec2])
             else:
                 vertical_direction.append([[],[]])
         return vertical_direction
 
-    def rotationDirection(self,vec):
+    @staticmethod
+    def rotationDirection(vec):
         theta = math.pi/2
         new_x = vec[0] * math.cos(theta) - vec[1] * math.sin(theta)
         new_y = vec[0] * math.sin(theta) + vec[1] * math.cos(theta)
@@ -421,8 +428,8 @@ def removeOverlap():
     # PltFunc.showPolys(polys)
 
 def addBound():
-    data = pd.read_csv("data/dighe1_nfp.csv")
-    with open("data/dighe1_nfp.csv","a+") as csvfile:
+    data = pd.read_csv("data/dagli_clus_nfp.csv")
+    with open("data/dagli_clus_nfp.csv","a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
@@ -432,8 +439,8 @@ def addBound():
             bound = new_NFP.bounds
             bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
 
-            vertical_direction = PreProccess.getVerticalDirection(json.loads(data["convex_status"][row]),new_nfp)
-            # vertical_direction = json.loads(data["vertical_direction"][row])
+            # vertical_direction = PreProccess.getVerticalDirection(json.loads(data["convex_status"][row]),new_nfp)
+            vertical_direction = json.loads(data["vertical_direction"][row])
             new_vertical_direction = []
             for item in vertical_direction:
                 if item == []:
@@ -444,14 +451,5 @@ def addBound():
  
 
 if __name__ == '__main__':
-    # addBound()
-    # removeOverlap()
-    # cluster()
-    # initialResult(getData())
-    # print(Polygon([[0,0],[10,100],[200,10]]).bounds[0])
-    # ReverseFunction()
-    # testCPlusResult()
-    # showLPResult()
-    PreProccess()
-    # ReverseFunction()
-    # print([i for i in range(16)])
+    addBound()
+    # PreProccess()

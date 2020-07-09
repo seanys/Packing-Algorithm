@@ -11,7 +11,7 @@ class GeometryAssistant(object):
     @staticmethod
     def interBetweenNFPs(nfp1_edges,nfp2_edges,ifr_bounds):
         '''计算直线交点，仅考虑'''
-        inter_points = []
+        inter_points, intersects = [], False
         for edge1 in nfp1_edges:
             for edge2 in nfp2_edges:
                 # 首先判断范围
@@ -20,12 +20,15 @@ class GeometryAssistant(object):
                 # 然后求解交点
                 Line1,Line2 = LineString(edge1),LineString(edge2)
                 inter = Line1.intersection(Line2)
-                if inter.is_empty == True or inter.geom_type == "LineString":
+                if inter.is_empty == True:
+                    continue
+                intersects = True
+                if inter.geom_type == "LineString":
                     continue
                 pt = mapping(inter)["coordinates"]
                 if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
                     inter_points.append([pt[0], pt[1]])
-        return inter_points
+        return inter_points,intersects
 
     @staticmethod
     def interNFPIFR(nfp, ifr_bounds, ifr_edges):
