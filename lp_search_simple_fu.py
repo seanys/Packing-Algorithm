@@ -332,6 +332,7 @@ class GSMPD(object):
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
         row = self.computeRow(i, j, oi, oj)
+        # print(i,j,oi,oj,row)
         bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
         nfp = GeometryAssistant.getSlide(json.loads(self.all_nfps["nfp"][row]), bottom_pt[0], bottom_pt[1])
         return nfp
@@ -416,7 +417,6 @@ class GSMPD(object):
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''
         _input = pd.read_csv("record/lp_initial.csv")
-        print(_input)
         self.set_name = _input["set_name"][index]
         self.width = _input["width"][index]
         self.allowed_rotation = json.loads(_input["allowed_rotation"][index])
