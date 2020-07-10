@@ -28,7 +28,7 @@ precision = 6
 
 class LPSearch(object):
     def __init__(self):
-        self.initialProblem(63) # 获得全部 
+        self.initialProblem(92) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()
@@ -38,8 +38,8 @@ class LPSearch(object):
         '''核心算法部分'''
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        self.showPolys()
-        return
+        # self.showPolys()
+        # return 
         self.shrinkBorder() # 平移边界并更新宽度
         max_time = 360000
         if self.TEST_MODEL == True:
@@ -48,6 +48,7 @@ class LPSearch(object):
         search_status = 0
 
         while time.time() - self.start_time < max_time:
+            self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             # self.showPolys(saving=True)
             if feasible == True:
@@ -371,7 +372,6 @@ class LPSearch(object):
                 GeometryAssistant.slidePoly(poly,delta_x,0)
         _str = "当前目标利用率" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputWarning(self.set_name,_str)
-        self.updateAllPairPD() # 更新当前所有重叠
     
     def extendBorder(self):
         '''扩大边界'''

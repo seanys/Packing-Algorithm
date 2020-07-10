@@ -430,8 +430,8 @@ def removeOverlap():
     # PltFunc.showPolys(polys)
 
 def addBound():
-    data = pd.read_csv("data/jakobs2_clus_nfp.csv")
-    with open("data/jakobs2_clus_nfp.csv","a+") as csvfile:
+    data = pd.read_csv("data/shirts_nfp.csv")
+    with open("data/shirts_nfp.csv","a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
