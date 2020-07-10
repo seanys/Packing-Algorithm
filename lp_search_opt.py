@@ -28,7 +28,7 @@ max_overlap = 5
 
 class GSMPD(object):
     def __init__(self):
-        self.initialProblem(2) # 获得全部 
+        self.initialProblem(89) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         # self.showPolys()

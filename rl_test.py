@@ -284,15 +284,15 @@ class InitSeq(object):
     # 获得面积/长度/高度降序排列的形状结果
     def getDrease(self,criteria):
         poly_list=[]
-        for poly in self.polys:
+        for index,poly in enumerate(self.polys):
             if criteria=='length':
                 left,bottom,right,top=GeoFunc.checkBoundValue(poly)          
-                poly_list.append([poly,right-left])
+                poly_list.append([poly,right-left,index])
             elif criteria=='height':
                 left,bottom,right,top=GeoFunc.checkBoundValue(poly)    
-                poly_list.append([poly,top-bottom])
+                poly_list.append([poly,top-bottom,index])
             else:
-                poly_list.append([poly,Polygon(poly).area])
+                poly_list.append([poly,Polygon(poly).area,index])
         poly_list=sorted(poly_list, key = lambda item:item[1], reverse = True) # 排序，包含index
         dec_polys=[]
         for item in poly_list:
@@ -305,6 +305,7 @@ class InitSeq(object):
         heights=[]
         best_criteria=''
         final_polys=[]
+        final_indexs=[]
         for criteria in ['area','length','height']:
             init_list=self.getDrease(criteria)
             if not self.simple:
@@ -335,15 +336,18 @@ class InitSeq(object):
                 lists=[init_list]
             for item in lists:
                 polys_final=[]
+                indexs_final=[]
                 for poly in item:
                     polys_final.append(poly[0])
+                    indexs_final.append(poly[2])
                 blf=BottomLeftFill(self.width,polys_final,vertical=False,NFPAssistant=self.NFPAssistant)
                 height=blf.getLength()
                 heights.append(height)
                 if height<min_height:
                     min_height=height
                     best_criteria=criteria
-                    final_polys=blf.getPolys()
+                    final_polys=polys_final
+                    final_indexs=indexs_final
         # print(sorted(heights,reverse=False))
         # print(min_height,best_criteria)
         area=0
@@ -351,7 +355,7 @@ class InitSeq(object):
             area=area+Polygon(poly).area
         use_ratio=area/(self.width*min_height)
         # print(area,use_ratio)
-        return use_ratio,best_criteria,final_polys
+        return use_ratio,best_criteria,final_polys,final_indexs
 
 
     # 枚举所有序列并选择最优
@@ -490,7 +494,6 @@ def getBenchmark(source,width=760):
 def getAllInit():
     # 获取所有数据集的最优初始解
     for index,target in enumerate(targets):
-        if index not in [0,2,4]:continue
         set_name=target["name"]
         width=target["width"]
         scale=target["scale"]
@@ -510,9 +513,12 @@ def getAllInit():
         allowed_rotation = target["allowed_rotation"]
         allowed_rotation_list = np.array(range(allowed_rotation)).tolist()
         nfp_ass = newNFPAssistant(set_name, allowed_rotation = allowed_rotation)
-        ratio,best_criteria,polys=InitSeq(width,polygons,nfp_asst=nfp_ass).getBest()
+        ratio,best_criteria,polys,indexs=InitSeq(width,polygons,nfp_asst=nfp_ass).getBest()
+        polys_type_final=[]
+        for i in indexs:
+            polys_type_final.append(polys_type[i])
         with open("record/lp_initial.csv","a+") as f:
-            result=str([index+77,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type)+1,str(polys_type),str([0]*len(polygons)),str(polys)])
+            result=str([index+77,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type)+1,str(polys_type_final),str([0]*len(polygons)),str(polys)])
             result=result[1:len(result)-1]
             f.write(result)
             f.write('\n')
