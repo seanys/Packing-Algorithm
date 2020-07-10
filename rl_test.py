@@ -514,11 +514,11 @@ def getAllInit():
         allowed_rotation_list = np.array(range(allowed_rotation)).tolist()
         nfp_ass = newNFPAssistant(set_name, allowed_rotation = allowed_rotation)
         ratio,best_criteria,polys,indexs=InitSeq(width,polygons,nfp_asst=nfp_ass).getBest()
-        polys_type_final=[]
-        for i in indexs:
-            polys_type_final.append(polys_type[i])
+        polys_final=[[]]*len(polys)
+        for i in range(len(indexs)):
+            polys_final[indexs[i]]=polys[i]
         with open("record/lp_initial.csv","a+") as f:
-            result=str([index+77,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type)+1,str(polys_type_final),str([0]*len(polygons)),str(polys)])
+            result=str([index+77,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type)+1,str(polys_type),str([0]*len(polygons)),str(polys_final)])
             result=result[1:len(result)-1]
             f.write(result)
             f.write('\n')
