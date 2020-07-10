@@ -25,13 +25,20 @@ bias = 0.5
 max_overlap = 5
 precision = 6
 
+# fu 2 shapes2_Clus 39 jakobs2_clus 70
 
 class LPSearch(object):
     def __init__(self):
-        self.initialProblem(92) # 获得全部 
+        self.initialProblem(70) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
+        self.max_time = 1800
         # self.showPolys()
+        with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows([[]])
+            writer.writerows([[time.asctime( time.localtime(time.time()) ), "开始运行[序列正常] 初始利用率", self.total_area/(self.best_length*self.width)]])
+
         self.main()
 
     def main(self):
@@ -41,13 +48,13 @@ class LPSearch(object):
         # self.showPolys()
         # return 
         self.shrinkBorder() # 平移边界并更新宽度
-        max_time = 360000
+        
         if self.TEST_MODEL == True:
-            max_time = 1
+            self.max_time = 1
         self.start_time = time.time()
         search_status = 0
 
-        while time.time() - self.start_time < max_time:
+        while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             # self.showPolys(saving=True)
@@ -61,7 +68,7 @@ class LPSearch(object):
                 with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
-                self.showPolys()
+                # self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 OutputFunc.outputWarning(self.set_name, "结果不可行，重新进行检索")
@@ -461,7 +468,9 @@ class LPSearch(object):
 
 
 if __name__=='__main__':
-    LPSearch()
+    for i in range(10):
+        LPSearch()
+    # LPSearch()
     # for i in range(100):
     #     permutation = np.arange(10)
     #     np.random.shuffle(permutation)
