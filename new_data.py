@@ -102,14 +102,26 @@ targets = [{
         "scale" : 20,
         "allowed_rotation": 2,
         "width": 1200
-    },]
+    },{
+        "index" : 15,
+        "name" : "dighe1",
+        "scale" : 10,
+        "allowed_rotation": 1,
+        "width": 1000
+    },{
+        "index" : 16,
+        "name" : "dighe2",
+        "scale" : 10,
+        "allowed_rotation": 1,
+        "width": 1000 
+    }]
 
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        index = 2
+        index = 16
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
@@ -153,11 +165,11 @@ class PreProccess(object):
         rotation_range = [j for j in range(int(360/self.min_angle))]
         with open("data/" + self.set_name + "_nfp.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
-            #for i in range(_len):
-            for i in range(2,3):
+            for i in range(_len):
+            #for i in range(2,3):
                 Poly_i=Polygon(self.normData(json.loads(fu["polygon"][i]))) # 固定形状
-                #for j in range(_len):
-                for j in range(3,4):
+                for j in range(_len):
+                #for j in range(3,4):
                     Poly_j=Polygon(self.normData(json.loads(fu["polygon"][j]))) # 移动的形状
                     for oi in rotation_range:
                         new_poly_i=self.rotation(Poly_i,oi,min_angle)
@@ -453,5 +465,5 @@ def addBound():
  
 
 if __name__ == '__main__':
-    addBound()
-    # PreProccess()
+    # addBound()
+    PreProccess()

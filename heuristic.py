@@ -396,6 +396,24 @@ targets = [{
         "scale" : 20,
         "allowed_rotation": 4,
         "width": 760
+    },{
+        "index" : 14,
+        "name" : "dagli",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },{
+        "index" : 15,
+        "name" : "dighe1",
+        "scale" : 10,
+        "allowed_rotation": 1,
+        "width": 1000
+    },{
+        "index" : 16,
+        "name" : "dighe2",
+        "scale" : 10,
+        "allowed_rotation": 1,
+        "width": 1000 
     }]
 
 def getDataNew():
@@ -407,8 +425,7 @@ def getDataNew():
     polys_type = []
     for i in range(0,df.shape[0]):
         for j in range(0,df['num'][i]):
-            # if i not in [2,3]:continue
-            # if i in polys_type:continue
+            # if i not in [14,15]:continue
             polys_type.append(i)
             poly = json.loads(df['polygon'][i])
             GeoFunc.normData(poly,targets[index]["scale"])
@@ -417,7 +434,7 @@ def getDataNew():
     return polygons
 
 if __name__=='__main__':
-    # index 0,2,4 有问题
+    index=16
     polys = getDataNew()
     
     total_area = 0
