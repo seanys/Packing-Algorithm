@@ -10,7 +10,7 @@ from tools.geo_assistant import GeometryAssistant, OutputFunc
 from shapely.geometry import Polygon,Point,mapping,LineString
 import pandas as pd
 import json
-import copy
+from copy import deepcopy
 import random
 import math
 import datetime
@@ -24,12 +24,14 @@ compute_bias = 0.00001
 bias = 0.5
 max_overlap = 5
 precision = 6
+pd_range = 5
 
 # fu 2 shapes2_Clus 39 jakobs2_clus 70
 
 class LPSearch(object):
     def __init__(self):
-        self.initialProblem(70) # 获得全部 
+        self.line_index = 2
+        self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         self.max_time = 1800
@@ -37,7 +39,7 @@ class LPSearch(object):
         with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows([[]])
-            writer.writerows([[time.asctime( time.localtime(time.time()) ), "开始运行[序列正常] 初始利用率", self.total_area/(self.best_length*self.width)]])
+            writer.writerows([[time.asctime( time.localtime(time.time()) ), self.line_index, "开始运行[序列正常] 初始利用率", self.total_area/(self.best_length*self.width)]])
 
         self.main()
 
@@ -62,19 +64,19 @@ class LPSearch(object):
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
                 OutputFunc.outputInfo(self.set_name,_str)
-                self.best_orientation = copy.deepcopy(self.orientation) # 更新方向
-                self.best_polys = copy.deepcopy(self.polys) # 更新形状
+                self.best_orientation = deepcopy(self.orientation) # 更新方向
+                self.best_polys = deepcopy(self.polys) # 更新形状
                 self.best_length = self.cur_length # 更新最佳高度
                 with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
-                # self.showPolys()
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
+                self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
             else:
                 OutputFunc.outputWarning(self.set_name, "结果不可行，重新进行检索")
                 with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
                 if search_status == 1:
                     self.shrinkBorder()
                     search_status = 0
@@ -103,7 +105,8 @@ class LPSearch(object):
                 cur_pd = self.getIndexPD(choose_index,top_pt,self.orientation[choose_index]) # 计算某个形状全部pd
                 if cur_pd < self.bias: # 如果没有重叠就直接退出
                     continue
-                final_pt, final_ori = copy.deepcopy(top_pt), self.orientation[choose_index] # 记录最佳情况                
+                final_pt = [top_pt[0],top_pt[1]]
+                final_ori = self.orientation[choose_index] # 记录最佳情况                
                 final_pd, final_pd_record = cur_pd, [0 for _ in range(self.polys_num)]
                 for ori in self.allowed_rotation: # 测试全部的方向
                     if ori == 2 and self.vertical_symmetrical[self.polys_type[choose_index]] == 1:
@@ -112,8 +115,9 @@ class LPSearch(object):
                         continue
                     min_pd,best_pt,best_pd_record = self.lpSearch(choose_index,ori) # 为某个形状寻找最优的位置
                     if min_pd < final_pd:
-                        final_pt,final_ori = copy.deepcopy(best_pt),ori # 更新位置和方向
-                        final_pd,final_pd_record = min_pd, copy.deepcopy(best_pd_record) # 记录最终的PD和对应的PD值
+                        final_pt = [best_pt[0],best_pt[1]]
+                        final_ori = ori # 更新位置和方向
+                        final_pd,final_pd_record = min_pd, deepcopy(best_pd_record) # 记录最终的PD和对应的PD值
                     if min_pd == 0:
                         break
                 if final_pd < cur_pd: # 更新最佳情况
@@ -184,7 +188,7 @@ class LPSearch(object):
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
                 total_pd, pd_record[j] = total_pd + pd * self.miu[i][j], pd
             if total_pd < min_pd:
-                min_pd, best_pt, best_pd_record = total_pd, copy.deepcopy(pt), copy.deepcopy(pd_record)
+                min_pd, best_pd_record, best_pt = total_pd, deepcopy(pd_record), [pt[0],pt[1]]
 
         # if  == False:
         #     OutputFunc.outputWarning(self.set_name, "点的范围超出")
@@ -287,7 +291,7 @@ class LPSearch(object):
                 self.pair_pd_record[i][j], self.pair_pd_record[j][i] = pd, pd # 更新对应的pd
 
     def getPolyPtPD(self, pt, nfp, i, oi, j, oj):
-        '''根据顶点和当前NFP的位置与convex status求解PD'''
+        '''根据顶点和当前NFP的位置与convex status求解PD，注意该方案PD必然大于0'''
         # 首先检查是否存在历史
         target_key = self.ptToKeyPD(nfp[0], pt)
         if target_key in self.last_pds[i][oi][j][oj]:
@@ -306,7 +310,8 @@ class LPSearch(object):
                 continue
             pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
             if pd < min_pd:
-                min_pd, final_foot_pt = pd, copy.deepcopy(foot_pt)
+                min_pd = pd 
+                final_foot_pt = [foot_pt[0],foot_pt[1]]
                 if min_pd < self.bias:
                     self.last_pds[i][oi][j][oj][target_key] = 0
                     return 0
@@ -348,8 +353,7 @@ class LPSearch(object):
         '''根据形状和角度获得NFP的情况'''
         row = self.computeRow(i, j, oi, oj)
         bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
-        original_nfp = copy.deepcopy(self.all_nfps[row])
-        nfp = GeometryAssistant.getSlide(original_nfp, bottom_pt[0], bottom_pt[1])
+        nfp = GeometryAssistant.getSlide(self.all_nfps[row], bottom_pt[0], bottom_pt[1])
         return nfp
 
     def getBoundsbyRow(self, i, j, oi, oj, first_pt):
@@ -393,7 +397,7 @@ class LPSearch(object):
 
     def getPolygon(self, index, orientation):
         '''获得某个形状'''
-        return copy.deepcopy(self.all_polygons[self.polys_type[index]][orientation])
+        return deepcopy(self.all_polygons[self.polys_type[index]][orientation])
 
     def initialProblem(self, index):
         '''获得某个解，基于该解进行优化'''

@@ -2,7 +2,6 @@ from shapely.geometry import Polygon,Point,mapping,LineString
 from tools.polygon import PltFunc
 import math
 import time
-import copy
 
 bias = 0.00001
 
@@ -172,6 +171,7 @@ class GeometryAssistant(object):
         res = mapping(kwt_item)
         _arr = []
         # 去除重叠点的情况
+        OutputFunc.outputWarning("可能错误：",res)
         if res["coordinates"][0][0] == res["coordinates"][0][-1]:
             for point in res["coordinates"][0][0:-1]:
                 _arr.append([point[0],point[1]])

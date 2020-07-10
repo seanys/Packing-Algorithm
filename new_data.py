@@ -11,6 +11,7 @@ import json
 import itertools
 import copy
 import math
+from ast import literal_eval
 
 targets = [{
         "index" : 0,
@@ -441,9 +442,36 @@ def removeOverlap():
     PltFunc.showPlt()
     # PltFunc.showPolys(polys)
 
+def testNFP():
+    data = pd.read_csv("data/swim_clus_nfp.csv")
+    for row in range(data.shape[0]):
+        nfp = json.loads(data["nfp"][row])
+        GeoFunc.slidePoly(nfp,300,300)
+        PltFunc.addPolygon(nfp)
+        PltFunc.showPlt()
+
+def exteriorRecord():
+    data = pd.read_csv("data/fu_nfp.csv")
+    # print(ast.literal_eval(res))
+    with open("data/exterior/fu_nfp_exterior.csv","a+") as csvfile:
+        writer = csv.writer(csvfile)
+        for row in range(data.shape[0]):
+            nfp = json.loads(data["nfp"][row])
+            bounds = json.loads(data["bounds"][row])
+            GeoFunc.slidePoly(nfp,-nfp[0][0],-nfp[0][1])
+            new_NFP = Polygon(nfp)
+            exterior_pts = {}
+            for x in range(int(bounds[0]),int(bounds[2]+1)+1):
+                for y in range(int(bounds[1]),int(bounds[3]+1)+1):
+                    if new_NFP.contains(Point(x,y)) == False:
+                        target_key = str(int(x)).zfill(4) + str(int(y)).zfill(4)
+                        exterior_pts[target_key] = 1
+            writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],exterior_pts]])
+
+
 def addBound():
-    data = pd.read_csv("data/shapes2_clus_nfp.csv")
-    with open("data/shapes2_clus_nfp.csv","a+") as csvfile:
+    data = pd.read_csv("data/shapes1_nfp.csv")
+    with open("data/shapes1_nfp.csv","a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
@@ -466,4 +494,5 @@ def addBound():
 
 if __name__ == '__main__':
     # addBound()
-    PreProccess()
+    exteriorRecord()
+    # PreProccess()
