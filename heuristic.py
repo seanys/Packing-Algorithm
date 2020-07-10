@@ -57,7 +57,6 @@ class BottomLeftFill(object):
             # self.showAll()
 
         self.getLength()
-        # print(self.getPolys())
         # self.showAll()
 
     def placeFirstPoly(self):
@@ -164,10 +163,6 @@ class BottomLeftFill(object):
         self.contain_length=_max
         # PltFunc.addLine([[0,self.contain_length],[self.width,self.contain_length]],color="blue")
         return _max
-
-    def getPolys(self):
-        return self.polygons
-
 class TOPOS(object):
     '''
     TOPOS启发式算法：将形状一个个放入，动态移动整体的位置，该算法参考Bennell的TOPOS Revised
