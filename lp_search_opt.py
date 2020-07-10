@@ -115,6 +115,8 @@ class LPSearch(object):
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index, final_pd_record) # 更新对应元素的PD，线性时间复杂度
+                    # self.judgeFeasible()
+                    # self.showPolys()
                 else:
                     # print(choose_index,"未寻找到更优位置")
                     pass
@@ -166,17 +168,19 @@ class LPSearch(object):
         min_pd, best_pt, best_pd_record = 99999999999, [], [0 for _ in range(self.polys_num)]
         for k, search_target in enumerate(all_search_targets):
             pt = [search_target[0],search_target[1]]
+            if GeometryAssistant.boundsContain(ifr_bounds, pt) == False:
+                continue
             total_pd, pd_record = 0, [0 for _ in range(self.polys_num)]
             for j in search_target[3]:
                 if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
                     continue
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
-                # PltFunc.addPolygon(cur_nfps[j])
-                # PltFunc.addLineColor([pt,[pt[0]+10,pt[1]+10]])
-                # PltFunc.showPlt()
                 total_pd, pd_record[j] = total_pd + pd * self.miu[i][j], pd
             if total_pd < min_pd:
                 min_pd, best_pt, best_pd_record = total_pd, copy.deepcopy(pt), copy.deepcopy(pd_record)
+
+        # if  == False:
+        #     OutputFunc.outputWarning(self.set_name, "点的范围超出")
 
         return min_pd, best_pt, best_pd_record
 
@@ -270,7 +274,7 @@ class LPSearch(object):
                 top_pt, pd = GeometryAssistant.getTopPoint(self.polys[i]), 0
                 nfp = self.getNFP(i, j, self.orientation[i], self.orientation[j])
                 bounds = self.getBoundsbyRow(i, j, self.orientation[i], self.orientation[j], nfp[0])
-                if top_pt[0] <= bounds[0] or top_pt[0] >= bounds[2] or top_pt[1] <= bounds[1] or top_pt[1] >= bounds[3]:
+                if GeometryAssistant.boundsContain(bounds,top_pt) == False:
                     continue
                 pd = self.getPolyPtPD(top_pt, nfp, i, self.orientation[i], j, self.orientation[j])
                 self.pair_pd_record[i][j], self.pair_pd_record[j][i] = pd, pd # 更新对应的pd
@@ -291,7 +295,7 @@ class LPSearch(object):
         edges = GeometryAssistant.getPolyEdges(nfp)
         for edge in edges:
             foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
-            if foot_pt[0] < min(edge[0][0],edge[1][0]) or foot_pt[0] > max(edge[0][0],edge[1][0]) or foot_pt[1] < min(edge[0][1],edge[1][1]) or foot_pt[1] > max(edge[0][1],edge[1][1]):
+            if GeometryAssistant.bounds(foot_pt[0], edge[0][0], edge[1][0]) == False or GeometryAssistant.bounds(foot_pt[1], edge[0][1], edge[1][1]) == False:
                 continue
             pd = math.sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
             if pd < min_pd:
@@ -372,7 +376,10 @@ class LPSearch(object):
                 GeometryAssistant.slidePoly(poly,delta_x,0)
         _str = "当前目标利用率" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputWarning(self.set_name,_str)
-    
+        self.judgeFeasible()
+        # print("开始左侧平移")
+        # PltFunc.showPolys()
+
     def extendBorder(self):
         '''扩大边界'''
         self.cur_length = self.best_length*(1 + self.ration_inc)
@@ -446,6 +453,12 @@ class LPSearch(object):
         PltFunc.addPolygonColor([[0,0], [self.cur_length,0], [self.cur_length,self.width], [0,self.width]])
         PltFunc.showPlt(width=1500, height=1500)
         # PltFunc.showPlt(width=2500, height=2500)
+
+    def judgeFeasible(self):
+        right = GeometryAssistant.getPolysRight(self.polys)
+        if right > self.cur_length:
+            OutputFunc.outputWarning(self.set_name,"超出边界范围")
+
 
 if __name__=='__main__':
     LPSearch()

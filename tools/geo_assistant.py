@@ -12,7 +12,7 @@ class GeometryAssistant(object):
     '''
     @staticmethod
     def bounds(val, bound0, bound1):
-        if min(bound0, bound1)-bias <= val <= max(bound0, bound1) + bias:
+        if min(bound0, bound1) - bias <= val <= max(bound0, bound1) + bias:
             return True
         else:
             return False
@@ -140,7 +140,7 @@ class GeometryAssistant(object):
     
     @staticmethod
     def boundsContain(bounds, pt):
-        if pt[0] > bounds[0] and pt[0] < bounds[2] and pt[1] > bounds[1] and pt[1] < bounds[3]:
+        if pt[0] >= bounds[0] and pt[0] <= bounds[2] and pt[1] >= bounds[1] and pt[1] <= bounds[3]:
             return True
         return False
         
@@ -149,7 +149,7 @@ class GeometryAssistant(object):
         _max=0
         for i in range(0,len(polys)):
             [x,y] = GeometryAssistant.getRightPoint(polys[i])
-            if x>_max:
+            if x > _max:
                 _max=x
         return _max
 
@@ -192,7 +192,7 @@ class GeometryAssistant(object):
         return edges
 
     @staticmethod
-    def getInnerFitRectangle(poly,x,y):
+    def getInnerFitRectangle(poly, x, y):
         left_pt, bottom_pt, right_pt, top_pt = GeometryAssistant.getBoundPoint(poly) # 获得全部边界点
         intial_pt = [top_pt[0] - left_pt[0], top_pt[1] - bottom_pt[1]] # 计算IFR初始的位置
         ifr_width = x - right_pt[0] + left_pt[0]  # 获得IFR的宽度
@@ -304,18 +304,18 @@ class GeometryAssistant(object):
         left_pt,bottom_pt,right_pt,top_pt=[],[],[],[]
         min_x,min_y,max_x,max_y=999999999,999999999,-999999999,-999999999
         for pt in poly:
-            if pt[0]<min_x:
-                min_x=pt[0]
-                left_pt=[pt[0],pt[1]]
-            if pt[0]>max_x:
-                max_x=pt[0]
-                right_pt=[pt[0],pt[1]]
-            if pt[1]>max_y:
-                max_y=pt[1]
-                top_pt=[pt[0],pt[1]]
-            if pt[1]<min_y:
-                min_y=pt[1]
-                bottom_pt=[pt[0],pt[1]]
+            if pt[0] < min_x:
+                min_x = pt[0]
+                left_pt = [pt[0],pt[1]]
+            if pt[0] > max_x:
+                max_x = pt[0]
+                right_pt = [pt[0],pt[1]]
+            if pt[1] > max_y:
+                max_y = pt[1]
+                top_pt = [pt[0],pt[1]]
+            if pt[1] < min_y:
+                min_y = pt[1]
+                bottom_pt = [pt[0],pt[1]]
         return left_pt,bottom_pt,right_pt,top_pt
 
     @staticmethod
