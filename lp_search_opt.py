@@ -24,11 +24,13 @@ precision = 6
 pd_range = 5
 grid_precision = 5 
 digital_precision = 1
-# fu 2 shapes2_Clus 39 jakobs2_clus 70
+
+# fu 2 shapes2_Clus 39 jakobs2_clus 70 
+# jakobs1_clus 86 dighe1 103  dagli 102
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 104
+        self.line_index = 101
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
@@ -36,7 +38,6 @@ class LPSearch(object):
         # self.showPolys()
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
-
         self.main()
 
     def main(self):
@@ -73,6 +74,7 @@ class LPSearch(object):
                 with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
+                # self.extendBorder() # 扩大边界并进行下一次检索
                 if search_status == 1:
                     self.shrinkBorder()
                     search_status = 0
@@ -290,7 +292,8 @@ class LPSearch(object):
         relative_pt = [pt[0] - nfp[0][0], pt[1] - nfp[0][1]]
         grid_pt, grid_key = self.getAdjustPt(relative_pt, grid_precision)
         digital_pt, digital_key = self.getAdjustPt(relative_pt, digital_precision)
-        original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
+
+        # original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
 
         # Step 2 判断是否存在于last_grid_pds和last_digital_pds
         if grid_key in self.last_grid_pds[i][oi][j][oj]:
@@ -303,9 +306,10 @@ class LPSearch(object):
         # Step 3 判断是否在外部和内外部情况
         if digital_key in self.last_exterior_pts[i][oi][j][oj]:
             return 0
-        if Polygon(nfp).contains(Point(original_digital_pt)) == False:
-            self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
-            return 0
+
+        # if Polygon(nfp).contains(Point(original_digital_pt)) == False:
+        #     self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
+        #     return 0
     
         # Step 4 求解PD结果（存在冗余计算）
         convex_status = self.nfps_convex_status[self.computeRow(i, j, oi, oj)]
