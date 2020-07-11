@@ -9,6 +9,7 @@ class GeometryAssistant(object):
     '''
     几何相关的算法重新统一
     '''
+    @staticmethod
     def getPtNFPPD(pt, convex_status, nfp, pd_bias):
         '''根据最终属性求解PD'''
         min_pd, edges = 999999999, GeometryAssistant.getPolyEdges(nfp)
@@ -386,3 +387,226 @@ class OutputFunc(object):
         '''输出浅黄色字体'''
         _str = prefix + str(time.strftime("%H:%M:%S", time.localtime())) + " " + str(_str)
         print("\033[0;33m",_str,"\033[0m")
+
+class Partition:
+    # def __init__(self):
+    #     pass
+    class PartitionVertex:
+        def __init__(self, isActive, p):
+            self.isActive=isActive
+            self.isConvex=False
+            self.isEar=False
+            self.p=p
+            self.angle=0
+            self.previousv=None
+            self.nextv=None
+        def SetNeighbour(self, previousv, nextv):
+            self.previousv=previousv
+            self.nextv=nextv
+
+    def IsConvex(self, p1, p2, p3):
+        tmp = (p3[1]-p1[1])*(p2[0]-p1[0])-(p3[0]-p1[0])*(p2[1]-p1[1])
+        return tmp>0
+
+    def IsReflex(self, p1, p2, p3):
+        tmp = (p3[1]-p1[1])*(p2[0]-p1[0])-(p3[0]-p1[0])*(p2[1]-p1[1])
+        return tmp<0
+
+    # def IsAcute(self,p1,p2,p3):
+    #     if self.IsConvex(p1,p2,p3):
+    #         cos=((p3.x-p1.x)*(p2.x-p1.x)+(p3.y-p1.y)*(p2.y-p1.y))/(self.Distance(p2,p1)*self.Distance(p3,p1))
+    #         # print cos
+    #         if cos>0.5:
+    #             return True
+    #     return False
+
+    # def InCone(self, p1, p2, p3, p):
+    #     convex = self.IsConvex(p1,p2,p3)
+    #     if convex:
+    #         if not self.IsConvex(p1,p2,p):
+    #             return False
+    #         if not self.IsConvex(p2,p3,p):
+    #             return False
+    #         return True
+    #     else:
+    #         if self.IsConvex(p1,p2,p):
+    #             return True
+    #         if self.IsConvex(p2,p3,p):
+    #             return True
+    #         return False
+
+    def Normalize(self, p):
+        n = sqrt(p[0]*p[0]+p[1]*p[1])
+        if n!=0:
+            r = [p[0]/n,p[1]/n]
+        else:
+            r = Point(0,0)
+        return r
+
+    # def Intersects(self,p11,p12,p21,p22):
+    #     """check if two lines intersects"""
+    #     if p11.x==p21.x and p11.y==p21.y :
+    #         return 0
+    #     if p11.x==p22.x and p11.y==p22.y :
+    #         return 0
+    #     if p12.x==p21.x and p12.y==p21.y :
+    #         return 0
+    #     if p12.x==p22.x and p12.y==p22.y :
+    #         return 0
+    #     v1ort=Point(p12.y-p11.y,p11.x-p12.x)
+    #     v2ort=Point(p22.y-p21.y,p21.x-p22.x)
+        
+    #     v = p21-p11
+    #     dot21 = v.x*v1ort.x + v.y*v1ort.y
+    #     v = p22-p11
+    #     dot22 = v.x*v1ort.x + v.y*v1ort.y
+    #     v = p11-p21
+    #     dot11 = v.x*v2ort.x + v.y*v2ort.y
+    #     v = p12-p21
+    #     dot12 = v.x*v2ort.x + v.y*v2ort.y
+
+    #     if dot11*dot12>0:
+    #         return 0
+    #     if dot21*dot22>0:
+    #         return 0
+    #     return 1
+
+    def IsInside(self,p1,p2,p3,p):
+        if self.IsConvex(p1,p,p2) or self.IsConvex(p2,p,p3) or self.IsConvex(p3,p,p1):
+            return False
+        return True
+
+    def UpdateVertex(self,v,vertices):
+        v1=v.previousv
+        v3=v.nextv
+        v.isConvex=self.IsConvex(v1.p, v.p, v3.p)
+        vec1=self.Normalize([v1.p[0]-v.p[0],v1.p[1]-v.p[1]])
+        vec3=self.Normalize([v3.p[0]-v.p[0],v3.p[1]-v.p[1]])
+        v.angle=vec1[0]*vec3[0]+vec1[1]*vec3[1]
+        if v.isConvex:
+            v.isEar=True
+            for vertex in vertices:
+                if vertex.p==v.p or vertex.p==v1.p or vertex.p==v3.p:
+                    continue
+                if self.IsInside(v1.p,v.p,v3.p,vertex.p):
+                    v.isEar=False
+                    break
+        else:
+            v.isEar=False
+
+    def getTriangulation(self, poly, triangles):
+        '''通过ear clipping进行三角划分 结果存放在triangles中 失败返回False'''
+        n=len(poly)
+        if n<3 :
+            return False
+        elif n==3:
+            triangles.append(poly)
+            return True
+        vertices=[]
+        for i in range(n):
+            vertices.append(self.PartitionVertex(True,poly[i]))
+        for i in range(n):
+            vertices[i].SetNeighbour(vertices[(i+n-1)%n],vertices[(i+1)%n])
+        for vertex in vertices:
+            self.UpdateVertex(vertex,vertices)
+        for i in range(n-3):
+            earfound=False
+            ear=None
+            for vertex in vertices:
+                if not vertex.isActive:
+                    continue
+                if not vertex.isEar:
+                    continue
+                if not earfound:
+                    earfound=True
+                    ear=vertex
+                else:
+                    if vertex.angle>ear.angle:
+                        ear=vertex
+            if not earfound:
+                return 0
+            triangle=[]
+            for pt in [ear.previousv.p,ear.p,ear.nextv.p]:
+                triangle.append(pt)
+            triangles.append(triangle)
+            ear.isActive=False
+            ear.previousv.nextv=ear.nextv
+            ear.nextv.previousv=ear.previousv
+            if i==n-4:
+                break
+            self.UpdateVertex(ear.previousv,vertices)
+            self.UpdateVertex(ear.nextv,vertices)
+        for vertex in vertices:
+            if vertex.isActive:
+                triangle=[]
+                for pt in [vertex.previousv.p,vertex.p,vertex.nextv.p]:
+                    triangle.append(pt)
+                triangles.append(triangle)
+        return 1
+
+    def getConvexDecomposition(self, poly, parts):
+        # triangulate first
+        triangles=[]
+        if not self.getTriangulation(poly,triangles):
+            return 0
+        i1=0
+        while i1 < len(triangles):
+            poly1=triangles[i1]
+            i11=i12=i22=i21=-1
+            while i11 < len(poly1)-1:
+                i11+=1
+                d1=poly1[i11]
+                i12=(i11+1)%len(poly1)
+                d2=poly1[i12]
+                isdiagonal=False
+                for i2 in range(i1,len(triangles)):
+                    if i1==i2:
+                        continue
+                    poly2=triangles[i2]
+                    for i21 in range(len(poly2)):
+                        if d2!=poly2[i21]:
+                            continue
+                        i22=(i21+1)%len(poly2)
+                        if d1!=poly2[i22]:
+                            continue
+                        isdiagonal=True
+                        # update adjacent list here
+                        break
+                    if isdiagonal:
+                        break
+                if not isdiagonal:
+                    continue
+
+                i13=(i11+len(poly1)-1)%len(poly1)
+                d3=poly1[i13]
+                i14=(i12+1)%len(poly1)
+                d4=poly1[i14]
+                i23=(i21+len(poly2)-1)%len(poly2)
+                d5=poly2[i23]
+                i24=(i22+1)%len(poly2)
+                d6=poly2[i24]
+                if self.IsReflex(d3,d1,d6) or self.IsReflex(d5,d2,d4):
+                    continue
+                newpoly=[]
+                if i12<i11:
+                    l=poly1[i12:i11]
+                else:
+                    l=poly1[i12:]+poly1[:i11]
+                for p in l:
+                    newpoly.append(p)
+                if i22<i21:
+                    l=poly2[i22:i21]
+                else:
+                    l=poly2[i22:]+poly2[:i21]
+                for p in l:
+                    newpoly.append(p)
+                del triangles[i2]
+                triangles[i1]=newpoly
+                poly1=newpoly
+                i1=0
+                break
+                continue
+            i1+=1
+        for triangle in triangles:
+            parts.append(triangle)
+        return 1

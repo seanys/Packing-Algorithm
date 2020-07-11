@@ -1,6 +1,6 @@
 from tools.polygon import PltFunc,GeoFunc,NFP,getData
 from sequence import BottomLeftFill
-from tools.geo_assistant import GeometryAssistant
+from tools.geo_assistant import GeometryAssistant,Partition
 from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping,Point
@@ -268,7 +268,6 @@ class PreProccess(object):
                 o_3 = self.normData(json.loads(data["o_3"][row]))
                 writer.writerows([[o_0,o_1,o_2,o_3]])
 
-
 class initialResult(object):
     def __init__(self,polys):
         self.polys=polys
@@ -468,7 +467,6 @@ def exteriorRecord():
                         exterior_pts[target_key] = 1
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],exterior_pts]])
 
-
 def addBound():
     data = pd.read_csv("data/shapes1_nfp.csv")
     with open("data/shapes1_nfp.csv","a+") as csvfile:
@@ -490,9 +488,18 @@ def addBound():
                 else:
                     new_vertical_direction.append(item)
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),new_vertical_direction,bound]])
- 
+
+def nfpDecomposition():
+    '''nfp凸分解'''
+    nfp=[[0, 0], [5, 0], [5, 5], [2.5, 2.5], [0, 5]]
+    parts=[]
+    Partition().getConvexDecomposition(nfp,parts)
+    for p in parts:
+        poly=Polygon(p)
+        print(poly)
+
 
 if __name__ == '__main__':
     # addBound()
-    exteriorRecord()
+    nfpDecomposition()
     # PreProccess()
