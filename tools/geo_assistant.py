@@ -1,8 +1,7 @@
 from shapely.geometry import Polygon,Point,mapping,LineString
 from tools.polygon import PltFunc
-import math
+from math import sqrt
 import time
-import copy
 
 bias = 0.00001
 
@@ -10,6 +9,34 @@ class GeometryAssistant(object):
     '''
     几何相关的算法重新统一
     '''
+    def getPtNFPPD(pt, convex_status, nfp, pd_bias):
+        '''根据最终属性求解PD'''
+        min_pd, edges = 999999999, GeometryAssistant.getPolyEdges(nfp)
+        last_num = 4 # 最多求往后的3条边
+        for k in range(len(edges)):
+            # 求解直线边界PD
+            nfp_pt, edge = nfp[k], edges[k]
+            foot_pt = GeometryAssistant.getFootPoint(pt,edge[0],edge[1]) # 求解垂足
+            if GeometryAssistant.bounds(foot_pt[0], edge[0][0], edge[1][0]) == False or GeometryAssistant.bounds(foot_pt[1], edge[0][1], edge[1][1]) == False:
+                continue
+            pd = sqrt(pow(foot_pt[0]-pt[0],2) + pow(foot_pt[1]-pt[1],2))
+            if pd < min_pd:
+                min_pd = pd 
+            # 求解凹点PD
+            if convex_status[k] == 0:
+                non_convex_pd = abs(pt[0]-nfp_pt[0]) + abs(pt[1]-nfp_pt[1])
+                if non_convex_pd < min_pd:
+                    min_pd = non_convex_pd
+            # 如果开启了凹点
+            if min_pd < 10:
+                last_num = last_num - 1
+            if last_num == 0:
+                break
+            # 判断是否为0（一般不会出现该情况）
+            if min_pd < pd_bias:
+                return 0
+        return min_pd
+
     @staticmethod
     def bounds(val, bound0, bound1):
         if min(bound0, bound1) - bias <= val <= max(bound0, bound1) + bias:
@@ -172,6 +199,7 @@ class GeometryAssistant(object):
         res = mapping(kwt_item)
         _arr = []
         # 去除重叠点的情况
+        # OutputFunc.outputWarning("可能错误：",res)
         if res["coordinates"][0][0] == res["coordinates"][0][-1]:
             for point in res["coordinates"][0][0:-1]:
                 _arr.append([point[0],point[1]])
