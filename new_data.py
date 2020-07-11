@@ -1,6 +1,6 @@
 from tools.polygon import PltFunc,GeoFunc,NFP,getData
 from sequence import BottomLeftFill
-from tools.geo_assistant import GeometryAssistant,Partition
+from tools.geo_assistant import GeometryAssistant,polygonQuickDecomp
 from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping,Point
@@ -467,9 +467,9 @@ def exteriorRecord():
                         exterior_pts[target_key] = 1
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],exterior_pts]])
 
-def addBound():
-    data = pd.read_csv("data/shapes1_nfp.csv")
-    with open("data/shapes1_nfp.csv","a+") as csvfile:
+def addBound(set_name):
+    data = pd.read_csv("data/{}_nfp.csv".format(set_name))
+    with open("data/{}_nfp.csv".format(set_name),"a+") as csvfile:
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
@@ -491,16 +491,40 @@ def addBound():
 
 def nfpDecomposition():
     '''nfp凸分解'''
-    nfp=[[0, 0], [5, 0], [5, 5], [2.5, 2.5], [0, 5]]
-    parts=[]
-    Partition().getConvexDecomposition(nfp,parts)
-    for p in parts:
-        poly=Polygon(p)
-        print(poly)
-
+    # for target in targets:
+    #     data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
+    #     if not "bounds" in data:
+    #         addBound(target['name'])
+    #         print(target['name'])
+    error=0
+    for target in targets:
+        data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
+        with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
+            writer = csv.writer(csvfile)
+            csvfile.write('i,j,oi,oj,new_poly_i,new_poly_j,nfp,convex_status,vertical_direction,bounds,nfp_parts'+'\n')
+            for row in range(data.shape[0]):
+                nfp = json.loads(data["nfp"][row])
+                convex_status = json.loads(data["convex_status"][row])
+                if 0 in convex_status:
+                    parts=polygonQuickDecomp(nfp)
+                    first_pt = nfp[0]
+                    GeometryAssistant.slidePoly(nfp,-first_pt[0],-first_pt[1])
+                    area=0
+                    for p in parts:
+                        poly=Polygon(p)
+                        area=area+poly.area
+                    if abs(Polygon(nfp).area-area)>0.001:
+                        print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
+                        error=error+1
+                    else:
+                        parts=[]
+                else:
+                    parts=nfp
+                writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),json.loads(data["vertical_direction"][row]),json.loads(data["bounds"][row]),parts]])
+    print('总错误次数{}'.format(error))            
 
 if __name__ == '__main__':
-    testNFP()
+    # testNFP()
     # addBound()
     nfpDecomposition()
     # PreProccess()

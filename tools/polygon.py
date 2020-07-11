@@ -548,10 +548,17 @@ class PltFunc(object):
         plt.show()
         plt.clf()
 
-    def showPolys(polys):
+    def showPolys(polys,saving=False,coloring=None):
+        '''展示全部形状以及边框'''
         for poly in polys:
-            PltFunc.addPolygon(poly)
-        PltFunc.showPlt(width=1000,height=1000)
+            if coloring != None and (poly == coloring or poly in coloring):
+                PltFunc.addPolygonColor(poly,"red") # 红色突出显示
+            else:
+                PltFunc.addPolygon(poly)
+        if saving:
+            PltFunc.saveFig('figs/LP_Search/{}.png'.format(str(time.strftime("%H:%M:%S", time.localtime()))))
+        else:
+            PltFunc.showPlt(width=1500, height=1500)
 
     def saveFig(path):
         plt.savefig(path)

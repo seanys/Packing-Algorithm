@@ -434,25 +434,23 @@ def getDataNew():
     return polygons
 
 if __name__=='__main__':
+    index=16
+    polys = getDataNew()
     
-    showPolys([[[5, 0], [5, 5], [2.5, 2.5], [0, 0]], [[0, 5], [0, 0], [2.5, 2.5]], [[0, 0], [2.5, 2.5], [0, 5]], [[2.5, 2.5], [0, 5], [0, 0]]])
-    # index=16
-    # polys = getDataNew()
-    
-    # total_area = 0
-    # for poly in polys:
-    #     total_area = total_area + Polygon(poly).area
-    # print("total_area:",total_area)
-    # print("number:",len(polys))
-    # print([0 for i in range(len(polys))])
+    total_area = 0
+    for poly in polys:
+        total_area = total_area + Polygon(poly).area
+    print("total_area:",total_area)
+    print("number:",len(polys))
+    print([0 for i in range(len(polys))])
 
-    # # 计算NFP时间
-    # # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
+    # 计算NFP时间
+    # nfp_ass = packing.NFPAssistant(polys,store_nfp=False,get_all_nfp=True,load_history=True)
 
-    # nfp_ass = newNFPAssistant(targets[index]["name"], allowed_rotation = targets[index]["allowed_rotation"])
-    # # nfp_ass=None
-    # # nfp_ass.getDirectNFP(polys[10],polys[12])
+    nfp_ass = newNFPAssistant(targets[index]["name"], allowed_rotation = targets[index]["allowed_rotation"])
+    # nfp_ass=None
+    # nfp_ass.getDirectNFP(polys[10],polys[12])
 
-    # bfl = BottomLeftFill(targets[index]["width"], polys, vertical=False, NFPAssistant=nfp_ass)
+    bfl = BottomLeftFill(targets[index]["width"], polys, vertical=False, NFPAssistant=nfp_ass)
 
-    # bfl.showAll()
+    bfl.showAll()
