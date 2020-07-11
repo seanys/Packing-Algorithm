@@ -443,7 +443,7 @@ def removeOverlap():
     # PltFunc.showPolys(polys)
 
 def testNFP():
-    data = pd.read_csv("data/swim_clus_nfp.csv")
+    data = pd.read_csv("data/dagli_nfp.csv")
     for row in range(data.shape[0]):
         nfp = json.loads(data["nfp"][row])
         GeoFunc.slidePoly(nfp,300,300)
@@ -493,6 +493,7 @@ def addBound():
  
 
 if __name__ == '__main__':
+    testNFP()
     # addBound()
-    exteriorRecord()
+    # exteriorRecord()
     # PreProccess()

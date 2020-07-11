@@ -28,7 +28,7 @@ class GeometryAssistant(object):
                 if non_convex_pd < min_pd:
                     min_pd = non_convex_pd
             # 如果开启了凹点
-            if min_pd < 10:
+            if min_pd < 20:
                 last_num = last_num - 1
             if last_num == 0:
                 break
@@ -205,7 +205,11 @@ class GeometryAssistant(object):
                 _arr.append([point[0],point[1]])
         else:
             for point in res["coordinates"][0]:
-                _arr.append([point[0],point[1]])
+                '''暂时搁置'''
+                try:
+                    _arr.append([point[0],point[1]])
+                except BaseException:
+                    pass
         return _arr
 
     @staticmethod
