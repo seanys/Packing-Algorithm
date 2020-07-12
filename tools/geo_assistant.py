@@ -8,6 +8,31 @@ class GeometryAssistant(object):
     几何相关的算法重新统一
     '''
     @staticmethod
+    def judgeContain(pt,parts):
+        '''判断点是否包含在NFP凸分解后的凸多边形列表中 输入相对位置点'''
+        def cross(p0,p1,p2):
+            '''计算叉乘'''
+            return (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
+
+        for part in parts: # 对凸多边形逐个判断
+            n=len(part)
+            if cross(part[0],pt,part[1])>0 or cross(part[0],pt,part[n-1])<0:
+                continue
+            i=1
+            j=n-1
+            line=-1
+            while i<=j:
+                mid=int((i+j)/2)
+                if cross(part[0],pt,part[mid])>0:
+                    line=mid
+                    j=mid-1
+                else:
+                    i=mid+1
+            if cross(part[line-1],pt,part[line])<=0:
+                return True
+        return False
+
+    @staticmethod
     def getPtNFPPD(pt, convex_status, nfp, pd_bias):
         '''根据最终属性求解PD'''
         min_pd, edges = 999999999, GeometryAssistant.getPolyEdges(nfp)

@@ -516,8 +516,6 @@ def nfpDecomposition():
                     if abs(Polygon(nfp).area-area)>1e-7:
                         print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
                         error=error+1
-                        # GeometryAssistant.slidePoly(nfp,0,500)
-                        # PltFunc.showPolys([nfp]+parts,coloring=parts)
                         parts=[]
                 else:
                     parts=[nfp]
@@ -529,3 +527,4 @@ if __name__ == '__main__':
     # addBound()
     nfpDecomposition()
     # PreProccess()
+    
