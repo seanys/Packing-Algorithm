@@ -524,7 +524,7 @@ def nfpDecomposition():
     print('总错误次数{}'.format(error))            
 
 if __name__ == '__main__':
-    # testNFP()
+    testNFP()
     # addBound()
-    nfpDecomposition()
+    # nfpDecomposition()
     # PreProccess()

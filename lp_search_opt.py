@@ -24,6 +24,7 @@ precision = 6
 pd_range = 5
 grid_precision = 5 
 digital_precision = 1
+zfill_num = 5
 
 # fu 2 shapes2_Clus 39 jakobs2_clus 70 
 # jakobs1_clus 86 dighe1 103  dagli 102
@@ -149,29 +150,24 @@ class LPSearch(object):
         return False
 
     def lpSearch(self, i, oi):
+        '''Step 1 初始化全部数据'''
         polygon = self.getPolygon(i, oi) # 获得对应的形状
         ifr, ifr_bounds = GeometryAssistant.getIFRWithBounds(polygon, self.cur_length, self.width)
-        ifr_edges, feasible_IFR = GeometryAssistant.getPolyEdges(ifr), Polygon(ifr) # 全部的IFR和可行的IFR
-        cur_nfps, cur_nfps_bounds = [], []
+        ifr_edges  = GeometryAssistant.getPolyEdges(ifr) # 全部的IFR和可行的IFR
+        cur_nfps, cur_nfps_bounds = self.getCurNFPs(i, j, oj, oj) # 获得全部NFP及其边界
 
-        '''获得全部的NFP及切除后结果'''
-        for j in range(self.polys_num):
-            if j == i:
-                cur_nfps.append([]), cur_nfps_bounds.append([0,0,0,0])
-                continue
-            nfp = self.getNFP(i, j, oi, self.orientation[j])
-            cur_nfps.append(nfp) # 添加NFP
-            cur_nfps_bounds.append(self.getBoundsbyRow(i, j, oi, self.orientation[j], nfp[0])) # 添加边界
-            feasible_IFR = feasible_IFR.difference(Polygon(nfp)) # 求解可行区域
-
-        '''如果剩余的面积大于Bias则选择一个点，该阶段不需要考虑在边界的情况'''
-        if feasible_IFR.area > self.bias:
-            potential_points = GeometryAssistant.kwtGroupToArray(feasible_IFR,0)
+        '''Step 2 NFP与IFR交点是否存在可行位置[同时求解NFP顶点]'''
+        nfp_ifr_inters, infeasible_border_range = self.getNFPCutTargets( i, oi, cur_nfps, cur_nfps_bounds, ifr_bounds, ifr_edges)
+        potential_points = self.getFeasiblePt(infeasible_border_range)
+        if len(potential_points) > 0:
             random_index = randint(0, len(potential_points) - 1)
-            return 0,potential_points[random_index],[0 for _ in range(self.polys_num)]
+            return 0, potential_points[random_index],[0 for _ in range(self.polys_num)]
 
-        '''计算各个阶段的NFP情况'''
-        all_search_targets = self.getSearchTargets(i, oi, cur_nfps, cur_nfps_bounds, ifr_edges, ifr_bounds, ifr) # 获得邻接NFP和交集
+        '''Step 3 获得所有的检索目标'''
+        all_nfp_inters, nfp_neighbor = self.getAllNFPInter(index, oi, cur_nfps, cur_nfps_bounds, ifr_bounds)
+        all_search_targets = self.processSearchTargets(all_nfp_inters + nfp_ifr_inters, nfp_neighbor)
+        
+        '''Step 4 求解最佳位置'''
         min_pd, best_pt, best_pd_record = 99999999999, [], [0 for _ in range(self.polys_num)]
         for k, search_target in enumerate(all_search_targets):
             pt = [search_target[0],search_target[1]]
@@ -186,17 +182,90 @@ class LPSearch(object):
             if total_pd < min_pd:
                 min_pd, best_pd_record, best_pt = total_pd, deepcopy(pd_record), [pt[0],pt[1]]
 
-        # if  == False:
-        #     OutputFunc.outputWarning(self.set_name, "点的范围超出")
-
         return min_pd, best_pt, best_pd_record
 
-    def getSearchTargets(self, index, ori, cur_nfps, cur_nfps_bounds, ifr_edges, ifr_bounds, ifr):
-        '''根据NFP的情况求解交点，并求解最佳位置'''
+    def getNFPCutTargets(self, i, oi, cur_nfps, cur_nfps_bounds, ifr_bounds, ifr_edges):
+        '''获得全部的NFP以及其切除后的结果'''
+        nfp_ifr_inters, infeasible_border_range = [], [[],[],[],[]] # 范围是从左底部点逆时针的
+        for j,nfp in enumerate(cur_nfps):
+            if j == index:
+                continue
+            bounds = cur_nfps_bounds[j]
+            contain_x, contain_y = (bounds[0] > ifr_bounds[0] and bounds[2] < ifr_bounds[2]), (bounds[1] > ifr_bounds[1] and bounds[3] < ifr_bounds[3])
+            hori_key, vert_key = str(int(nfp[0][1]/digital_precision)*digital_precision).zfill(zfill_num), str(int(nfp[0][0]/digital_precision)*digital_precision).zfill(zfill_num)
+            total_key = hori_key + vert_key
+            # 完全包含的情况
+            if contain_x == True and contain_y == True:
+                nfp_ifr_inters += [[[pt[0],pt[1]],[j]] for pt in nfp]
+                continue
+            # 仅包含在x bounds的情况/仅包含在y bounds的情况/求解范围
+            if contain_x == True and hori_key in self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]]:
+                history_record = self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]][hori_key] # 相对范围
+                new_border_range = self.getAdjustRange([history_record["0"],history_record["1"],history_record["2"],history_record["3"]],nfp[0], True) # 调整范围
+            elif contain_y == True and vert_key in self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]]:
+                history_record = self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]][vert_key] # 相对范围
+                new_border_range = self.getAdjustRange([history_record["0"],history_record["1"],history_record["2"],history_record["3"]],nfp[0], True) # 调整范围
+            elif total_key in self.last_nfp_ifr[i][oi][j][self.orientation[j]]:
+                history_record = self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]
+                new_border_range = [history_record["0"], history_record["1"], history_record["2"], history_record["3"]] # 无需调整范围
+            else:
+                # 没有历史记录的情况下
+                all_pts, inside_indexs, new_border_range = newGeometryAssistant.interNFPIFR(nfp, ifr_bounds, ifr_edges)
+                nfp_ifr_inters += [[[pt[0],pt[1]],[j]] for pt in all_pts] # 增加新的目标点
+                if contain_x == True:
+                    self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]][hori_key]["inside_indexs"] = inside_indexs
+                    new_border_range = self.getAdjustRange(new_border_range, nfp[0], False)
+                elif contain_y == True:
+                    self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]][vert_key]["inside_indexs"] = inside_indexs
+                    new_border_range = self.getAdjustRange(new_border_range, nfp[0], False)
+                else:
+                    self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]["inside_indexs"] = inside_indexs
+                self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]["0"] = new_border_range[0]
+                self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]["1"] = new_border_range[1]
+                self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]["2"] = new_border_range[2]
+                self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]["3"] = new_border_range[3]
+                continue
+            # 记录求解结果（有历史的情况下）
+            nfp_ifr_inters += [[[nfp[k][0],nfp[k][1]],[j]] for k in history_record["inside_indexs"]] # 增加新的目标点
+            infeasible_border_range = [old_range + new_range for old_range in infeasible_border_range for new_range in new_border_range] # 添加新求解反问
+            
+        return nfp_ifr_inters, infeasible_border_range
+    
+    def getAdjustRange(self, original_border_range, first_pt, to_real):
+        '''部分情况需要根据相对位置调整范围'''
+        new_border_range = []
+        for i in range(4):
+            border_range = []
+            for item in original_border_range[i]:
+                if to_real == True:
+                    border_range.append([item[0]+first_pt[i%2],item[1]+first_pt[i%2]])
+                else:
+                    border_range.append([item[0]-first_pt[i%2],item[1]-first_pt[i%2]])
+            new_border_range.append(border_range)
+        return new_border_range
+    
+    def getFeasiblePt(self, ifr_bound, infeasible_border_range):
+        '''求解可行域的中的可行点，从左下角逆时针'''
+        potential_points = []
+        for k, every_border_range in enumerate(infeasible_border_range):
+            all_position = list(set([p for bound in every_border_range for p in bound] + [ifr_bound[k%2],ifr_bound[k%2+2]]))
+            for position in all_position:
+                feasible = True
+                for test_range in every_border_range:
+                    if test_range[0] < position < test_range[1] or position > ifr_bound[k%2] or position < ifr_bound[k%2+2]:
+                        feasible = False
+                        break
+                if feasible == True:
+                    if k%2 == 0:
+                        potential_points.append([position, ifr_bound[k+1]])
+                    else:
+                        potential_points.append([ifr_bound[3-k], position])
+        return potential_points
+    
+    def getAllNFPInter(self, index, ori, cur_nfps, cur_nfps_bounds, ifr_bounds):
+        '''根据NFP的情况求解交点'''
         nfp_neighbor = [[w] for w in range(len(cur_nfps))] # 全部的点及其对应区域，NFP的邻接多边形
-        all_search_targets = [] # [[pt[0],pt[1],[contain_nfp]],[]]
-
-        # 计算全部NFP交点
+        all_nfp_inters = [] # [[pt[0],pt[1],[contain_nfp]],[]]
         for i in range(len(cur_nfps)-1):
             for j in range(i+1, len(cur_nfps)):
                 if i == index or j == index:
@@ -211,25 +280,20 @@ class LPSearch(object):
                 if len(inter_points) == 0:
                     continue
                 for pt in inter_points:
-                    all_search_targets.append([pt[0],pt[1],[i,j]]) # 计算直接取0
-        
-        # 计算全部NFP的顶点
-        for j,nfp in enumerate(cur_nfps):
-            if j == index:
-                continue
-            new_pts = self.interNFPIFR(nfp, ifr_bounds, ifr_edges, index, ori, j, self.orientation[j])
-            all_search_targets = all_search_targets + [[pt[0],pt[1],[j]] for pt in new_pts]
-        
-        # 根据第一二个位置排序，合并目标多边形
-        all_search_targets = sorted(all_search_targets, key = operator.itemgetter(0, 1))
+                    all_nfp_inters.append([pt[0],pt[1],[i,j]]) # 计算直接取0
+        return all_nfp_inters, nfp_neighbor
+    
+    def processSearchTargets(self, all_nfp_inters, neighbor):
+        '''删除重复目标并增加邻接，求解最终的邻接部分'''
+        all_nfp_inters = sorted(all_nfp_inters, key = operator.itemgetter(0, 1))
         new_all_search_targets = [] 
-        for k,target in enumerate(all_search_targets):
-            if abs(target[0] - all_search_targets[k-1][0]) < compute_bias and abs(target[1] - all_search_targets[k-1][1]) < compute_bias:
+        # 删除检索位置冗余
+        for k,target in enumerate(all_nfp_inters):
+            if abs(target[0] - all_nfp_inters[k-1][0]) < compute_bias and abs(target[1] - all_nfp_inters[k-1][1]) < compute_bias:
                 new_all_search_targets[-1][2] = list(set(new_all_search_targets[-1][2] + target[2]))
                 continue
             new_all_search_targets.append(target)
-
-        # 求解邻域部分（除去边界点）
+        # 增加邻域部分
         for i,search_target in enumerate(new_all_search_targets):
             neighbor = nfp_neighbor[search_target[2][0]]
             for possible_orignal in search_target[2][1:]:
@@ -237,10 +301,10 @@ class LPSearch(object):
                 neighbor = [k for k in neighbor if k in nfp_neighbor[possible_orignal]]
             simple_neighbor = [k for k in neighbor if k not in search_target[2]]
             new_all_search_targets[i].append(simple_neighbor)
-
         return new_all_search_targets
-    
+
     def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds):
+        '''求解NFP之间的交集'''
         target_key = self.ptToKeyTwo(cur_nfps[m][0], cur_nfps[n][0])
         if target_key in self.last_nfp_inters[i][oi][m][om][n][on]:
             [inter_points, intersects] = self.last_nfp_inters[i][oi][m][om][n][on][target_key]
@@ -249,14 +313,6 @@ class LPSearch(object):
         inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges, ifr_bounds)
         self.last_nfp_inters[i][oi][m][om][n][on][target_key] = [inter_points, intersects]
         return inter_points, intersects
-
-    def interNFPIFR(self, nfp, ifr_bounds, ifr_edges, i, oi, j, oj):
-        target_key = self.ptToKey(nfp[0])
-        if target_key in self.last_nfp_ifr[i][oi][j][oj]:
-            return self.last_nfp_ifr[i][oi][j][oj][target_key]
-        new_pts = GeometryAssistant.interNFPIFR(nfp, ifr_bounds, ifr_edges)
-        self.last_nfp_ifr[i][oi][j][oj][target_key] = new_pts
-        return new_pts
 
     def updatePD(self, choose_index, final_pd_record):
         '''平移某个元素后更新对应的PD'''
@@ -287,15 +343,14 @@ class LPSearch(object):
                 self.pair_pd_record[i][j], self.pair_pd_record[j][i] = pd, pd # 更新对应的pd
 
     def getPolyPtPD(self, pt, nfp, i, oi, j, oj):
-        '''根据ij及其方向等求解PD（主要依靠历史）'''
-        # Step 1 首先处理参考点和全部（已经判断了是否包含Bounds）
+        '''Step 1 首先处理参考点和全部（已经判断了是否包含Bounds）'''
         relative_pt = [pt[0] - nfp[0][0], pt[1] - nfp[0][1]]
         grid_pt, grid_key = self.getAdjustPt(relative_pt, grid_precision)
         digital_pt, digital_key = self.getAdjustPt(relative_pt, digital_precision)
 
-        # original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
+        original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
 
-        # Step 2 判断是否存在于last_grid_pds和last_digital_pds
+        '''Step 2 判断是否存在于last_grid_pds和last_digital_pds'''
         if grid_key in self.last_grid_pds[i][oi][j][oj]:
             possible_pd = self.last_grid_pds[i][oi][j][oj][grid_key]
             if possible_pd >= 10: # 如果比较大则直接取该值
@@ -303,15 +358,15 @@ class LPSearch(object):
             if digital_key in self.last_digital_pds[i][oi][j][oj]: # 如果存在具体的位置
                 return self.last_digital_pds[i][oi][j][oj][digital_key]
             
-        # Step 3 判断是否在外部和内外部情况
+        '''Step 3 判断是否在外部和内外部情况'''
         if digital_key in self.last_exterior_pts[i][oi][j][oj]:
             return 0
 
-        # if Polygon(nfp).contains(Point(original_digital_pt)) == False:
-        #     self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
-        #     return 0
+        if Polygon(nfp).contains(Point(original_digital_pt)) == False:
+            self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
+            return 0
     
-        # Step 4 求解PD结果（存在冗余计算）
+        '''Step 4 求解PD结果（存在冗余计算）'''
         convex_status = self.nfps_convex_status[self.computeRow(i, j, oi, oj)]
         grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
         self.last_grid_pds[i][oi][j][oj][grid_key] = grid_pd
@@ -324,20 +379,27 @@ class LPSearch(object):
             return digital_pd
 
         return grid_pd
-    
+        
+    def getIndexPD(self,i,top_pt,oi):
+        '''获得某个形状的全部PD，是调整后的结果'''
+        total_pd = 0 # 获得全部的NFP基础
+        for j in range(self.polys_num):
+            total_pd = total_pd + self.pair_pd_record[i][j]*self.miu[i][j] # 计算PD，比较简单
+        return total_pd
+
     def getAdjustPt(self, pt, precision):
         '''按照精度四舍五入'''
         new_pt = [round(pt[0]/precision)*precision, round(pt[1]/precision)*precision]
-        target_key = str(int(new_pt[0])).zfill(5) + str(int(new_pt[1])).zfill(5)
+        target_key = self.ptToKey(new_pt)
         return new_pt, target_key
+    
+    def ptToKey(self, pt):
+        '''直接处理为Key'''
+        return str(int(pt[0])).zfill(5) + str(int(pt[1])).zfill(5)
 
     def ptToKeyTwo(self, pt1, pt2):
         '''计算NFP交点的时候存储'''
         return str(int(pt1[0]*pow(10,precision))).zfill(precision+4) + str(int(pt1[1]*pow(10,precision))).zfill(precision+4) + str(int(pt2[0]*pow(10,precision))).zfill(precision+4) + str(int(pt2[1]*pow(10,precision))).zfill(precision+4)
-
-    def ptToKey(self, pt):
-        '''单纯的PT转化为Key的处理'''
-        return str(int(pt[0]*pow(10,precision))).zfill(precision+4) + str(int(pt[1]*pow(10,precision))).zfill(precision+4)
 
     def initialRecord(self):
         '''记录全部的'''
@@ -346,14 +408,10 @@ class LPSearch(object):
         self.last_exterior_pts = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
         
         self.last_nfp_ifr = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
-        self.last_nfp_inters = [[[[[[{} for on in range(len(self.allowed_rotation))] for n in range(self.polys_num)] for om in range(len(self.allowed_rotation))] for m in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
+        self.last_nfp_ifr_hori = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
+        self.last_nfp_ifr_vert = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
 
-    def getIndexPD(self,i,top_pt,oi):
-        '''获得某个形状的全部PD，是调整后的结果'''
-        total_pd = 0 # 获得全部的NFP基础
-        for j in range(self.polys_num):
-            total_pd = total_pd + self.pair_pd_record[i][j]*self.miu[i][j] # 计算PD，比较简单
-        return total_pd
+        self.last_nfp_inters = [[[[[[{} for on in range(len(self.allowed_rotation))] for n in range(self.polys_num)] for om in range(len(self.allowed_rotation))] for m in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
@@ -361,6 +419,18 @@ class LPSearch(object):
         bottom_pt = GeometryAssistant.getBottomPoint(self.polys[j])
         nfp = GeometryAssistant.getSlide(self.all_nfps[row], bottom_pt[0], bottom_pt[1])
         return nfp
+        
+    def getCurNFPs(self, i, j, oi, oj):
+        '''获得全部的NFP和切割后的效果'''
+        cur_nfps, cur_nfps_bounds = [],[]
+        for j in range(self.polys_num):
+            if j == i:
+                cur_nfps.append([]), cur_nfps_bounds.append([0,0,0,0])
+                continue
+            nfp = self.getNFP(i, j, oi, self.orientation[j])
+            cur_nfps.append(nfp) # 添加NFP
+            cur_nfps_bounds.append(self.getBoundsbyRow(i, j, oi, self.orientation[j], nfp[0])) # 添加边界
+        return cur_nfps, cur_nfps_bounds
 
     def getBoundsbyRow(self, i, j, oi, oj, first_pt):
         row = self.computeRow(i, j, oi, oj)
@@ -376,7 +446,6 @@ class LPSearch(object):
             for j in range(i+1,self.polys_num):
                 self.miu[i][j] = self.miu[i][j] + self.pair_pd_record[i][j]/max_pair_pd
                 self.miu[j][i] = self.miu[j][i] + self.pair_pd_record[j][i]/max_pair_pd
-        # print("miu:",self.miu)
 
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
@@ -393,8 +462,6 @@ class LPSearch(object):
                 GeometryAssistant.slidePoly(poly,delta_x,0)
         _str = "当前目标利用率" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputWarning(self.set_name,_str)
-        # print("开始左侧平移")
-        # PltFunc.showPolys()
 
     def extendBorder(self):
         '''扩大边界'''

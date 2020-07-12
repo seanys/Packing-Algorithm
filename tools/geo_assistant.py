@@ -3,6 +3,7 @@ from tools.polygon import PltFunc
 from math import sqrt,acos
 import time
 bias = 0.00001
+
 class GeometryAssistant(object):
     '''
     几何相关的算法重新统一
@@ -79,6 +80,23 @@ class GeometryAssistant(object):
         else:
             return [], False
 
+    # @staticmethod
+    # def horizonInter(hori_line, line):
+    #     # 如果另一条直线也垂直
+    #     if line[0][0] == line[1][0]:
+    #         if line[0][0] == hori_line[0][0]:
+    #             return GeometryAssistant.parallelInter(line, hori_line)
+    #         else:
+    #             return [], False
+    #     # 否则求解直线交点
+    #     k, b = GeometryAssistant.getLineCoe(line)
+    #     x = ver_line[0][0]
+    #     y = k * x + b
+    #     if GeometryAssistant.bounds(y, hori_line[0][1], hori_line[1][1]):
+    #         return [[x,y]], True
+    #     else:
+    #         return [], False
+
     @staticmethod
     def verticalInter(ver_line, line):
         # 如果另一条直线也垂直
@@ -140,30 +158,87 @@ class GeometryAssistant(object):
 
     @staticmethod
     def interNFPIFR(nfp, ifr_bounds, ifr_edges):
-        final_points = [] # NFP在IFR内部的点及交点
+        '''求解NFP与IFR的相交区域'''
+        total_points, border_record = [], [] # NFP在IFR内部的点及交，计算参考和边界可行范围
         contain_last, contain_this = False, False
         for i, pt in enumerate(nfp):
             # 第一个点
             if i == 0:
                 if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
-                    final_points.append([pt[0], pt[1]])
+                    total_points.append([pt[0], pt[1]])
                     contain_last = True
                 continue
             # 后续的点求解
             if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
-                final_points.append([pt[0], pt[1]])
+                total_points.append([pt[0], pt[1]])
                 contain_this = True
             else:
                 contain_this = False
             # 只有两个不全在内侧的时候才需要计算交点
             if contain_last != True and contain_this != True:
-                for edge in ifr_edges:
+                nfp_edge_record = []
+                for k,edge in enumerate(ifr_edges):
                     inter_pts, inter_or = GeometryAssistant.lineInter([nfp[i-1],nfp[i]], edge)
                     if inter_or == True:
-                        for inter_pt in inter_pts:
-                            final_points.append([inter_pt[0],inter_pt[1]])
-        return final_points
-    
+                        total_points += inter_pts # 将交点加入可行点
+                        nfp_edge_record += [[inter_pt,k] for inter_pt in inter_pts] # 记录全部边界交点
+                # 如果有两个交点的处理（最多两个）
+                if len(nfp_edge_record) == 2:
+                    dis1 = pow(nfp[i-1][0] - nfp_edge_record[0][0][0], 2) + pow(nfp[i-1][1] - nfp_edge_record[0][0][1], 2)
+                    dis2 = pow(nfp[i-1][0] - nfp_edge_record[1][0][0], 2) + pow(nfp[i-1][1] - nfp_edge_record[1][0][1], 2)
+                    if dis2 < dis1:
+                        nfp_edge_record = [nfp_edge_record[1], nfp_edge_record[0]]
+                # 记录交点、上一阶段记录内容、边的顶点包含情况
+                border_record += [[inter_item[0], inter_item[1], contain_last, contain_this] for inter_item in nfp_edge_record]
+
+        border_range = GeometryAssistant.convertToRange(border_record, ifr_bounds)
+        return total_points, border_range
+
+    @staticmethod
+    def convertToRange(border_record, ifr_bounds):
+        border_range, groups = [[],[],[],[]], []
+        extend_record, len_record = border_record + border_record, len(border_record)
+        i, last_index, begin_record = 1, extend_record[0][1], False
+        # 拆分为Group
+        while True:
+            if extend_record[i][1] == last_index:
+                if begin_record == False:
+                    continue
+                else:
+                    groups[-1].append([extend_record[i]])
+                    last_index = extend_record[i][1]
+            if i >= len_record:
+                break
+            begin_record = True
+            groups.append([])
+            groups[-1].append([extend_record[i][1]])
+            i = i + 1
+        # 处理Groups为具体范围
+        for group in groups:
+            # 首先处理第一个点
+            cur_inter, k = group[0][0], group[0][1]
+            if group[0][2] == False:
+                if k < 2:
+                    border_range[k].append([bound[k], cur_inter[k%2])
+                elif k >= 2:
+                    border_range[k].append([cur_inter[k%2], bound[k]])
+            # 如果仅有该点，就增加后面的范围
+            if len(group) == 1 and group[0][2] == True:
+                if k < 2:
+                    border_range[k].append([first_inter[k%2], bound[k+2]])
+                elif k >= 2:
+                    border_range[k].append([bound[k], first_inter[k%2])
+                continue
+            # 多顶点的情况
+            last_item = group[0]
+            for item_index in range(1,len(group)-1):
+                if last_status[2] == True and group[item_index][]:
+                    if k < 2:
+                        border_range[k].append([first_inter[k%2], bound[k+2]])
+                    elif k >= 2:
+                        border_range[k].append([bound[k], first_inter[k%2])
+        return border_range
+
     @staticmethod
     def boundsContain(bounds, pt):
         if pt[0] >= bounds[0] and pt[0] <= bounds[2] and pt[1] >= bounds[1] and pt[1] <= bounds[3]:
