@@ -1,6 +1,6 @@
 from tools.polygon import PltFunc,GeoFunc,NFP,getData
 from sequence import BottomLeftFill
-from tools.geo_assistant import GeometryAssistant,polygonQuickDecomp
+from tools.geo_assistant import GeometryAssistant,polygonQuickDecomp,polygonDecomp
 from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping,Point
@@ -506,20 +506,21 @@ def nfpDecomposition():
                 nfp = json.loads(data["nfp"][row])
                 convex_status = json.loads(data["convex_status"][row])
                 if 0 in convex_status:
-                    parts=polygonQuickDecomp(nfp)
                     first_pt = nfp[0]
                     GeometryAssistant.slidePoly(nfp,-first_pt[0],-first_pt[1])
+                    parts=copy.deepcopy(polygonQuickDecomp(nfp))
                     area=0
                     for p in parts:
                         poly=Polygon(p)
                         area=area+poly.area
-                    if abs(Polygon(nfp).area-area)>0.001:
+                    if abs(Polygon(nfp).area-area)>1e-7:
                         print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
                         error=error+1
-                    else:
+                        # GeometryAssistant.slidePoly(nfp,0,500)
+                        # PltFunc.showPolys([nfp]+parts,coloring=parts)
                         parts=[]
                 else:
-                    parts=nfp
+                    parts=[nfp]
                 writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),json.loads(data["vertical_direction"][row]),json.loads(data["bounds"][row]),parts]])
     print('总错误次数{}'.format(error))            
 

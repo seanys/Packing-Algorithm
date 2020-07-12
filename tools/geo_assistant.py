@@ -1090,5 +1090,12 @@ class Partition:
                 continue
             i1+=1
         for triangle in triangles:
-            parts.append(triangle)
+            existed=False
+            for i in range(len(parts)):
+                part=parts[i]
+                if len(part)==len(triangle) and Polygon(part).area-Polygon(triangle).area<0.0001:
+                    existed=True
+                    break
+            if not existed:
+                parts.append(triangle)
         return 1
