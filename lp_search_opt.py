@@ -19,7 +19,7 @@ import operator
 
 compute_bias = 0.00001
 bias = 0.5
-max_overlap = 5
+max_overlap = 1
 precision = 6
 pd_range = 5
 grid_precision = 5 
@@ -57,7 +57,7 @@ class LPSearch(object):
         while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            # self.showPolys(saving=True)
+            # PltFunc.showPolys(self.polys,saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -88,7 +88,7 @@ class LPSearch(object):
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
         self.miu = [[1]*self.polys_num for _ in range(self.polys_num)] # 计算重叠权重调整（每次都会更新）
-        N,it = 50,0 # 记录计算次数
+        N,it = 200,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 1
@@ -347,7 +347,7 @@ class LPSearch(object):
         relative_pt = [pt[0] - nfp[0][0], pt[1] - nfp[0][1]]
         grid_pt, grid_key = self.getAdjustPt(relative_pt, grid_precision)
         digital_pt, digital_key = self.getAdjustPt(relative_pt, digital_precision)
-
+        row=self.computeRow(i, j, oi, oj)
         original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
 
         '''Step 2 判断是否存在于last_grid_pds和last_digital_pds'''
@@ -361,13 +361,18 @@ class LPSearch(object):
         '''Step 3 判断是否在外部和内外部情况'''
         if digital_key in self.last_exterior_pts[i][oi][j][oj]:
             return 0
-
-        if Polygon(nfp).contains(Point(original_digital_pt)) == False:
-            self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
-            return 0
+        nfp_parts=self.nfp_parts[row]
+        if len(nfp_parts)>1:
+            if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
+                self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
+                return 0
+        else:
+            if not Polygon(nfp).contains(Point(original_digital_pt)):
+                self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
+                return 0
     
-        '''Step 4 求解PD结果（存在冗余计算）'''
-        convex_status = self.nfps_convex_status[self.computeRow(i, j, oi, oj)]
+        # Step 4 求解PD结果（存在冗余计算）
+        convex_status = self.nfps_convex_status[row]
         grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
         self.last_grid_pds[i][oi][j][oj][grid_key] = grid_pd
         if grid_pd < 10:
@@ -513,13 +518,14 @@ class LPSearch(object):
             for i in range(fu.shape[0]):
                 self.horizon_symmetrical.append(fu["hori_sym"][i])
         # 加载NFP的属性
-        self.nfps_convex_status,self.nfps_vertical_direction,self.nfps_bounds,self.all_nfps = [],[],[],[]
+        self.nfps_convex_status,self.nfps_vertical_direction,self.nfps_bounds,self.all_nfps,self.nfp_parts = [],[],[],[],[]
         nfps = pd.read_csv("data/" + self.set_name + "_nfp.csv") # 获得NFP
         for i in range(nfps.shape[0]):
             self.nfps_convex_status.append(json.loads(nfps["convex_status"][i]))
             self.nfps_vertical_direction.append(json.loads(nfps["vertical_direction"][i]))
             self.nfps_bounds.append(json.loads(nfps["bounds"][i]))
             self.all_nfps.append(json.loads(nfps["nfp"][i]))
+            self.nfp_parts.append(json.loads(nfps["nfp_parts"][i]))
 
     def showPolys(self,saving = False, coloring = None):
         '''展示全部形状以及边框'''
