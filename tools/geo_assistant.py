@@ -217,26 +217,30 @@ class GeometryAssistant(object):
         for group in groups:
             # 首先处理第一个点
             cur_inter, k = group[0][0], group[0][1]
-            if group[0][2] == False:
+            if group[0][2] == False and group[0][3] == False:
                 if k < 2:
                     border_range[k].append([bound[k], cur_inter[k%2])
                 elif k >= 2:
                     border_range[k].append([cur_inter[k%2], bound[k]])
-            # 如果仅有该点，就增加后面的范围
-            if len(group) == 1 and group[0][2] == True:
-                if k < 2:
-                    border_range[k].append([first_inter[k%2], bound[k+2]])
-                elif k >= 2:
-                    border_range[k].append([bound[k], first_inter[k%2])
-                continue
-            # 多顶点的情况
+            # 对于后续的点（需要两个点以上）
             last_item = group[0]
-            for item_index in range(1,len(group)-1):
-                if last_status[2] == True and group[item_index][]:
-                    if k < 2:
-                        border_range[k].append([first_inter[k%2], bound[k+2]])
-                    elif k >= 2:
-                        border_range[k].append([bound[k], first_inter[k%2])
+            if len(group) >= 2:
+                for item_index in range(1,len(group)-1):
+                    if last_item[2] == True and group[item_index][3] == True:
+                        k = group[item_index][1]
+                        if k < 2:
+                            border_range[k].append([group[item_index-2][k%2], group[item_index][k%2]])
+                        elif k >= 2:
+                            border_range[k].append([group[item_index][k%2], group[item_index-1][k%2])
+                    last_item = group[item_index]
+            # 最于最后一个点来说（也可以是第一个点）
+            if group[-1][2] == True:
+                k = group[-1][1]
+                if k < 2:
+                    border_range[k].append([group[-1][0][k%2], bound[k+2]])
+                elif k >= 2:
+                    border_range[k].append([bound[k], group[-1][0][k%2])
+            
         return border_range
 
     @staticmethod
