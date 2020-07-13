@@ -9,38 +9,16 @@ class GeometryAssistant(object):
     几何相关的算法重新统一
     '''
     @staticmethod
-    def getAdjustRange(original_border_range, first_pt, to_real):
+    def getAdjustPts(original_points, first_pt, to_real):
         '''部分情况需要根据相对位置调整范围'''
-        new_border_range = []
-        for i in range(4):
-            border_range = []
-            for item in original_border_range[i]:
-                if to_real == True:
-                    border_range.append([item[0]+first_pt[i%2],item[1]+first_pt[i%2]])
-                else:
-                    border_range.append([item[0]-first_pt[i%2],item[1]-first_pt[i%2]])
-            new_border_range.append(border_range)
-        return new_border_range
+        new_points = []
+        for pt in original_points:
+            if to_real == True:
+                new_points.append([pt[0]+first_pt[0],pt[1]+first_pt[1]])
+            else:
+                new_points.append([pt[0]-first_pt[0],pt[1]-first_pt[1]])
+        return new_points
 
-    @staticmethod
-    def getFeasiblePt(ifr_bound, infeasible_border_range):
-        '''求解可行域的中的可行点，从左下角逆时针'''
-        potential_points = []
-        for k, every_border_range in enumerate(infeasible_border_range):
-            all_position = list(set([p for bound in every_border_range for p in bound] + [ifr_bound[k%2],ifr_bound[k%2+2]]))
-            for position in all_position:
-                feasible = True
-                for test_range in every_border_range:
-                    if test_range[0] < position < test_range[1] or position > ifr_bound[k%2] or position < ifr_bound[k%2+2]:
-                        feasible = False
-                        break
-                if feasible == True:
-                    if k%2 == 0:
-                        potential_points.append([position, ifr_bound[k+1]])
-                    else:
-                        potential_points.append([ifr_bound[3-k], position])
-        return potential_points
-    
     @staticmethod
     def judgeContain(pt,parts):
         '''判断点是否包含在NFP凸分解后的凸多边形列表中 输入相对位置点'''
@@ -138,23 +116,6 @@ class GeometryAssistant(object):
         else:
             return [], False
 
-    # @staticmethod
-    # def horizonInter(hori_line, line):
-    #     # 如果另一条直线也垂直
-    #     if line[0][0] == line[1][0]:
-    #         if line[0][0] == hori_line[0][0]:
-    #             return GeometryAssistant.parallelInter(line, hori_line)
-    #         else:
-    #             return [], False
-    #     # 否则求解直线交点
-    #     k, b = GeometryAssistant.getLineCoe(line)
-    #     x = ver_line[0][0]
-    #     y = k * x + b
-    #     if GeometryAssistant.bounds(y, hori_line[0][1], hori_line[1][1]):
-    #         return [[x,y]], True
-    #     else:
-    #         return [], False
-
     @staticmethod
     def verticalInter(ver_line, line):
         # 如果另一条直线也垂直
@@ -200,7 +161,15 @@ class GeometryAssistant(object):
         return [], False
     
     @staticmethod
-    def interBetweenNFPs(nfp1_edges, nfp2_edges, ifr_bounds):
+    def getPointsContained(inter_points, ifr_bounds):
+        new_points = []
+        for pt in inter_points:
+            if GeometryAssistant.boundsContain(ifr_bounds, pt):
+                new_points.append(pt)
+        return new_points
+    
+    @staticmethod
+    def interBetweenNFPs(nfp1_edges, nfp2_edges):
         '''计算直线交点，仅考虑'''
         inter_points, intersects = [], False
         for edge1 in nfp1_edges:
@@ -210,16 +179,17 @@ class GeometryAssistant(object):
                     continue
                 intersects = True # 只要有直线交点全部认为是
                 for pt in pts:
-                    if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
+                    if [pt[0],pt[1]] not in inter_points:
                         inter_points.append([pt[0],pt[1]])
         return inter_points, intersects
 
     @staticmethod
-    def interNFPIFR(nfp, ifr_bounds, ifr_edges):
+    def interNFPIFR(nfp, ifr_bounds, ifr_edges, ifr):
         '''求解NFP与IFR的相交区域'''
-        total_points, border_record, inside_indexs = [], [], [] # NFP在IFR内部的点及交，计算参考和边界可行范围
+        total_points, border_pts, inside_indexs = [], [], [] # NFP在IFR内部的点及交，计算参考和边界可行范围
         contain_last, contain_this = False, False
-        for i, pt in enumerate(nfp):
+        temp_nfp = nfp + [nfp[0]]
+        for i, pt in enumerate(temp_nfp):
             # 第一个点
             if i == 0:
                 if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
@@ -228,100 +198,36 @@ class GeometryAssistant(object):
                     contain_last = True
                 continue
             # 后续的点求解
-            if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
-                total_points.append([pt[0], pt[1]])
+            if GeometryAssistant.boundsContain(ifr_bounds, pt) == True and i != len(temp_nfp) - 1:
                 inside_indexs.append(i)
+                total_points.append([pt[0], pt[1]])
                 contain_this = True
             else:
                 contain_this = False
             # 只有两个不全在内侧的时候才需要计算交点
-            if (contain_last and contain_this) != True:
-                nfp_edge_record = []
+            if contain_last == False or contain_this == False:
                 for k,edge in enumerate(ifr_edges):
-                    inter_pts, inter_or = GeometryAssistant.lineInter([nfp[i-1],nfp[i]], edge)
+                    inter_pts, inter_or = GeometryAssistant.lineInter([temp_nfp[i-1],temp_nfp[i]], edge)
                     if inter_or == True:
-                        total_points += inter_pts # 将交点加入可行点
-                        nfp_edge_record += [[inter_pt,k] for inter_pt in inter_pts] # 记录全部边界交点
-                # 如果有两个交点的处理（最多两个）
-                if len(nfp_edge_record) == 2:
-                    dis1 = pow(nfp[i-1][0] - nfp_edge_record[0][0][0], 2) + pow(nfp[i-1][1] - nfp_edge_record[0][0][1], 2)
-                    dis2 = pow(nfp[i-1][0] - nfp_edge_record[1][0][0], 2) + pow(nfp[i-1][1] - nfp_edge_record[1][0][1], 2)
-                    if dis2 < dis1:
-                        nfp_edge_record = [nfp_edge_record[1], nfp_edge_record[0]]
-                # 记录交点、上一阶段记录内容、边的顶点包含情况
-                border_record += [[inter_item[0], inter_item[1], contain_last, contain_this] for inter_item in nfp_edge_record]
+                        for new_pt in inter_pts:
+                            if new_pt not in total_points:
+                                total_points.append(new_pt) # 将交点加入可行点
+                                border_pts.append(new_pt) # 将交点加入可行点
             contain_last = contain_this
-        border_range = GeometryAssistant.convertToRange(border_record, ifr_bounds)
-        print(border_range)
-        PltFunc.addPolygon(nfp)
-        PltFunc.addPolygonColor([ifr_edges[0][0],ifr_edges[1][0],ifr_edges[2][0],ifr_edges[3][0]])
-        PltFunc.showPlt()
-        return total_points, inside_indexs, border_range
+        return total_points, inside_indexs, border_pts
+    
+    @staticmethod
+    def addRelativeRecord(record_target, target_key, inside_indexs, border_pts, first_pt):
+        adjust_border_pts = GeometryAssistant.getAdjustPts(border_pts, first_pt, False)
+        record_target[target_key] = {}
+        record_target[target_key]["adjust_border_pts"] = adjust_border_pts
+        record_target[target_key]["inside_indexs"] = inside_indexs
 
     @staticmethod
-    def recordInterRange(target_history, target_key, new_border_range, inside_indexs):
-        '''记录到历史结果'''
-        target_history[target_key] = {}
-        target_history[target_key]["inside_indexs"] = inside_indexs
-        target_history[target_key]["0"] = new_border_range[0]
-        target_history[target_key]["1"] = new_border_range[1]
-        target_history[target_key]["2"] = new_border_range[2]
-        target_history[target_key]["3"] = new_border_range[3]
-
-    @staticmethod
-    def convertToRange(border_record, ifr_bounds):
-        border_range, groups = [[],[],[],[]], []
-        extend_record, len_record = border_record + border_record, len(border_record)
-        print(border_record)
-        i, last_index, begin_record = 1, extend_record[0][1], False
-        # 拆分为Group
-        while True:
-            if extend_record[i][1] == last_index:
-                if begin_record == False:
-                    continue
-                else:
-                    groups[-1].append(extend_record[i])
-                    last_index = extend_record[i][1]
-            if i > len_record:
-                break
-            begin_record = True
-            groups.append([])
-            groups[-1].append(extend_record[i])
-            last_index = extend_record[i][1]
-            i = i + 1
-        # 处理Groups为具体范围
-        for group in groups:
-            # 首先处理第一个点
-            cur_inter, k = group[0][0], group[0][1]
-            if group[0][2] == False and group[0][3] == True:
-                if k < 2:
-                    GeometryAssistant.addRange(border_range[k],[ifr_bounds[k], cur_inter[k%2]])
-                elif k >= 2:
-                    GeometryAssistant.addRange(border_range[k],[cur_inter[k%2], ifr_bounds[k]])
-            # 对于后续的点（需要两个点以上）
-            last_item = group[0]
-            if len(group) >= 2:
-                for item_index in range(1,len(group)-1):
-                    if last_item[2] == True and group[item_index][3] == True:
-                        k = group[item_index][1]
-                        if k < 2:
-                            GeometryAssistant.addRange(border_range[k],[group[item_index-2][k%2], group[item_index][k%2]])
-                        elif k >= 2:
-                            GeometryAssistant.addRange(border_range[k],[group[item_index][k%2], group[item_index-1][k%2]])
-                    last_item = group[item_index]
-            # 最于最后一个点来说（也可以是第一个点）
-            if group[-1][2] == True:
-                if k < 2:
-                    GeometryAssistant.addRange(border_range[k],[group[-1][0][k%2], ifr_bounds[k+2]])
-                elif k >= 2:
-                    GeometryAssistant.addRange(border_range[k],[ifr_bounds[k%2], group[-1][0][k%2]])
-            
-        return border_range
-
-    @staticmethod
-    def addRange(target_range,new_range):
-        if new_range[0] != new_range[1]:
-            target_range.append(new_range)
+    def addAbsoluteRecord(record_target, target_key, inside_indexs, border_pts):
+        record_target[target_key] = {}
+        record_target[target_key]["border_pts"] = border_pts
+        record_target[target_key]["inside_indexs"] = inside_indexs
 
     @staticmethod
     def boundsContain(bounds, pt):
@@ -373,7 +279,7 @@ class GeometryAssistant(object):
     @staticmethod
     def getPolyEdges(poly):
         edges = []
-        for index,point in enumerate(poly):
+        for index in range(len(poly)):
             if index < len(poly)-1:
                 edges.append([poly[index],poly[index+1]])
             else:
@@ -528,6 +434,69 @@ class GeometryAssistant(object):
         yn = k * (y2 - y1) + y1
     
         return (xn, yn)
+
+    @staticmethod
+    def judgePositive(pt1, pt2, k):
+        if k%2 == 0:
+            if pt1[1] > pt2[1]:
+                return 1
+            elif pt1[1] < pt2[1]:
+                return -1
+            return 0
+        if k%2 == 1:
+            if pt2[0] > pt1[0]:
+                return 1
+            elif pt2[0] < pt1[0]:
+                return -1
+            return 0
+        return 0
+
+    @staticmethod
+    def judgeLeft(pt1, pt2):
+        x,y = 0,0
+        if pt2[1] - pt1[1] > 0:
+            x = 1
+        elif pt2[1] - pt1[1] < 0:
+            x = -1
+        if pt2[0] - pt1[0] > 0:
+            y = 1
+        elif pt2[0] - pt1[0] < 0:
+            y = -1
+        return x,y
+
+    @staticmethod
+    def getAdjustRange(original_border_range, first_pt, to_real):
+        '''部分情况需要根据相对位置调整范围'''
+        new_border_range = []
+        for i in range(4):
+            border_range = []
+            for item in original_border_range[i]:
+                if to_real == True:
+                    border_range.append([item[0]+first_pt[i%2],item[1]+first_pt[i%2]])
+                else:
+                    border_range.append([item[0]-first_pt[i%2],item[1]-first_pt[i%2]])
+            new_border_range.append(border_range)
+        return new_border_range
+
+    @staticmethod
+    def getFeasiblePt(ifr_bound, infeasible_border_range):
+        '''求解可行域的中的可行点，从左下角逆时针'''
+        potential_points = []
+        for k, every_border_range in enumerate(infeasible_border_range):
+            all_position = list(set([p for bound in every_border_range for p in bound] + [ifr_bound[k%2],ifr_bound[k%2+2]]))
+            for position in all_position:
+                feasible = True
+                for test_range in every_border_range:
+                    if test_range[0] < position < test_range[1] or position > ifr_bound[k%2] or position < ifr_bound[k%2+2]:
+                        feasible = False
+                        break
+                if feasible == True:
+                    if k%2 == 0:
+                        potential_points.append([position, ifr_bound[k+1]])
+                    else:
+                        potential_points.append([ifr_bound[3-k], position])
+        return potential_points
+
 
 class OutputFunc(object):
     '''输出不同颜色字体'''

@@ -195,30 +195,32 @@ class LPSearch(object):
             if contain_x == True and contain_y == True:
                 nfp_ifr_inters += [[pt[0],pt[1],[j]] for pt in nfp]
                 continue
+            '''考虑到NFP与IFR交点计算速度较快，暂时不考虑历史计算'''
             # 仅包含在x bounds的情况/仅包含在y bounds的情况/求解范围
-            if contain_x == True and hori_key in self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]]:
-                history_record = self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]][hori_key] # 相对范围
-                border_pts = GeometryAssistant.getAdjustPts(history_record["adjust_border_pts"], nfp[0], True)
-            elif contain_y == True and vert_key in self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]]:
-                history_record = self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]][vert_key] # 相对范围
-                border_pts = GeometryAssistant.getAdjustPts(history_record["adjust_border_pts"], nfp[0], True)
-            elif total_key in self.last_nfp_ifr[i][oi][j][self.orientation[j]]:
-                history_record = self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]
-                border_pts = history_record["border_pts"]
-            else:
-                # 没有历史记录的情况下
-                all_pts, inside_indexs, border_pts = GeometryAssistant.interNFPIFR(nfp, ifr_bounds, ifr_edges, ifr)
-                nfp_ifr_inters += [[pt[0],pt[1],[j]] for pt in all_pts] # 增加新的目标点
-                if contain_x == True:
-                    GeometryAssistant.addRelativeRecord(self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]], hori_key, inside_indexs, border_pts, nfp[0])
-                elif contain_y == True:
-                    GeometryAssistant.addRelativeRecord(self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]], vert_key, inside_indexs, border_pts, nfp[0])
-                else:
-                    GeometryAssistant.addAbsoluteRecord(self.last_nfp_ifr[i][oi][j][self.orientation[j]], total_key, inside_indexs, border_pts)
-                continue
+            # if contain_x == True and hori_key in self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]]:
+            #     history_record = self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]][hori_key] # 相对范围
+            #     border_pts = GeometryAssistant.getAdjustPts(history_record["adjust_border_pts"], nfp[0], True)
+            # elif contain_y == True and vert_key in self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]]:
+            #     history_record = self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]][vert_key] # 相对范围
+            #     border_pts = GeometryAssistant.getAdjustPts(history_record["adjust_border_pts"], nfp[0], True)
+            # elif total_key in self.last_nfp_ifr[i][oi][j][self.orientation[j]]:
+            #     history_record = self.last_nfp_ifr[i][oi][j][self.orientation[j]][total_key]
+            #     border_pts = history_record["border_pts"]
+            # else:
+            '''直接计算交点的方式'''
+            all_pts, inside_indexs, border_pts = GeometryAssistant.interNFPIFR(nfp, ifr_bounds, ifr_edges, ifr)
+            nfp_ifr_inters += [[pt[0],pt[1],[j]] for pt in all_pts] # 增加新的目标点
+
+            # if contain_x == True:
+            #     GeometryAssistant.addRelativeRecord(self.last_nfp_ifr_hori[i][oi][j][self.orientation[j]], hori_key, inside_indexs, border_pts, nfp[0])
+            # elif contain_y == True:
+            #     GeometryAssistant.addRelativeRecord(self.last_nfp_ifr_vert[i][oi][j][self.orientation[j]], vert_key, inside_indexs, border_pts, nfp[0])
+            # else:
+            #     GeometryAssistant.addAbsoluteRecord(self.last_nfp_ifr[i][oi][j][self.orientation[j]], total_key, inside_indexs, border_pts)
+            # continue
             # 记录求解结果（有历史的情况下）
-            nfp_ifr_inters += [[nfp[k][0],nfp[k][1],[j]] for k in history_record["inside_indexs"]]
-            nfp_ifr_inters += [[pt[0],pt[1],[j]] for pt in border_pts]
+            # nfp_ifr_inters += [[nfp[k][0],nfp[k][1],[j]] for k in history_record["inside_indexs"]]
+            # nfp_ifr_inters += [[pt[0],pt[1],[j]] for pt in border_pts]
                     
         return nfp_ifr_inters
     
@@ -268,21 +270,22 @@ class LPSearch(object):
 
     def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds):
         '''求解NFP之间的交集'''
-        new_pt1, key1 = self.getAdjustPt(cur_nfps[m][0], digital_precision)
-        new_pt2, key2 = self.getAdjustPt(cur_nfps[n][0], digital_precision)
-        target_key = key1 + key2
-        # 访问历史
+        relative_position, target_key = self.getAdjustPt([cur_nfps[n][0][0] - cur_nfps[m][0][0],cur_nfps[n][0][1] - cur_nfps[m][0][1]], digital_precision)
         if target_key in self.last_nfp_inters[i][oi][m][om][n][on]:
-            [inter_points, intersects] = self.last_nfp_inters[i][oi][m][om][n][on][target_key]
-            return GeometryAssistant.getPointsContained(inter_points,ifr_bounds), intersects
+            # print("历史的NFP获取")
+            [relative_inter_points, intersects] = self.last_nfp_inters[i][oi][m][om][n][on][target_key]
+            inter_points = GeometryAssistant.getAdjustPts(relative_inter_points, cur_nfps[m][0], True)
+            feasible_inter_points = GeometryAssistant.getPointsContained(inter_points,ifr_bounds)
+            return feasible_inter_points, intersects
 
-        # 没有历史的情况则读取一下
+        # print("直接计算")
         nfp1_edges, nfp2_edges = GeometryAssistant.getPolyEdges(cur_nfps[m]), GeometryAssistant.getPolyEdges(cur_nfps[n])
         inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges)
-        inter_points = GeometryAssistant.getPointsContained(inter_points,ifr_bounds)
-        self.last_nfp_inters[i][oi][m][om][n][on][target_key] = [inter_points, intersects]
+        relative_inter_points = GeometryAssistant.getAdjustPts(inter_points, cur_nfps[m][0], False)
+        self.last_nfp_inters[i][oi][m][om][n][on][target_key] = [relative_inter_points, intersects] 
+        feasible_inter_points = GeometryAssistant.getPointsContained(inter_points,ifr_bounds)
 
-        return inter_points, intersects
+        return feasible_inter_points, intersects
 
     def updatePD(self, choose_index, final_pd_record):
         '''平移某个元素后更新对应的PD'''
@@ -366,17 +369,9 @@ class LPSearch(object):
     def getAdjustPt(self, pt, precision):
         '''按照精度四舍五入'''
         new_pt = [round(pt[0]/precision)*precision, round(pt[1]/precision)*precision]
-        target_key = self.ptToKey(new_pt)
+        target_key = str(int(new_pt[0])).zfill(5) + str(int(new_pt[1])).zfill(5)
         return new_pt, target_key
     
-    def ptToKey(self, pt):
-        '''直接处理为Key'''
-        return str(int(pt[0])).zfill(5) + str(int(pt[1])).zfill(5)
-
-    def ptToKeyTwo(self, pt1, pt2):
-        '''计算NFP交点的时候存储'''
-        return str(int(pt1[0]*pow(10,precision))).zfill(precision+4) + str(int(pt1[1]*pow(10,precision))).zfill(precision+4) + str(int(pt2[0]*pow(10,precision))).zfill(precision+4) + str(int(pt2[1]*pow(10,precision))).zfill(precision+4)
-
     def initialRecord(self):
         '''记录全部的'''
         self.last_grid_pds = [[[[{} for oj in range(len(self.allowed_rotation))] for j in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
