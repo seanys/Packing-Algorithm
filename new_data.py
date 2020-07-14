@@ -11,6 +11,7 @@ import json
 import itertools
 import copy
 import math
+import random
 from ast import literal_eval
 
 targets = [{
@@ -122,7 +123,7 @@ class PreProccess(object):
     预处理NFP以及NFP divided函数
     '''
     def __init__(self):
-        index = 16
+        index = 99
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
@@ -489,6 +490,23 @@ def addBound(set_name):
                     new_vertical_direction.append(item)
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),new_vertical_direction,bound]])
 
+def testNFPInter():
+    set_name = "fu"
+    data = pd.read_csv("data/{}_nfp.csv".format(set_name))
+    for k in range(100):
+        i, j = random.randint(0,data.shape[0]), random.randint(0,data.shape[0])
+        nfp_i, nfp_j = json.loads(data["nfp"][i]), json.loads(data["nfp"][j])
+        GeoFunc.slidePoly(nfp_i,random.randint(100,400),random.randint(100,400))
+        GeoFunc.slidePoly(nfp_j,random.randint(100,400),random.randint(100,400))
+        nfp1_edges, nfp2_edges = GeometryAssistant.getPolyEdges(nfp_i), GeometryAssistant.getPolyEdges(nfp_j)
+        inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges)
+        print(intersects,inter_points)
+        PltFunc.addPolygonColor(inter_points)
+        PltFunc.addPolygon(nfp_i)
+        PltFunc.addPolygon(nfp_j)
+        PltFunc.showPlt()
+
+
 def nfpDecomposition():
     '''nfp凸分解'''
     # for target in targets:
@@ -539,7 +557,9 @@ def nfpDecomposition():
     print('总错误次数{}'.format(error))            
 
 if __name__ == '__main__':
-    testNFP()
+    # testNFP()
+    # testNFPInter()
+    print(str(int(-1005/10)*10).zfill(5))
     # addBound()
     # nfpDecomposition()
     # PreProccess()
