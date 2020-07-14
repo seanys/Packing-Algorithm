@@ -30,7 +30,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 100
+        self.line_index = 2
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
@@ -56,7 +56,7 @@ class LPSearch(object):
         while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            # PltFunc.showPolys(self.polys,saving=True)
+            PltFunc.showPolys(self.polys,saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -118,7 +118,7 @@ class LPSearch(object):
                     if min_pd == 0:
                         break
                 if final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置:", final_pt, cur_pd,"->",final_pd)
+                    # print(choose_index,"寻找到更优位置:", final_pt, cur_pd,"->",final_pd)
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
@@ -127,7 +127,7 @@ class LPSearch(object):
                     #     writer = csv.writer(csvfile)
                     #     writer.writerows([[]])
                     #     writer.writerows([[self.line_index, final_pd, choose_index, self.orientation, self.polys]])        
-                    self.showPolys(coloring = choose_index)
+                    # self.showPolys(coloring = choose_index)
                 else:
                     # print(choose_index,"未寻找到更优位置")
                     pass
@@ -186,10 +186,11 @@ class LPSearch(object):
                 test_total_pd, test_pd_record[j] = test_total_pd + pd * self.miu[i][j], pd
 
             if abs(test_total_pd-total_pd) > 1:
-                print(total_pd,test_total_pd)
-                print("test_pd_record:",test_pd_record)
-                print("pd_record:",pd_record)
-                self.showPolys()
+                # print(total_pd,test_total_pd)
+                # print("test_pd_record:",test_pd_record)
+                # print("pd_record:",pd_record)
+                # self.showPolys()
+                pass
             if total_pd < min_pd:
                 min_pd, best_pd_record, best_pt = total_pd, deepcopy(pd_record), [pt[0],pt[1]]
                 if total_pd < self.bias:
@@ -357,12 +358,15 @@ class LPSearch(object):
             return 0
 
         nfp_parts = self.nfp_parts[row]
-        if len(nfp_parts) > 1:
-            if not GeometryAssistant.judgeContain(digital_pt,nfp_parts):
+        if len(nfp_parts) > 0:
+            if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
+                # if Polygon(nfp).contains(Point(pt)):
+                #     print(pt,relative_pt,nfp_parts)
+                #     PltFunc.showPolys(nfp_parts+[nfp],coloring=nfp)
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
         else:
-            if not Polygon(nfp).contains(Point(original_digital_pt)):
+            if not Polygon(nfp).contains(Point(pt)):
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
     

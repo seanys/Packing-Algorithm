@@ -29,7 +29,7 @@ class GeometryAssistant(object):
 
         for part in parts: # 对凸多边形逐个判断
             n=len(part)
-            if cross(part[0],pt,part[1])>0 or cross(part[0],pt,part[n-1])<0:
+            if cross(part[0],pt,part[1])>bias or cross(part[0],pt,part[n-1])<-bias:
                 continue
             i=1
             j=n-1
@@ -41,7 +41,8 @@ class GeometryAssistant(object):
                     j=mid-1
                 else:
                     i=mid+1
-            if cross(part[line-1],pt,part[line])<=0:
+            test=cross(part[line-1],pt,part[line])
+            if cross(part[line-1],pt,part[line])<bias:
                 return True
         return False
 

@@ -649,7 +649,7 @@ class NFP(object):
             self.nfp.append([self.stationary[2][0]+width,self.stationary[2][1]+height])
             self.nfp.append([self.stationary[3][0],self.stationary[3][1]+height])
         else:
-            while self.judgeEnd()==False and i<75: # 大于等于75会自动退出的，一般情况是计算出错
+            while self.judgeEnd()==False and i<500: # 大于等于500会自动退出的，一般情况是计算出错
             # while i < 11:
                 # print("########第",i,"轮##########")
                 touching_edges = self.detectTouching()
@@ -683,7 +683,7 @@ class NFP(object):
                     break
                 # print("")           
 
-        if i==75:
+        if i==500:
             print("超出计算次数")
             self.error=-1 # 超出计算次数
     

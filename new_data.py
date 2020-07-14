@@ -14,7 +14,7 @@ import math
 import random
 from ast import literal_eval
 
-targets = [{
+targets_clus = [{
         "index" : 0,
         "name" : "blaz",
         "scale" : 10,
@@ -117,13 +117,108 @@ targets = [{
         "allowed_rotation": 1,
         "width": 1000 
     }]
-
+targets = [{
+        "index" : 0,
+        "name" : "albano",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 980
+    },{
+        "index" : 1,
+        "name" : "blaz",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 150
+    },{
+        "index" : 2,
+        "name" : "dagli",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
+    },{
+        "index" : 3,
+        "name" : "dighe1",
+        "scale" : 10,
+        "allowed_rotation": 1,
+        "width": 1000
+    },{
+        "index" : 4,
+        "name" : "dighe2",
+        "scale" : 10,
+        "allowed_rotation": 1,
+        "width": 1000 
+    },{
+        "index" : 5,
+        "name" : "fu",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 760
+    },{
+        "index" : 6,
+        "name" : "jakobs1",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 800
+    },{
+        "index" : 7,
+        "name" : "jakobs2",
+        "scale" : 10,
+        "allowed_rotation": 4,
+        "width": 700
+    },{
+        "index" : 8,
+        "name" : "mao",
+        "scale" : 1,
+        "allowed_rotation": 4,
+        "width": 2550
+    },{
+        "index" : 9,
+        "name" : "marques",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 1040
+    },{
+        "index" : 10,
+        "name" : "shapes0",
+        "scale" : 20,
+        "allowed_rotation": 1,
+        "width": 800
+    },{
+        "index" : 11,
+        "name" : "shapes1",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 12,
+        "name" : "shapes2",
+        "scale" : 1,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 13,
+        "name" : "shirts",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 14,
+        "name" : "swim",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 1150.4
+    },{
+        "index" : 15,
+        "name" : "trousers",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 790
+    }]
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
-    def __init__(self):
-        index = 99
+    def __init__(self,index):
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
@@ -515,7 +610,8 @@ def nfpDecomposition():
     #         addBound(target['name'])
     #         print(target['name'])
     error=0
-    for target in targets:
+    for target in targets_clus:
+        # if target['name'] not in ['jakobs2','swim']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
@@ -523,9 +619,9 @@ def nfpDecomposition():
             for row in range(data.shape[0]):
                 nfp = json.loads(data["nfp"][row])
                 convex_status = json.loads(data["convex_status"][row])
+                first_pt = nfp[0]
+                GeometryAssistant.slidePoly(nfp,-first_pt[0],-first_pt[1])
                 if 0 in convex_status:
-                    first_pt = nfp[0]
-                    GeometryAssistant.slidePoly(nfp,-first_pt[0],-first_pt[1])
                     parts=copy.deepcopy(polygonQuickDecomp(nfp))
                     area=0
                     for p in parts:
@@ -548,7 +644,7 @@ def nfpDecomposition():
                             area=area+poly.area
                         if abs(Polygon(nfp).area-area)>1e-7:
                             print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
-                            PltFunc.showPolys(parts+[nfp])
+                            # PltFunc.showPolys(parts+[nfp])
                             error=error+1
                             parts=[]
                 else:
@@ -559,8 +655,8 @@ def nfpDecomposition():
 if __name__ == '__main__':
     # testNFP()
     # testNFPInter()
-    print(str(int(-1005/10)*10).zfill(5))
+    # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
-    # nfpDecomposition()
-    # PreProccess()
-    
+    nfpDecomposition()
+    # PreProccess(14)
+    # jakobs2,swim 未处理完
