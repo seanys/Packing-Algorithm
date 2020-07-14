@@ -177,12 +177,19 @@ class LPSearch(object):
                     continue
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
                 total_pd, pd_record[j] = total_pd + pd * self.miu[i][j], pd
+
             test_total_pd, test_pd_record = 0, [0 for _ in range(self.polys_num)]
             for j in range(self.polys_num):
                 if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
                     continue
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
                 test_total_pd, test_pd_record[j] = test_total_pd + pd * self.miu[i][j], pd
+
+            if abs(test_total_pd-total_pd) > 1:
+                print(total_pd,test_total_pd)
+                print("test_pd_record:",test_pd_record)
+                print("pd_record:",pd_record)
+                self.showPolys()
             if total_pd < min_pd:
                 min_pd, best_pd_record, best_pt = total_pd, deepcopy(pd_record), [pt[0],pt[1]]
                 if total_pd < self.bias:
@@ -351,7 +358,7 @@ class LPSearch(object):
 
         nfp_parts = self.nfp_parts[row]
         if len(nfp_parts) > 1:
-            if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
+            if not GeometryAssistant.judgeContain(digital_pt,nfp_parts):
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
         else:
