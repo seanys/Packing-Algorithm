@@ -1,6 +1,6 @@
 from tools.polygon import PltFunc,GeoFunc,NFP,getData
 from sequence import BottomLeftFill
-from tools.geo_assistant import GeometryAssistant,polygonQuickDecomp,polygonDecomp
+from tools.geo_assistant import GeometryAssistant,polygonQuickDecomp,Delaunay2D
 from tools.packing import NFPAssistant
 from tools.lp_assistant import LPAssistant
 from shapely.geometry import Polygon,mapping,Point
@@ -514,9 +514,25 @@ def nfpDecomposition():
                         poly=Polygon(p)
                         area=area+poly.area
                     if abs(Polygon(nfp).area-area)>1e-7:
-                        print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
-                        error=error+1
+                        # print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
                         parts=[]
+                        dt = Delaunay2D()
+                        for pt in nfp:
+                            dt.addPoint(pt)
+                        triangles=copy.deepcopy(dt.exportTriangles())
+                        area=0
+                        for p in triangles:
+                            poly=[]
+                            for i in p:
+                                poly.append(nfp[i])
+                            parts.append(poly)
+                            poly=Polygon(poly)
+                            area=area+poly.area
+                        if abs(Polygon(nfp).area-area)>1e-7:
+                            print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
+                            PltFunc.showPolys(parts+[nfp])
+                            error=error+1
+                            parts=[]
                 else:
                     parts=[nfp]
                 writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),json.loads(data["vertical_direction"][row]),json.loads(data["bounds"][row]),parts]])
