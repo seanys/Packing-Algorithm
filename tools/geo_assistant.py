@@ -105,7 +105,7 @@ class GeometryAssistant(object):
 
         # 没有包含第一个点，判断第二个
         if GeometryAssistant.bounds(line1[1][k], line2[0][k], line2[1][k]) == True:
-            if GeometryAssistant.bounds(line2[0][k],line1[0][k], line1[1][k]) == True:
+            if GeometryAssistant.bounds(line2[0][k], line1[0][k], line1[1][k]) == True:
                 return [line1[1], line2[0]], True
             else:
                 return [line1[1], line2[1]], True
