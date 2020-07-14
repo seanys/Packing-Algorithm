@@ -3,7 +3,7 @@ from tools.polygon import PltFunc
 from math import sqrt,acos
 import numpy as np
 import time
-bias = 0.0000001
+bias = 0.000001
 
 class GeometryAssistant(object):
     '''
@@ -15,9 +15,9 @@ class GeometryAssistant(object):
         new_points = []
         for pt in original_points:
             if to_real == True:
-                new_points.append([pt[0]+first_pt[0],pt[1]+first_pt[1]])
+                new_points.append([pt[0] + first_pt[0],pt[1] + first_pt[1]])
             else:
-                new_points.append([pt[0]-first_pt[0],pt[1]-first_pt[1]])
+                new_points.append([pt[0] - first_pt[0],pt[1] - first_pt[1]])
         return new_points
 
     @staticmethod
@@ -121,8 +121,8 @@ class GeometryAssistant(object):
     @staticmethod
     def verticalInter(ver_line, line):
         # 如果另一条直线也垂直
-        if line[0][0] == line[1][0]:
-            if line[0][0] == ver_line[0][0]:
+        if abs(line[0][0] - line[1][0]) < bias:
+            if abs(line[0][0] - ver_line[0][0]):
                 return GeometryAssistant.parallelInter(line, ver_line)
             else:
                 return [], False
@@ -130,6 +130,8 @@ class GeometryAssistant(object):
         k, b = GeometryAssistant.getLineCoe(line)
         x = ver_line[0][0]
         y = k * x + b
+        # print(k, b)
+        # print(x, y)
         if GeometryAssistant.bounds(y, ver_line[0][1], ver_line[1][1]):
             return [[x,y]], True
         else:
@@ -143,9 +145,9 @@ class GeometryAssistant(object):
         if line1[0] == line1[1] or line2[0] == line2[1]:
             return [], False
         # 出现直线垂直的情况（没有k）
-        if line1[0][0] == line1[1][0]:
+        if abs(line1[0][0] - line1[1][0]) < bias:
             return GeometryAssistant.verticalInter(line1,line2)
-        if line2[0][0] == line2[1][0]:
+        if abs(line2[0][0] - line2[1][0]) < bias:
             return GeometryAssistant.verticalInter(line2,line1)
         # 求解y=kx+b
         k1, b1 = GeometryAssistant.getLineCoe(line1)
@@ -181,6 +183,7 @@ class GeometryAssistant(object):
                     continue
                 intersects = True # 只要有直线交点全部认为是
                 for pt in pts:
+                    # print(pt, edge1, edge2)
                     if [pt[0],pt[1]] not in inter_points:
                         inter_points.append([pt[0],pt[1]])
         return inter_points, intersects
@@ -200,9 +203,10 @@ class GeometryAssistant(object):
                     contain_last = True
                 continue
             # 后续的点求解
-            if GeometryAssistant.boundsContain(ifr_bounds, pt) == True and i != len(temp_nfp) - 1:
-                inside_indexs.append(i)
-                total_points.append([pt[0], pt[1]])
+            if GeometryAssistant.boundsContain(ifr_bounds, pt) == True:
+                if i != len(temp_nfp) - 1:
+                    inside_indexs.append(i)
+                    total_points.append([pt[0], pt[1]])
                 contain_this = True
             else:
                 contain_this = False

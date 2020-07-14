@@ -27,14 +27,15 @@ zfill_num = 5
 
 # fu 2 shapes2_Clus 39 jakobs2_clus 70 
 # jakobs1_clus 86 dighe1 103  dagli 102
+# trouser 67 65  Swim_clus 89
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 2
+        self.line_index = 106
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
-        self.max_time = 18000
+        self.max_time = 3600
         # self.showPolys()
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
@@ -177,20 +178,24 @@ class LPSearch(object):
                     continue
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
                 total_pd, pd_record[j] = total_pd + pd * self.miu[i][j], pd
+            
+            '''调试错误代码'''
+            # total_pd_test, pd_record_test = 0, [0 for _ in range(self.polys_num)]
+            # test_range = [w for w in range(self.polys_num) if w not in search_target[2]]
+            # for j in test_range:
+            #     if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
+            #         continue
+            #     pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
+            #     total_pd_test, pd_record_test[j] = total_pd_test + pd * self.miu[i][j], pd
 
-            test_total_pd, test_pd_record = 0, [0 for _ in range(self.polys_num)]
-            for j in range(self.polys_num):
-                if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
-                    continue
-                pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
-                test_total_pd, test_pd_record[j] = test_total_pd + pd * self.miu[i][j], pd
+            # if abs(total_pd_test - total_pd) > 4:
+            #     print(total_pd,total_pd_test)
+            #     print("test_pd_record:",pd_record_test)
+            #     print("pd_record:",pd_record)
+            #     for w,po in enumerate(cur_nfps):
+            #         print(w, po)
+            #     print("!!!")
 
-            if abs(test_total_pd-total_pd) > 1:
-                # print(total_pd,test_total_pd)
-                # print("test_pd_record:",test_pd_record)
-                # print("pd_record:",pd_record)
-                # self.showPolys()
-                pass
             if total_pd < min_pd:
                 min_pd, best_pd_record, best_pt = total_pd, deepcopy(pd_record), [pt[0],pt[1]]
                 if total_pd < self.bias:
@@ -206,8 +211,8 @@ class LPSearch(object):
                 continue
             bounds = cur_nfps_bounds[j]
             contain_x, contain_y = (bounds[0] > ifr_bounds[0] and bounds[2] < ifr_bounds[2]), (bounds[1] > ifr_bounds[1] and bounds[3] < ifr_bounds[3])
-            hori_key, vert_key = str(int(nfp[0][1]/digital_precision)*digital_precision).zfill(zfill_num), str(int(nfp[0][0]/digital_precision)*digital_precision).zfill(zfill_num)
-            total_key = hori_key + vert_key
+            # hori_key, vert_key = str(int(nfp[0][1]/digital_precision)*digital_precision).zfill(zfill_num), str(int(nfp[0][0]/digital_precision)*digital_precision).zfill(zfill_num)
+            # total_key = hori_key + vert_key
             # 完全包含的情况
             if contain_x == True and contain_y == True:
                 nfp_ifr_inters += [[pt[0],pt[1],[j]] for pt in nfp]
@@ -251,26 +256,26 @@ class LPSearch(object):
                     continue
                 bounds_i, bounds_j = cur_nfps_bounds[i], cur_nfps_bounds[j] # 获得边界
                 if bounds_i[2] <= bounds_j[0] or bounds_i[0] >= bounds_j[2] or bounds_i[3] <= bounds_j[1] or bounds_i[1] >= bounds_j[3]:
-                    # print(i,j,"边界不相邻")
                     continue
-                inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds) # 计算NFP之间的交点
-                if intersects == True:
-                    nfp_neighbor[i].append(j) # 记录邻接情况    
-                    nfp_neighbor[j].append(i) # 记录邻接情况
+                '''如果外接矩形包含视为邻接（顶点后续会加进去的）'''
+                if (bounds_i[0] >= bounds_j[0] and bounds_i[2] <= bounds_j[2] and bounds_i[1] >= bounds_j[1] and bounds_i[3] <= bounds_j[3]) or (bounds_j[0] >= bounds_i[0] and bounds_j[2] <= bounds_i[2] and bounds_j[1] >= bounds_i[1] and bounds_j[3] <= bounds_i[3]):
+                    nfp_neighbor[i].append(j)    
+                    nfp_neighbor[j].append(i)
                 else:
-                    # print(i,j,"计算不相邻")
-                    # PltFunc.addPolygon(cur_nfps[i])
-                    # PltFunc.addPolygonColor(cur_nfps[j])
-                    # PltFunc.showPlt(width=2000,height=2000)
-                    continue
-                for pt in inter_points:
-                    all_nfp_inters.append([pt[0],pt[1],[i,j]]) # 计算直接取0
+                    inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds) # 计算NFP之间的交点
+                    if intersects == True:
+                        nfp_neighbor[i].append(j) # 记录邻接情况    
+                        nfp_neighbor[j].append(i) # 记录邻接情况
+                    else:
+                        continue
+                    for pt in inter_points:
+                        all_nfp_inters.append([pt[0],pt[1],[i,j]]) # 计算直接取0
 
         return all_nfp_inters, nfp_neighbor
     
-    def processSearchTargets(self, all_nfp_inters, nfp_neighbor):
+    def processSearchTargets(self, all_original_inters, nfp_neighbor):
         '''删除重复目标并增加邻接，求解最终的邻接部分'''
-        all_nfp_inters = sorted(all_nfp_inters, key = operator.itemgetter(0, 1))
+        all_nfp_inters = sorted(all_original_inters, key = operator.itemgetter(0, 1))
         new_all_search_targets = [] 
 
         # 删除检索位置冗余
@@ -278,13 +283,12 @@ class LPSearch(object):
             if abs(target[0] - all_nfp_inters[k-1][0]) < compute_bias and abs(target[1] - all_nfp_inters[k-1][1]) < compute_bias:
                 new_all_search_targets[-1][2] = list(set(new_all_search_targets[-1][2] + target[2]))
                 continue
-            new_all_search_targets.append(target)
+            new_all_search_targets.append([target[0],target[1],target[2]])
 
         # 增加邻域部分
         for i,search_target in enumerate(new_all_search_targets):
             neighbor = nfp_neighbor[search_target[2][0]]
             for possible_orignal in search_target[2][0:]:
-                # neighbor = list(set(neighbor + nfp_neighbor[possible_orignal]))
                 neighbor = [k for k in neighbor if k in nfp_neighbor[possible_orignal]]
             simple_neighbor = [k for k in neighbor if k not in search_target[2]]
             new_all_search_targets[i].append(simple_neighbor)
