@@ -17,12 +17,12 @@ import csv # 写csv
 import json
 import operator
 
-compute_bias = 0.00001
-bias = 0.5
-max_overlap = 1
+compute_bias = 0.000001
 pd_range = 5
+
 grid_precision = 10 
-digital_precision = 1
+digital_precision = 0.00001
+
 zfill_num = 5
 
 # fu 2 shapes2_Clus 39 jakobs2_clus 70 
@@ -31,7 +31,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 106
+        self.line_index = 2
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
@@ -119,7 +119,7 @@ class LPSearch(object):
                     if min_pd == 0:
                         break
                 if final_pd < cur_pd: # 更新最佳情况
-                    # print(choose_index,"寻找到更优位置:", final_pt, cur_pd,"->",final_pd)
+                    print(choose_index,"寻找到更优位置:", final_pt, cur_pd,"->",final_pd)
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
@@ -130,7 +130,7 @@ class LPSearch(object):
                     #     writer.writerows([[self.line_index, final_pd, choose_index, self.orientation, self.polys]])        
                     # self.showPolys(coloring = choose_index)
                 else:
-                    # print(choose_index,"未寻找到更优位置")
+                    print(choose_index,"未寻找到更优位置")
                     pass
             if self.TEST_MODEL == True: # 测试模式
                 return
@@ -344,8 +344,8 @@ class LPSearch(object):
     def getPolyPtPD(self, pt, nfp, i, oi, j, oj):
         '''Step 1 首先处理参考点和全部（已经判断了是否包含Bounds）'''
         relative_pt = [pt[0] - nfp[0][0], pt[1] - nfp[0][1]]
-        grid_pt, grid_key = self.getAdjustPt(relative_pt, grid_precision)
-        digital_pt, digital_key = self.getAdjustPt(relative_pt, digital_precision)
+        grid_pt, grid_key = self.newGetAdjustPt(relative_pt, grid_precision)
+        digital_pt, digital_key = self.newGetAdjustPt(relative_pt, digital_precision)
         row = self.computeRow(i, j, oi, oj)
         original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
 
@@ -395,7 +395,13 @@ class LPSearch(object):
     def getAdjustPt(self, pt, precision):
         '''按照精度四舍五入'''
         new_pt = [round(pt[0]/precision)*precision, round(pt[1]/precision)*precision]
-        target_key = str(int(new_pt[0])).zfill(5) + str(int(new_pt[1])).zfill(5)
+        target_key = str(int(new_pt[0])).zfill(8) + str(int(new_pt[1])).zfill(5)
+        return new_pt, target_key
+
+    def newGetAdjustPt(self, pt, precision):
+        '''按照精度四舍五入'''
+        new_pt = [round(pt[0]/precision)*precision, round(pt[1]/precision)*precision]
+        target_key = str(int(new_pt[0]/precision)).zfill(10) + str(int(new_pt[1]/precision)).zfill(10)
         return new_pt, target_key
     
     def initialRecord(self):
