@@ -494,10 +494,11 @@ def getBenchmark(source,width=760):
 def getAllInit():
     # 获取所有数据集的最优初始解
     for index,target in enumerate(targets):
-        if index not in [15,16]:continue
         set_name=target["name"]
         width=target["width"]
         scale=target["scale"]
+        if set_name not in ['dagli','shapes2','jakobs1','swim']:continue
+        print(width)
         # 加载原始数据并缩放
         df = pd.read_csv("data/" + set_name + ".csv")
         polygons=[]
@@ -518,8 +519,9 @@ def getAllInit():
         polys_final=[[]]*len(polys)
         for i in range(len(indexs)):
             polys_final[indexs[i]]=polys[i]
+        # PltFunc.showPolys(polys_final)
         with open("record/lp_initial.csv","a+") as f:
-            result=str([index+88,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type)+1,str(polys_type),str([0]*len(polygons)),str(polys_final)])
+            result=str([index+110,set_name,0.1,1,str(allowed_rotation_list),set_name+'较优初始解({:.2%},{})'.format(ratio,best_criteria),width,total_area,max(polys_type)+1,str(polys_type),str([0]*len(polygons)),str(polys_final)])
             result=result[1:len(result)-1]
             f.write(result)
             f.write('\n')

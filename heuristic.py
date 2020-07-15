@@ -314,106 +314,100 @@ class newNFPAssistant(object):
 index = 4
 targets = [{
         "index" : 0,
-        "name" : "blaz",
-        "scale" : 10,
-        "allowed_rotation": 2,
-        "width": 150
-    },{
-        "index" : 1,
-        "name" : "shapes2_clus",
-        "scale" : 1,
-        "allowed_rotation": 2,
-        "width": 750
-    },{
-        "index" : 2,
-        "name" : "shapes0",
-        "scale" : 20,
-        "allowed_rotation": 1,
-        "width": 800
-    },{
-        "index" : 3,
-        "name" : "marques",
-        "scale" : 10,
-        "allowed_rotation": 2,
-        "width": 1040
-    },{
-        "index" : 4,
-        "name" : "mao",
-        "scale" : 1,
-        "allowed_rotation": 4,
-        "width": 2550
-    },{
-        "index" : 5,
-        "name" : "shirts",
-        "scale" : 20,
-        "allowed_rotation": 2,
-        "width": 800
-    },{
-        "index" : 6,
         "name" : "albano",
         "scale" : 0.2,
         "allowed_rotation": 2,
         "width": 980
     },{
-        "index" : 7,
-        "name" : "shapes1",
-        "scale" : 20,
-        "allowed_rotation": 2,
-        "width": 800
-    },{
-        "index" : 8,
-        "name" : "dagli_clus",
-        "scale" : 20,
-        "allowed_rotation": 2,
-        "width": 1200
-    },{
-        "index" : 9,
-        "name" : "jakobs1_clus",
-        "scale" : 20,
-        "allowed_rotation": 4,
-        "width": 800
-    },{
-        "index" : 10,
-        "name" : "trousers",
+        "index" : 1,
+        "name" : "blaz",
         "scale" : 10,
         "allowed_rotation": 2,
-        "width": 790
+        "width": 150
     },{
-        "index" : 11,
-        "name" : "jakobs2_clus",
-        "scale" : 10,
-        "allowed_rotation": 4,
-        "width": 700
-    },{
-        "index" : 12,
-        "name" : "swim_clus",
-        "scale" : 0.2,
-        "allowed_rotation": 2,
-        "width": 1150.4
-    },{
-        "index" : 13,
-        "name" : "fu",
-        "scale" : 20,
-        "allowed_rotation": 4,
-        "width": 760
-    },{
-        "index" : 14,
+        "index" : 2,
         "name" : "dagli",
         "scale" : 20,
         "allowed_rotation": 2,
         "width": 1200
     },{
-        "index" : 15,
+        "index" : 3,
         "name" : "dighe1",
         "scale" : 10,
         "allowed_rotation": 1,
         "width": 1000
     },{
-        "index" : 16,
+        "index" : 4,
         "name" : "dighe2",
         "scale" : 10,
         "allowed_rotation": 1,
         "width": 1000 
+    },{
+        "index" : 5,
+        "name" : "fu",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 760
+    },{
+        "index" : 6,
+        "name" : "jakobs1",
+        "scale" : 20,
+        "allowed_rotation": 4,
+        "width": 800
+    },{
+        "index" : 7,
+        "name" : "jakobs2",
+        "scale" : 10,
+        "allowed_rotation": 4,
+        "width": 700
+    },{
+        "index" : 8,
+        "name" : "mao",
+        "scale" : 1,
+        "allowed_rotation": 4,
+        "width": 2550
+    },{
+        "index" : 9,
+        "name" : "marques",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 1040
+    },{
+        "index" : 10,
+        "name" : "shapes0",
+        "scale" : 20,
+        "allowed_rotation": 1,
+        "width": 800
+    },{
+        "index" : 11,
+        "name" : "shapes1",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 12,
+        "name" : "shapes2",
+        "scale" : 1,
+        "allowed_rotation": 2,
+        "width": 750
+    },{
+        "index" : 13,
+        "name" : "shirts",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 800
+    },{
+        "index" : 14,
+        "name" : "swim",
+        "scale" : 0.2,
+        "allowed_rotation": 2,
+        "width": 1150.4
+    },{
+        "index" : 15,
+        "name" : "trousers",
+        "scale" : 10,
+        "allowed_rotation": 2,
+        "width": 790
     }]
 
 def getDataNew():

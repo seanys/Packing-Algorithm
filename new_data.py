@@ -670,11 +670,11 @@ def testInter():
     # PltFunc.showPlt(width=2500, height=2500)
 
 if __name__ == '__main__':
-    testInter()
+    # testInter()
     # testNFP()
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
     # nfpDecomposition()
-    # PreProccess(14)
+    PreProccess(14)
     # jakobs2,swim 未处理完
