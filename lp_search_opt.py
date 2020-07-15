@@ -31,7 +31,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 2
+        self.line_index = 7
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
@@ -57,7 +57,7 @@ class LPSearch(object):
         while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            PltFunc.showPolys(self.polys,saving=True)
+            # PltFunc.showPolys(self.polys,saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -124,11 +124,11 @@ class LPSearch(object):
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index, final_pd_record) # 更新对应元素的PD，线性时间复杂度
+                    self.showPolys(coloring = choose_index)
                     # with open("record/test.csv","a+") as csvfile:
                     #     writer = csv.writer(csvfile)
                     #     writer.writerows([[]])
                     #     writer.writerows([[self.line_index, final_pd, choose_index, self.orientation, self.polys]])        
-                    # self.showPolys(coloring = choose_index)
                 else:
                     print(choose_index,"未寻找到更优位置")
                     pass
@@ -173,7 +173,9 @@ class LPSearch(object):
             if GeometryAssistant.boundsContain(ifr_bounds, pt) == False:
                 continue
             total_pd, pd_record = 0, [0 for _ in range(self.polys_num)]
+            test_range = [w for w in range(self.polys_num) if w not in search_target[2]]
             for j in search_target[3]:
+            # for j in test_range:
                 if GeometryAssistant.boundsContain(cur_nfps_bounds[j], pt) == False:
                     continue
                 pd = self.getPolyPtPD(pt, cur_nfps[j], i, oi, j, self.orientation[j])
@@ -362,7 +364,7 @@ class LPSearch(object):
             return 0
 
         nfp_parts = self.nfp_parts[row]
-        if len(nfp_parts) > 0:
+        if len(nfp_parts) == -1:
             if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
                 # if Polygon(nfp).contains(Point(pt)):
                 #     print(pt,relative_pt,nfp_parts)
@@ -436,12 +438,14 @@ class LPSearch(object):
             nfp = self.getNFP(i, j, oi, self.orientation[j])
             cur_nfps.append(nfp) # 添加NFP
             cur_nfps_bounds.append(self.getBoundsbyRow(i, j, oi, self.orientation[j], nfp[0])) # 添加边界
-            if nfp == []:
-                OutputFunc.outputWarning(("出现错误"))
-                PltFunc.showPlt()
-            # PltFunc.addPolygon(cur_nfps[j])
+            # if nfp == []:
+            #     OutputFunc.outputWarning(("出现错误"))
+                # PltFunc.showPlt()
+            PltFunc.addPolygonColor(cur_nfps[j])
+            PltFunc.addPolygon(self.polys[j])
+            PltFunc.addPolygon(self.polys[i])
             # PltFunc.addPolygonColor([[cur_nfps_bounds[j][0],cur_nfps_bounds[j][1]],[cur_nfps_bounds[j][2],cur_nfps_bounds[j][1]],[cur_nfps_bounds[j][2],cur_nfps_bounds[j][3]],[cur_nfps_bounds[j][0],cur_nfps_bounds[j][3]]])
-            # PltFunc.showPlt()
+            PltFunc.showPlt()
         return cur_nfps, cur_nfps_bounds
 
     def getBoundsbyRow(self, i, j, oi, oj, first_pt):
