@@ -57,7 +57,7 @@ class LPSearch(object):
         while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            # PltFunc.showPolys(self.polys,saving=True)
+            PltFunc.showPolys(self.polys,saving=True)
             if feasible == True:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -362,12 +362,15 @@ class LPSearch(object):
             return 0
 
         nfp_parts = self.nfp_parts[row]
-        if len(nfp_parts) > 1:
-            if not GeometryAssistant.judgeContain(digital_pt,nfp_parts):
+        if len(nfp_parts) > 0:
+            if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
+                # if Polygon(nfp).contains(Point(pt)):
+                #     print(pt,relative_pt,nfp_parts)
+                #     PltFunc.showPolys(nfp_parts+[nfp],coloring=nfp)
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
         else:
-            if not Polygon(nfp).contains(Point(original_digital_pt)):
+            if not Polygon(nfp).contains(Point(pt)):
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
     
