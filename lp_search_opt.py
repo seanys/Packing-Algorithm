@@ -31,7 +31,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 106
+        self.line_index = 102
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
@@ -365,8 +365,9 @@ class LPSearch(object):
         if len(nfp_parts) > 0:
             if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
                 # if Polygon(nfp).contains(Point(pt)):
-                #     print(pt,relative_pt,nfp_parts)
+                #     print(pt,relative_pt,nfp)
                 #     PltFunc.showPolys(nfp_parts+[nfp],coloring=nfp)
+                #     print(nfp_parts)
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
         else:

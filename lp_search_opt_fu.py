@@ -18,8 +18,8 @@ import json
 import operator
 
 compute_bias = 0.00001
-bias = 0.5
-max_overlap = 1
+bias = 0.00001
+max_overlap = 2
 pd_range = 5
 grid_precision = 10 
 digital_precision = 1
@@ -202,8 +202,8 @@ class LPSearch(object):
 
             if total_pd<min_pd or (total_pd==min_pd and (ifr_x<best_ifr_x or (ifr_x==best_ifr_x and ifr_y<best_ifr_y))):
                 min_pd, best_pd_record, best_pt = total_pd, deepcopy(pd_record), [pt[0],pt[1]]
-                best_ifr_x=ifr_x
-                best_ifr_y=ifr_y
+                if ifr_x<best_ifr_x:    best_ifr_x=ifr_x
+                if ifr_y<best_ifr_y:    best_ifr_y=ifr_y
                 if total_pd < self.bias:
                     break
 
