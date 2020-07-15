@@ -611,7 +611,7 @@ def nfpDecomposition():
     #         print(target['name'])
     error=0
     for target in targets_clus:
-        # if target['name'] not in ['jakobs2','swim']:continue
+        if not 'clus' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
