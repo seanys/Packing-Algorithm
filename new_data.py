@@ -683,10 +683,6 @@ if __name__ == '__main__':
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
-<<<<<<< HEAD
-    # nfpDecomposition()
-=======
     nfpDecomposition()
->>>>>>> 37b90f02dae0a6b131222e5d4f034f6fd5d54b89
     # PreProccess(14)
     # jakobs2,swim 未处理完

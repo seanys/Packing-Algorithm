@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 8
+        self.line_index = 15
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
@@ -52,7 +52,7 @@ class LPSearch(object):
         self.shrinkBorder() # 平移边界并更新宽度
         
         if self.TEST_MODEL == True:
-            self.max_time = 1
+            self.max_time = 60
         self.start_time = time.time()
         search_status = 0
 
@@ -93,7 +93,7 @@ class LPSearch(object):
         N,it = 50,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
-            N = 1
+            N = 5
         unchange_times,last_pd = 0,0
         while it < N:
             print("第",it,"轮")
@@ -134,8 +134,8 @@ class LPSearch(object):
                 else:
                     # print(choose_index,"未寻找到更优位置")
                     pass
-            if self.TEST_MODEL == True: # 测试模式
-                return
+            # if self.TEST_MODEL == True: # 测试模式
+            #     return
             # self.showPolys()
             total_pd, max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < self.max_overlap:
@@ -562,9 +562,9 @@ class LPSearch(object):
 
 
 if __name__=='__main__':
-    # cProfile.run('LPSearch()')
-    for i in range(5):
-        LPSearch()
+    cProfile.run('LPSearch()')
+    # for i in range(5):
+    #     LPSearch()
     # LPSearch()
     # for i in range(100):
     #     permutation = np.arange(10)
