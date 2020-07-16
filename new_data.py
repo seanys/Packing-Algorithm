@@ -616,9 +616,9 @@ def nfpDecomposition():
     #     if not "bounds" in data:
     #         addBound(target['name'])
     #         print(target['name'])
-    error = 0
-    for target in targets_clus:
-        if not 'clus' in target['name']:continue
+    error=0
+    for target in targets:
+        if not 'swim' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
@@ -683,6 +683,10 @@ if __name__ == '__main__':
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
+<<<<<<< HEAD
     # nfpDecomposition()
+=======
+    nfpDecomposition()
+>>>>>>> 37b90f02dae0a6b131222e5d4f034f6fd5d54b89
     # PreProccess(14)
     # jakobs2,swim 未处理完
