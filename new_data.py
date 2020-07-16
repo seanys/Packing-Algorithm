@@ -569,21 +569,28 @@ def addBound(set_name):
         writer = csv.writer(csvfile)
         for row in range(data.shape[0]):
         # for row in range(500,550):
-            nfp = json.loads(data["nfp"][row])
-            first_pt = nfp[0]
-            new_NFP = Polygon(nfp)
-            bound = new_NFP.bounds
-            bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
+            # nfp = json.loads(data["nfp"][row])
+            # first_pt = nfp[0]
+            # new_NFP = Polygon(nfp)
+            # bound = new_NFP.bounds
+            # bound = [bound[0]-first_pt[0],bound[1]-first_pt[1],bound[2]-first_pt[0],bound[3]-first_pt[1]]
 
             # vertical_direction = PreProccess().getVerticalDirection(json.loads(data["convex_status"][row]),new_NFP)
-            vertical_direction = json.loads(data["vertical_direction"][row])
-            new_vertical_direction = []
-            for item in vertical_direction:
-                if item == []:
-                    new_vertical_direction.append([[],[]])
-                else:
-                    new_vertical_direction.append(item)
+            # vertical_direction = json.loads(data["vertical_direction"][row])
+            # new_vertical_direction = []
+            # for item in vertical_direction:
+            #     if item == []:
+            #         new_vertical_direction.append([[],[]])
+            #     else:
+            #         new_vertical_direction.append(item)
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),new_vertical_direction,bound]])
+
+def addEmptyDecom(set_name):
+    data = pd.read_csv("data/{}_nfp.csv".format(set_name))
+    with open("data/{}_nfp.csv".format(set_name),"a+") as csvfile:
+        writer = csv.writer(csvfile)
+        for row in range(data.shape[0]):
+            writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),json.loads(data["vertical_direction"][row]),json.loads(data["bounds"][row]),[]]])
 
 def testNFPInter():
     set_name = "fu"
@@ -609,7 +616,7 @@ def nfpDecomposition():
     #     if not "bounds" in data:
     #         addBound(target['name'])
     #         print(target['name'])
-    error=0
+    error = 0
     for target in targets_clus:
         if not 'clus' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
@@ -670,11 +677,12 @@ def testInter():
     # PltFunc.showPlt(width=2500, height=2500)
 
 if __name__ == '__main__':
+    addEmptyDecom("swim")
     # testInter()
     # testNFP()
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
     # nfpDecomposition()
-    PreProccess(14)
+    # PreProccess(14)
     # jakobs2,swim 未处理完
