@@ -18,7 +18,7 @@ import json
 import operator
 
 compute_bias = 0.00001
-bias = 0.00001
+bias = 0.5
 max_overlap = 2
 pd_range = 5
 grid_precision = 10 
@@ -31,9 +31,9 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 114
+        self.line_index = 106
         self.initialProblem(self.line_index) # 获得全部 
-        self.ration_dec, self.ration_inc = 0.04, 0.01
+        self.ration_dec, self.ration_inc = 0.04, 0.005
         self.TEST_MODEL = False
         self.max_time = 360000
         # self.showPolys()
