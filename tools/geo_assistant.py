@@ -173,11 +173,17 @@ class GeometryAssistant(object):
         return new_points
     
     @staticmethod
-    def interBetweenNFPs(nfp1_edges, nfp2_edges):
+    def interBetweenNFPs(nfp1_edges, nfp2_edges, bounds1, bounds2):
         '''计算直线交点，仅考虑'''
         inter_points, intersects = [], False
         for edge1 in nfp1_edges:
+            if max(edge1[0][0],edge1[1][0]) < bounds2[0] or min(edge1[0][0],edge1[1][0]) > bounds2[2] \
+                or max(edge1[0][1],edge1[1][1]) < bounds2[1] or min(edge1[0][1],edge1[1][1]) > bounds2[3]:
+                continue
             for edge2 in nfp2_edges:
+                if max(edge2[0][0],edge2[1][0]) < bounds1[0] and min(edge2[0][0],edge2[1][0]) > bounds1[2] \
+                    or max(edge2[0][1],edge2[1][1]) < bounds1[1] and min(edge2[0][1],edge2[1][1]) > bounds1[3]:
+                    continue
                 pts, inter_or = GeometryAssistant.lineInter(edge1, edge2)
                 if inter_or == False:
                     continue

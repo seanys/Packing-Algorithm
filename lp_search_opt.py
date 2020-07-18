@@ -16,12 +16,14 @@ import time
 import csv # 写csv
 import json
 import operator
+import cProfile
 
 compute_bias = 0.000001
 pd_range = 5
 
-grid_precision = 10 
-digital_precision = 0.00001
+grid_precision = 10
+# digital_precision = 0.001
+digital_precision = 1
 
 zfill_num = 5
 
@@ -31,10 +33,10 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 102
+        self.line_index = 2
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
-        self.TEST_MODEL = False
+        self.TEST_MODEL = True
         self.max_time = 3600
         # self.showPolys()
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
@@ -50,7 +52,7 @@ class LPSearch(object):
         self.shrinkBorder() # 平移边界并更新宽度
         
         if self.TEST_MODEL == True:
-            self.max_time = 1
+            self.max_time = 60
         self.start_time = time.time()
         search_status = 0
 
@@ -91,7 +93,7 @@ class LPSearch(object):
         N,it = 50,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
-            N = 1
+            N = 10
         unchange_times,last_pd = 0,0
         while it < N:
             print("第",it,"轮")
@@ -124,16 +126,16 @@ class LPSearch(object):
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
                     self.updatePD(choose_index, final_pd_record) # 更新对应元素的PD，线性时间复杂度
-                    self.showPolys(coloring = choose_index)
+                    # self.showPolys(coloring = choose_index)
                     # with open("record/test.csv","a+") as csvfile:
                     #     writer = csv.writer(csvfile)
                     #     writer.writerows([[]])
                     #     writer.writerows([[self.line_index, final_pd, choose_index, self.orientation, self.polys]])        
                 else:
-                    print(choose_index,"未寻找到更优位置")
+                    # print(choose_index,"未寻找到更优位置")
                     pass
-            if self.TEST_MODEL == True: # 测试模式
-                return
+            # if self.TEST_MODEL == True: # 测试模式
+            #     return
             # self.showPolys()
             total_pd, max_pair_pd = self.getPDStatus() # 获得当前的PD情况
             if total_pd < self.max_overlap:
@@ -259,12 +261,15 @@ class LPSearch(object):
                 bounds_i, bounds_j = cur_nfps_bounds[i], cur_nfps_bounds[j] # 获得边界
                 if bounds_i[2] <= bounds_j[0] or bounds_i[0] >= bounds_j[2] or bounds_i[3] <= bounds_j[1] or bounds_i[1] >= bounds_j[3]:
                     continue
+                # PltFunc.addPolygon(cur_nfps[i])
+                # PltFunc.addPolygonColor(cur_nfps[j])
+                # PltFunc.showPlt(width=2500,height=2500)
                 '''如果外接矩形包含视为邻接（顶点后续会加进去的）'''
                 if (bounds_i[0] >= bounds_j[0] and bounds_i[2] <= bounds_j[2] and bounds_i[1] >= bounds_j[1] and bounds_i[3] <= bounds_j[3]) or (bounds_j[0] >= bounds_i[0] and bounds_j[2] <= bounds_i[2] and bounds_j[1] >= bounds_i[1] and bounds_j[3] <= bounds_i[3]):
                     nfp_neighbor[i].append(j)    
                     nfp_neighbor[j].append(i)
                 else:
-                    inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds) # 计算NFP之间的交点
+                    inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds, bounds_i, bounds_j) # 计算NFP之间的交点
                     if intersects == True:
                         nfp_neighbor[i].append(j) # 记录邻接情况    
                         nfp_neighbor[j].append(i) # 记录邻接情况
@@ -296,7 +301,7 @@ class LPSearch(object):
             new_all_search_targets[i].append(simple_neighbor)
         return new_all_search_targets
 
-    def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds):
+    def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds, bounds1, bounds2):
         '''求解NFP之间的交集'''
         relative_position, target_key = self.getAdjustPt([cur_nfps[n][0][0] - cur_nfps[m][0][0],cur_nfps[n][0][1] - cur_nfps[m][0][1]], digital_precision)
         if target_key in self.last_nfp_inters[i][oi][m][om][n][on]:
@@ -308,7 +313,7 @@ class LPSearch(object):
 
         # print("直接计算")
         nfp1_edges, nfp2_edges = GeometryAssistant.getPolyEdges(cur_nfps[m]), GeometryAssistant.getPolyEdges(cur_nfps[n])
-        inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges)
+        inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges, bounds1, bounds2)
         relative_inter_points = GeometryAssistant.getAdjustPts(inter_points, cur_nfps[m][0], False)
         self.last_nfp_inters[i][oi][m][om][n][on][target_key] = [relative_inter_points, intersects] 
         feasible_inter_points = GeometryAssistant.getPointsContained(inter_points,ifr_bounds)
@@ -354,7 +359,7 @@ class LPSearch(object):
         '''Step 2 判断是否存在于last_grid_pds和last_digital_pds'''
         if grid_key in self.last_grid_pds[i][oi][j][oj]:
             possible_pd = self.last_grid_pds[i][oi][j][oj][grid_key]
-            if possible_pd >= 15: # 如果比较大则直接取该值
+            if possible_pd >= grid_precision*1.5: # 如果比较大则直接取该值
                 return possible_pd
             if digital_key in self.last_digital_pds[i][oi][j][oj]: # 如果存在具体的位置
                 return self.last_digital_pds[i][oi][j][oj][digital_key]
@@ -442,11 +447,11 @@ class LPSearch(object):
             # if nfp == []:
             #     OutputFunc.outputWarning(("出现错误"))
                 # PltFunc.showPlt()
-            PltFunc.addPolygonColor(cur_nfps[j])
-            PltFunc.addPolygon(self.polys[j])
-            PltFunc.addPolygon(self.polys[i])
+            # PltFunc.addPolygonColor(cur_nfps[j])
+            # PltFunc.addPolygon(self.polys[j])
+            # PltFunc.addPolygon(self.polys[i])
             # PltFunc.addPolygonColor([[cur_nfps_bounds[j][0],cur_nfps_bounds[j][1]],[cur_nfps_bounds[j][2],cur_nfps_bounds[j][1]],[cur_nfps_bounds[j][2],cur_nfps_bounds[j][3]],[cur_nfps_bounds[j][0],cur_nfps_bounds[j][3]]])
-            PltFunc.showPlt()
+            # PltFunc.showPlt()
         return cur_nfps, cur_nfps_bounds
 
     def getBoundsbyRow(self, i, j, oi, oj, first_pt):
@@ -560,8 +565,10 @@ class LPSearch(object):
 
 
 if __name__=='__main__':
-    for i in range(10):
-        LPSearch()
+    # cProfile.run('LPSearch()')
+    for i in range(5):
+        # LPSearch()
+        cProfile.run('LPSearch()')
     # LPSearch()
     # for i in range(100):
     #     permutation = np.arange(10)
