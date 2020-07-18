@@ -527,14 +527,14 @@ def removeOverlap():
     _input = pd.read_csv("record/lp_initial.csv")
     polys = json.loads(_input["polys"][107])
 
-    GeoFunc.slidePoly(polys[4],240.0-229.55213892219976,-3.1130634730287)
-    GeoFunc.slidePoly(polys[21],0,-3.1130634730287)
-    GeoFunc.slidePoly(polys[22],0,-3.1130634730287)
-    GeoFunc.slidePoly(polys[16],120.0-119.71600103769902,-3.1130634730287)
-    GeoFunc.slidePoly(polys[6],100.0-99.71600103769902,0)
-    GeoFunc.slidePoly(polys[8],-2.424242424242436,0)
+    # GeoFunc.slidePoly(polys[4],240.0-229.55213892219976,-3.1130634730287)
+    GeoFunc.slidePoly(polys[21],80-79.71600103769902,0)
+    # GeoFunc.slidePoly(polys[22],0,-3.1130634730287)
+    # GeoFunc.slidePoly(polys[16],120.0-119.71600103769902,-3.1130634730287)
+    # GeoFunc.slidePoly(polys[6],100.0-99.71600103769902,0)
+    # GeoFunc.slidePoly(polys[8],-2.424242424242436,0)
 
-    GeoFunc.slidePoly(polys[3],-2.382,0)
+    # GeoFunc.slidePoly(polys[3],-2.382,0)
     # PltFunc.addPolygon(polys[20])
     # PltFunc.addPolygon(polys[8])
     # PltFunc.addPolygon(polys[5])
@@ -542,12 +542,12 @@ def removeOverlap():
     #     print(i)
     #     PltFunc.addPolygon(poly)
     #     PltFunc.showPlt(width=250,height=800)
-    # print(polys[16])
+    # print(polys[18])
     # print(polys[21])
     # print(polys[3])
 
     # PltFunc.showPlt()
-    # PltFunc.showPolys(polys)
+    PltFunc.showPolys(polys)
     print(polys)
 
 def testNFP():
