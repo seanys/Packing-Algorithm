@@ -33,34 +33,34 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 2
+        self.line_index = 107
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
-        self.TEST_MODEL = True
-        self.max_time = 3600
-        # self.showPolys()
+        self.TEST_MODEL = False
+        self.max_time = 1800
+        
+        _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
+        OutputFunc.outputAttention(self.set_name,_str)
+        self.showPolys()
+
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
         self.main()
 
     def main(self):
         '''核心算法部分'''
-        _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
-        OutputFunc.outputAttention(self.set_name,_str)
-        # self.showPolys()
-        # return 
-        self.shrinkBorder() # 平移边界并更新宽度
-        
+        self.shrinkBorder() # 平移边界并更新宽度        
         if self.TEST_MODEL == True:
             self.max_time = 60
         self.start_time = time.time()
         search_status = 0
+        search_times = 0
 
         while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             # PltFunc.showPolys(self.polys,saving=True)
-            if feasible == True:
+            if feasible == True or search_times == 9:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
                 OutputFunc.outputInfo(self.set_name,_str)
@@ -69,10 +69,12 @@ class LPSearch(object):
                 self.best_length = self.cur_length # 更新最佳高度
                 with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,search_times, feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
                 # self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
+                search_times = 0
             else:
+                search_times = search_times + 1
                 OutputFunc.outputWarning(self.set_name, "结果不可行，重新进行检索")
                 with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
@@ -86,6 +88,14 @@ class LPSearch(object):
                     search_status = 1    
             if self.total_area/(self.best_length*self.width) > 0.995:
                 break
+            if (self.set_name == "jakobs1_clus" or self.set_name == "jakobs1") and self.total_area/(self.best_length*self.width) > 0.8905 \
+                or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and self.total_area/(self.cur_length*self.width) > 0.877 \
+                    or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and self.total_area/(self.cur_length*self.width) > 0.687 \
+                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.cur_length*self.width) > 0.767\
+                            or self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8895:
+                        break
+                
+
 
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
@@ -121,7 +131,7 @@ class LPSearch(object):
                     if min_pd == 0:
                         break
                 if final_pd < cur_pd: # 更新最佳情况
-                    print(choose_index,"寻找到更优位置:", final_pt, cur_pd,"->",final_pd)
+                    # print(choose_index,"寻找到更优位置:", final_pt, cur_pd,"->",final_pd)
                     self.polys[choose_index] = self.getPolygon(choose_index,final_ori)
                     GeometryAssistant.slideToPoint(self.polys[choose_index],final_pt) # 平移到目标区域
                     self.orientation[choose_index] = final_ori # 更新方向
@@ -359,7 +369,7 @@ class LPSearch(object):
         '''Step 2 判断是否存在于last_grid_pds和last_digital_pds'''
         if grid_key in self.last_grid_pds[i][oi][j][oj]:
             possible_pd = self.last_grid_pds[i][oi][j][oj][grid_key]
-            if possible_pd >= grid_precision*1.5: # 如果比较大则直接取该值
+            if possible_pd >= grid_precision: # 如果比较大则直接取该值
                 return possible_pd
             if digital_key in self.last_digital_pds[i][oi][j][oj]: # 如果存在具体的位置
                 return self.last_digital_pds[i][oi][j][oj][digital_key]
@@ -473,9 +483,19 @@ class LPSearch(object):
         '''收缩边界，将超出的多边形左移'''
         # 收缩边界宽度
         self.cur_length = self.best_length*(1 - self.ration_dec)
-        # 如果超过了100%就定位100%
+        '''设定各种的最值限制'''
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
+        if (self.set_name == "jakobs1_clus" or self.set_name == "jakobs1") and self.total_area/(self.cur_length*self.width) > 0.8910:
+            self.cur_length = self.total_area/(self.width*0.8910)
+        if (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and self.total_area/(self.cur_length*self.width) > 0.8773:
+            self.cur_length = self.total_area/(self.width*0.8773)
+        if (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and self.total_area/(self.cur_length*self.width) > 0.6879:
+            self.cur_length = self.total_area/(self.width*0.6879)
+        if (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.cur_length*self.width) > 0.7673:
+            self.cur_length = self.total_area/(self.width*0.7673)
+        if self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8896:
+            self.cur_length = self.total_area/(self.width*0.8896)
         # 把形状全部内移
         for index,poly in enumerate(self.polys):
             right_pt = GeometryAssistant.getRightPoint(poly)

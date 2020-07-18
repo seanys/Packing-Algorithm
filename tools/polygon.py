@@ -548,7 +548,7 @@ class PltFunc(object):
         plt.show()
         plt.clf()
 
-    def showPolys(polys,saving=False,coloring=None):
+    def showPolys(polys, saving=False, coloring=None):
         '''展示全部形状以及边框'''
         for poly in polys:
             if coloring != None and (poly == coloring or poly in coloring):
@@ -558,7 +558,7 @@ class PltFunc(object):
         if saving:
             PltFunc.saveFig('figs/LP_Search/{}.png'.format(str(time.strftime("%H:%M:%S", time.localtime()))))
         else:
-            PltFunc.showPlt(width=1500, height=1500)
+            PltFunc.showPlt(width=800, height=800)
 
     def saveFig(path):
         plt.savefig(path)

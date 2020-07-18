@@ -525,17 +525,30 @@ def cluster():
 
 def removeOverlap():
     _input = pd.read_csv("record/lp_initial.csv")
-    polys = json.loads(_input["polys"][73])
-    GeoFunc.slidePoly(polys[20],0,499.77968278349886-496.609895730301)
-    GeoFunc.slidePoly(polys[5],5,0)
-    PltFunc.addPolygon(polys[20])
-    PltFunc.addPolygon(polys[8])
-    PltFunc.addPolygon(polys[5])
-    
-    print(polys[8])
-    print(polys[20])
-    PltFunc.showPlt()
+    polys = json.loads(_input["polys"][107])
+
+    GeoFunc.slidePoly(polys[4],240.0-229.55213892219976,-3.1130634730287)
+    GeoFunc.slidePoly(polys[21],0,-3.1130634730287)
+    GeoFunc.slidePoly(polys[22],0,-3.1130634730287)
+    GeoFunc.slidePoly(polys[16],120.0-119.71600103769902,-3.1130634730287)
+    GeoFunc.slidePoly(polys[6],100.0-99.71600103769902,0)
+    GeoFunc.slidePoly(polys[8],-2.424242424242436,0)
+
+    GeoFunc.slidePoly(polys[3],-2.382,0)
+    # PltFunc.addPolygon(polys[20])
+    # PltFunc.addPolygon(polys[8])
+    # PltFunc.addPolygon(polys[5])
+    # for i,poly in enumerate(polys):
+    #     print(i)
+    #     PltFunc.addPolygon(poly)
+    #     PltFunc.showPlt(width=250,height=800)
+    # print(polys[16])
+    # print(polys[21])
+    # print(polys[3])
+
+    # PltFunc.showPlt()
     # PltFunc.showPolys(polys)
+    print(polys)
 
 def testNFP():
     data = pd.read_csv("data/dagli_nfp.csv")
@@ -677,12 +690,13 @@ def testInter():
     # PltFunc.showPlt(width=2500, height=2500)
 
 if __name__ == '__main__':
-    addEmptyDecom("swim")
+    # addEmptyDecom("swim")
     # testInter()
     # testNFP()
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
-    nfpDecomposition()
+    # nfpDecomposition()
     # PreProccess(14)
+    removeOverlap()
     # jakobs2,swim 未处理完
