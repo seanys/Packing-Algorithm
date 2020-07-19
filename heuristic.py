@@ -415,6 +415,7 @@ targets = [{
         "allowed_rotation": 2,
         "width": 750
     }]
+index = 0
 
 def getDataNew():
     print(targets[index]["name"])
