@@ -408,6 +408,12 @@ targets = [{
         "scale" : 10,
         "allowed_rotation": 2,
         "width": 790
+    },{
+        "index" : 16,
+        "name" : "blaz_clus",
+        "scale" : 50,
+        "allowed_rotation": 2,
+        "width": 750
     }]
 
 def getDataNew():
@@ -428,7 +434,7 @@ def getDataNew():
     return polygons
 
 if __name__=='__main__':
-    index=16
+    index = 16
     polys = getDataNew()
     
     total_area = 0
@@ -446,5 +452,5 @@ if __name__=='__main__':
     # nfp_ass.getDirectNFP(polys[10],polys[12])
 
     bfl = BottomLeftFill(targets[index]["width"], polys, vertical=False, NFPAssistant=nfp_ass)
-
+    print(bfl.polygons)
     bfl.showAll()

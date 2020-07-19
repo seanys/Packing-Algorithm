@@ -33,8 +33,8 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 77
-        self.max_time = 1800
+        self.line_index = 2
+        self.max_time = 3600
         if "line_index" in kw:
             self.line_index = kw["line_index"]
         if "max_time" in kw:
@@ -45,7 +45,7 @@ class LPSearch(object):
         
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        # self.showPolys()
+        self.showPolys()
 
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
@@ -64,7 +64,7 @@ class LPSearch(object):
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             # PltFunc.showPolys(self.polys,saving=True)
-            if feasible == True or search_times == 9:
+            if feasible == True or search_times == 5:
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
                 OutputFunc.outputInfo(self.set_name,_str)
@@ -373,7 +373,7 @@ class LPSearch(object):
         '''Step 2 判断是否存在于last_grid_pds和last_digital_pds'''
         if grid_key in self.last_grid_pds[i][oi][j][oj]:
             possible_pd = self.last_grid_pds[i][oi][j][oj][grid_key]
-            if possible_pd >= grid_precision: # 如果比较大则直接取该值
+            if possible_pd >= 10: # 如果比较大则直接取该值
                 return possible_pd
             if digital_key in self.last_digital_pds[i][oi][j][oj]: # 如果存在具体的位置
                 return self.last_digital_pds[i][oi][j][oj][digital_key]
@@ -383,7 +383,8 @@ class LPSearch(object):
             return 0
 
         nfp_parts = self.nfp_parts[row]
-        if len(nfp_parts) > 0:
+        '''暂时删除该段'''
+        if len(nfp_parts) == -1:
             if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
                 # if Polygon(nfp).contains(Point(pt)):
                 #     print(pt,relative_pt,nfp)
@@ -400,7 +401,7 @@ class LPSearch(object):
         convex_status = self.nfps_convex_status[row]
         grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
         self.last_grid_pds[i][oi][j][oj][grid_key] = grid_pd
-        if grid_pd < 15:
+        if grid_pd < 10:
             if digital_pt[0] == grid_pt[0] and digital_pt[1] == grid_pt[1]:
                 digital_pd = grid_pd
             else:
