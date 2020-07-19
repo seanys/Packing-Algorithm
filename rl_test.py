@@ -11,7 +11,8 @@ import itertools
 from shutil import copyfile
 from multiprocessing import Pool
 from tqdm import tqdm
-from heuristic import BottomLeftFill,RatotionPoly,targets,newNFPAssistant
+from heuristic import BottomLeftFill,RatotionPoly,newNFPAssistant
+from new_data import targets
 from sequence import GA
 from shapely.geometry import Polygon
 from tools.packing import NFPAssistant,PolyListProcessor
@@ -497,7 +498,7 @@ def getAllInit():
         set_name=target["name"]
         width=target["width"]
         scale=target["scale"]
-        if set_name not in ['dagli','shapes2','jakobs1','swim']:continue
+        if set_name not in ['blaz']:continue
         print(width)
         # 加载原始数据并缩放
         df = pd.read_csv("data/" + set_name + ".csv")
