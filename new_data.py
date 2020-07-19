@@ -17,9 +17,9 @@ from ast import literal_eval
 targets_clus = [{
         "index" : 0,
         "name" : "blaz",
-        "scale" : 10,
+        "scale" : 50,
         "allowed_rotation": 2,
-        "width": 150
+        "width": 750
     },{
         "index" : 1,
         "name" : "shapes2_clus",
@@ -126,9 +126,9 @@ targets = [{
     },{
         "index" : 1,
         "name" : "blaz",
-        "scale" : 10,
+        "scale" : 50,
         "allowed_rotation": 2,
-        "width": 150
+        "width": 750
     },{
         "index" : 2,
         "name" : "dagli",
@@ -191,24 +191,18 @@ targets = [{
         "width": 800
     },{
         "index" : 12,
-        "name" : "shapes2",
-        "scale" : 1,
-        "allowed_rotation": 2,
-        "width": 750
-    },{
-        "index" : 13,
         "name" : "shirts",
         "scale" : 20,
         "allowed_rotation": 2,
         "width": 800
     },{
-        "index" : 14,
+        "index" : 13,
         "name" : "swim",
         "scale" : 0.2,
         "allowed_rotation": 2,
         "width": 1150.4
     },{
-        "index" : 15,
+        "index" : 14,
         "name" : "trousers",
         "scale" : 10,
         "allowed_rotation": 2,
@@ -631,7 +625,7 @@ def nfpDecomposition():
     #         print(target['name'])
     error=0
     for target in targets:
-        if not 'swim' in target['name']:continue
+        if not 'blaz' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
@@ -706,7 +700,7 @@ def testBest():
 
 
 if __name__ == '__main__':
-    removeOverlap()
+    # removeOverlap()
     # testBest()
     # addEmptyDecom("swim")
     # testInter()
@@ -714,7 +708,7 @@ if __name__ == '__main__':
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
-    # nfpDecomposition()
-    # PreProccess(14)
+    nfpDecomposition()
+    # PreProccess(1)
     # removeOverlap()
     # jakobs2,swim 未处理完

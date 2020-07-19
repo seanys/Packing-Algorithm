@@ -18,8 +18,8 @@ import json
 import operator
 
 compute_bias = 0.00001
-bias = 0.5
-max_overlap = 2
+bias = 0.000001
+max_overlap = 1
 pd_range = 5
 grid_precision = 10 
 digital_precision = 1
@@ -31,7 +31,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self):
-        self.line_index = 106
+        self.line_index = 112
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.005
         self.TEST_MODEL = False
@@ -53,11 +53,12 @@ class LPSearch(object):
             self.max_time = 1
         self.start_time = time.time()
         search_status = 0
+        search_times = 0
 
         while time.time() - self.start_time < self.max_time:
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
-            if feasible == True:
+            if feasible == True or search_times == 9:
                 PltFunc.showPolys(self.polys,saving=True)
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
@@ -67,10 +68,12 @@ class LPSearch(object):
                 self.best_length = self.cur_length # 更新最佳高度
                 with open("record/lp_result/" + self.set_name + "_result_success.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
+                    writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,search_times, feasible,self.best_length,self.total_area/(self.best_length*self.width),self.orientation,self.polys]])
                 # self.showPolys()
                 self.shrinkBorder() # 收缩边界并平移形状到内部来
+                search_times = 0
             else:
+                search_times = search_times + 1
                 OutputFunc.outputWarning(self.set_name, "结果不可行，重新进行检索")
                 with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
@@ -268,7 +271,7 @@ class LPSearch(object):
                     nfp_neighbor[i].append(j)    
                     nfp_neighbor[j].append(i)
                 else:
-                    inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds) # 计算NFP之间的交点
+                    inter_points, intersects = self.interBetweenNFPs(index, ori, i, self.orientation[i], j, self.orientation[j], cur_nfps, ifr_bounds, bounds_i, bounds_j) # 计算NFP之间的交点
                     if intersects == True:
                         nfp_neighbor[i].append(j) # 记录邻接情况    
                         nfp_neighbor[j].append(i) # 记录邻接情况
@@ -300,7 +303,7 @@ class LPSearch(object):
             new_all_search_targets[i].append(simple_neighbor)
         return new_all_search_targets
 
-    def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds):
+    def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds, bounds1, bounds2):
         '''求解NFP之间的交集'''
         relative_position, target_key = self.getAdjustPt([cur_nfps[n][0][0] - cur_nfps[m][0][0],cur_nfps[n][0][1] - cur_nfps[m][0][1]], digital_precision)
         if target_key in self.last_nfp_inters[i][oi][m][om][n][on]:
@@ -312,7 +315,7 @@ class LPSearch(object):
 
         # print("直接计算")
         nfp1_edges, nfp2_edges = GeometryAssistant.getPolyEdges(cur_nfps[m]), GeometryAssistant.getPolyEdges(cur_nfps[n])
-        inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges)
+        inter_points, intersects = GeometryAssistant.interBetweenNFPs(nfp1_edges, nfp2_edges, bounds1, bounds2)
         relative_inter_points = GeometryAssistant.getAdjustPts(inter_points, cur_nfps[m][0], False)
         self.last_nfp_inters[i][oi][m][om][n][on][target_key] = [relative_inter_points, intersects] 
         feasible_inter_points = GeometryAssistant.getPointsContained(inter_points,ifr_bounds)
@@ -468,6 +471,8 @@ class LPSearch(object):
         # 如果超过了100%就定位100%
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
+        if self.set_name == "marques" and self.total_area/(self.cur_length*self.width) > 0.9110:
+            self.cur_length = self.total_area/(self.width*0.9110)
         # 把形状全部内移
         for index,poly in enumerate(self.polys):
             right_pt = GeometryAssistant.getRightPoint(poly)
