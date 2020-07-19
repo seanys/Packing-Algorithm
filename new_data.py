@@ -615,7 +615,6 @@ def testNFPInter():
         PltFunc.addPolygon(nfp_j)
         PltFunc.showPlt()
 
-
 def nfpDecomposition():
     '''nfp凸分解'''
     # for target in targets:
@@ -698,6 +697,49 @@ def testBest():
         PltFunc.addPolygon(poly)
     PltFunc.showPlt(width=2000,height=2000)
 
+def getKeys():
+    '''对Key预处理'''
+    for target in targets:
+        if not 'swim' in target['name']:continue
+        data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
+        with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
+            writer = csv.writer(csvfile)
+            csvfile.write('i,j,oi,oj,new_poly_i,new_poly_j,nfp,convex_status,vertical_direction,bounds,nfp_parts'+'\n')
+            for row in range(data.shape[0]):
+                nfp = json.loads(data["nfp"][row])
+                convex_status = json.loads(data["convex_status"][row])
+                first_pt = nfp[0]
+                GeometryAssistant.slidePoly(nfp,-first_pt[0],-first_pt[1])
+                if 0 in convex_status:
+                    parts=copy.deepcopy(polygonQuickDecomp(nfp))
+                    area=0
+                    for p in parts:
+                        poly=Polygon(p)
+                        area=area+poly.area
+                    if abs(Polygon(nfp).area-area)>1e-7:
+                        # print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
+                        parts=[]
+                        dt = Delaunay2D()
+                        for pt in nfp:
+                            dt.addPoint(pt)
+                        triangles=copy.deepcopy(dt.exportTriangles())
+                        area=0
+                        for p in triangles:
+                            poly=[]
+                            for i in p:
+                                poly.append(nfp[i])
+                            parts.append(poly)
+                            poly=Polygon(poly)
+                            area=area+poly.area
+                        if abs(Polygon(nfp).area-area)>1e-7:
+                            print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
+                            # PltFunc.showPolys(parts+[nfp])
+                            error=error+1
+                            parts=[]
+                else:
+                    parts=[nfp]
+                writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),json.loads(data["vertical_direction"][row]),json.loads(data["bounds"][row]),parts]])
+    print('总错误次数{}'.format(error))    
 
 if __name__ == '__main__':
     # removeOverlap()
