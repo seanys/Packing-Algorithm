@@ -524,11 +524,11 @@ def cluster():
     # print(_arr)
 
 def removeOverlap():
-    _input = pd.read_csv("record/lp_initial.csv")
-    polys = json.loads(_input["polys"][107])
+    _input = pd.read_csv("record/best_result/albano.csv")
+    polys = json.loads(_input["polys"][0])
 
     # GeoFunc.slidePoly(polys[4],240.0-229.55213892219976,-3.1130634730287)
-    GeoFunc.slidePoly(polys[21],80-79.71600103769902,0)
+    # GeoFunc.slidePoly(polys[21],80-79.71600103769902,0)
     # GeoFunc.slidePoly(polys[22],0,-3.1130634730287)
     # GeoFunc.slidePoly(polys[16],120.0-119.71600103769902,-3.1130634730287)
     # GeoFunc.slidePoly(polys[6],100.0-99.71600103769902,0)
@@ -538,17 +538,17 @@ def removeOverlap():
     # PltFunc.addPolygon(polys[20])
     # PltFunc.addPolygon(polys[8])
     # PltFunc.addPolygon(polys[5])
-    # for i,poly in enumerate(polys):
-    #     print(i)
-    #     PltFunc.addPolygon(poly)
-    #     PltFunc.showPlt(width=250,height=800)
+    for i,poly in enumerate(polys):
+        print(i)
+        PltFunc.addPolygon(poly)
+        PltFunc.showPlt(width=2000,height=2000)
     # print(polys[18])
     # print(polys[21])
     # print(polys[3])
 
     # PltFunc.showPlt()
-    PltFunc.showPolys(polys)
-    print(polys)
+    # PltFunc.showPolys(polys)
+    # print(polys)
 
 def testNFP():
     data = pd.read_csv("data/dagli_nfp.csv")
@@ -689,7 +689,25 @@ def testInter():
     # PltFunc.addPolygonColor(poly3)
     # PltFunc.showPlt(width=2500, height=2500)
 
+def testBest():
+    index = 0
+    _input = pd.read_csv("record/best_result/albano.csv")
+    polys = json.loads(_input["polys"][index])
+    width = _input["width"][index]
+    length = GeometryAssistant.getPolysRight(polys)
+
+    PltFunc.addLineColor([[length,0],[length,width]])
+    PltFunc.addLineColor([[0,width],[length,width]])
+    ratio = _input["total_area"][index]/(width*length)
+    print("利用比例:",ratio)
+    for poly in polys:
+        PltFunc.addPolygon(poly)
+    PltFunc.showPlt(width=2000,height=2000)
+
+
 if __name__ == '__main__':
+    removeOverlap()
+    # testBest()
     # addEmptyDecom("swim")
     # testInter()
     # testNFP()
@@ -698,5 +716,5 @@ if __name__ == '__main__':
     # addBound()
     # nfpDecomposition()
     # PreProccess(14)
-    removeOverlap()
+    # removeOverlap()
     # jakobs2,swim 未处理完

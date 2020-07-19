@@ -175,12 +175,16 @@
         3    0.000    0.000    0.001    0.000 generic.py:7264(isna)
   4784145    9.097    0.000   10.050    0.000 geo_assistant.py:12(getAdjustPts)
   4778176    8.620    0.000   20.872    0.000 geo_assistant.py:121(verticalInter)
+
  62644281  110.010    0.000  217.351    0.000 geo_assistant.py:140(lineInter)
+
   4784145    4.938    0.000   10.980    0.000 geo_assistant.py:167(getPointsContained)
+
   1478981   64.280    0.000  235.022    0.000 geo_assistant.py:175(interBetweenNFPs)
   1090182   22.747    0.000  107.143    0.000 geo_assistant.py:197(interNFPIFR)
   3610932   21.597    0.000   46.657    0.000 geo_assistant.py:23(judgeContain)
 107955861   54.189    0.000   54.189    0.000 geo_assistant.py:244(boundsContain)
+
         1    0.000    0.000    0.000    0.000 geo_assistant.py:250(getPolysRight)
  25046463   24.565    0.000   24.565    0.000 geo_assistant.py:26(cross)
   6328083   32.174    0.000   41.751    0.000 geo_assistant.py:291(getPolyEdges)
@@ -192,13 +196,17 @@
   1102280    3.179    0.000    3.179    0.000 geo_assistant.py:374(getBottomPoint)
       504    0.001    0.000    0.001    0.000 geo_assistant.py:383(getRightPoint)
     54694    0.221    0.000    0.221    0.000 geo_assistant.py:410(getBoundPoint)
+
  23736744   70.447    0.000   70.447    0.000 geo_assistant.py:429(getFootPoint)
   3315427   53.719    0.000  204.789    0.000 geo_assistant.py:49(getPtNFPPD)
+
        63    0.000    0.000    0.003    0.000 geo_assistant.py:515(outputWarning)
       256    0.001    0.000    0.013    0.000 geo_assistant.py:521(outputAttention)
        14    0.000    0.000    0.000    0.000 geo_assistant.py:527(outputInfo)
+
  47795959   38.179    0.000   61.494    0.000 geo_assistant.py:78(bounds)
  11600605   11.114    0.000   11.114    0.000 geo_assistant.py:85(getLineCoe)
+
     55583    0.131    0.000    0.319    0.000 geo_assistant.py:92(parallelInter)
         3    0.000    0.000    0.000    0.000 inference.py:130(is_file_like)
         6    0.000    0.000    0.000    0.000 inference.py:299(is_dict_like)
@@ -208,7 +216,9 @@
        40    6.158    0.154 1804.988   45.125 lp_search_opt.py:100(minimizeOverlap)
        40    0.000    0.000    0.000    0.000 lp_search_opt.py:102(<listcomp>)
     18128    0.021    0.000    0.021    0.000 lp_search_opt.py:120(<listcomp>)
+
     54694  112.179    0.002 1796.374    0.033 lp_search_opt.py:168(lpSearch)
+
    218776    0.199    0.000    0.199    0.000 lp_search_opt.py:179(<listcomp>)
     54694    0.055    0.000    0.055    0.000 lp_search_opt.py:182(<listcomp>)
  11012012    9.391    0.000    9.391    0.000 lp_search_opt.py:187(<listcomp>)
@@ -227,10 +237,14 @@
        40    0.032    0.001    0.307    0.008 lp_search_opt.py:348(updateAllPairPD)
         1    0.001    0.001 1807.307 1807.307 lp_search_opt.py:35(__init__)
        40    0.000    0.000    0.000    0.000 lp_search_opt.py:350(<listcomp>)
+
  36023536  127.156    0.000 1004.268    0.000 lp_search_opt.py:361(getPolyPtPD)
+
     51681    0.460    0.000    0.460    0.000 lp_search_opt.py:409(getIndexPD)
   4784145   17.882    0.000   33.742    0.000 lp_search_opt.py:416(getAdjustPt)
+
  72047072  288.105    0.000  496.668    0.000 lp_search_opt.py:422(newGetAdjustPt)
+
         1    0.000    0.000    0.348    0.348 lp_search_opt.py:428(initialRecord)
         1    0.000    0.000    0.003    0.003 lp_search_opt.py:430(<listcomp>)
         1    0.000    0.000    0.003    0.003 lp_search_opt.py:431(<listcomp>)
@@ -242,7 +256,9 @@
   1102280    1.860    0.000   14.569    0.000 lp_search_opt.py:440(getNFP)
     54694    1.981    0.000   21.860    0.000 lp_search_opt.py:447(getCurNFPs)
   1102280    1.438    0.000    5.247    0.000 lp_search_opt.py:467(getBoundsbyRow)
+
  38228096  120.149    0.000  136.262    0.000 lp_search_opt.py:472(computeRow)
+
      2447    0.465    0.000    0.465    0.000 lp_search_opt.py:475(updateMiu)
        23    0.001    0.000    0.003    0.000 lp_search_opt.py:482(shrinkBorder)
         1    0.028    0.028 1805.367 1805.367 lp_search_opt.py:50(main)
@@ -380,14 +396,18 @@
      3433    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}
         3    0.000    0.000    0.000    0.000 {built-in method builtins.iter}
 264971186/264935682   22.695    0.000   22.707    0.000 {built-in method builtins.len}
+
 287020353   69.131    0.000   69.131    0.000 {built-in method builtins.max}
 224803854   56.717    0.000   56.717    0.000 {built-in method builtins.min}
+
         3    0.000    0.000    0.000    0.000 {built-in method builtins.next}
         3    0.000    0.000    0.000    0.000 {built-in method builtins.ord}
  21232524    9.372    0.000    9.372    0.000 {built-in method builtins.pow}
      2795    0.075    0.000    0.075    0.000 {built-in method builtins.print}
+
 153662434  192.448    0.000  192.448    0.000 {built-in method builtins.round}
     54697   10.569    0.000   10.569    0.000 {built-in method builtins.sorted}
+
         3    0.000    0.000    0.000    0.000 {built-in method builtins.sum}
        42    0.005    0.000    0.006    0.000 {built-in method io.open}
  10616262    1.866    0.000    1.866    0.000 {built-in method math.sqrt}
