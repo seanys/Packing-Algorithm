@@ -12,6 +12,7 @@ import itertools
 import copy
 import math
 import random
+from tqdm import tqdm
 from ast import literal_eval
 
 targets_clus = [{
@@ -624,7 +625,7 @@ def nfpDecomposition():
     #         print(target['name'])
     error=0
     for target in targets:
-        if not 'blaz' in target['name']:continue
+        if not 'shirts' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
@@ -699,47 +700,48 @@ def testBest():
 
 def getKeys():
     '''对Key预处理'''
-    for target in targets:
-        if not 'swim' in target['name']:continue
+    precision=20
+    for target in targets_clus:
+        if not 'shapes2_clus' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
-        with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
+        with open("data/new/{}_key.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
-            csvfile.write('i,j,oi,oj,new_poly_i,new_poly_j,nfp,convex_status,vertical_direction,bounds,nfp_parts'+'\n')
-            for row in range(data.shape[0]):
+            csvfile.write('i,j,oi,oj,gird,digital,exterior'+'\n')
+            for row in tqdm(range(data.shape[0])):
                 nfp = json.loads(data["nfp"][row])
+                nfp_parts = json.loads(data["nfp_parts"][row])
                 convex_status = json.loads(data["convex_status"][row])
                 first_pt = nfp[0]
                 GeometryAssistant.slidePoly(nfp,-first_pt[0],-first_pt[1])
-                if 0 in convex_status:
-                    parts=copy.deepcopy(polygonQuickDecomp(nfp))
-                    area=0
-                    for p in parts:
-                        poly=Polygon(p)
-                        area=area+poly.area
-                    if abs(Polygon(nfp).area-area)>1e-7:
-                        # print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
-                        parts=[]
-                        dt = Delaunay2D()
-                        for pt in nfp:
-                            dt.addPoint(pt)
-                        triangles=copy.deepcopy(dt.exportTriangles())
-                        area=0
-                        for p in triangles:
-                            poly=[]
-                            for i in p:
-                                poly.append(nfp[i])
-                            parts.append(poly)
-                            poly=Polygon(poly)
-                            area=area+poly.area
-                        if abs(Polygon(nfp).area-area)>1e-7:
-                            print('{}:{} NFP凸分解错误，面积相差{}'.format(target['name'],row,Polygon(nfp).area-area))
-                            # PltFunc.showPolys(parts+[nfp])
-                            error=error+1
-                            parts=[]
-                else:
-                    parts=[nfp]
-                writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.loads(data["new_poly_i"][row]),json.loads(data["new_poly_j"][row]),json.loads(data["nfp"][row]),json.loads(data["convex_status"][row]),json.loads(data["vertical_direction"][row]),json.loads(data["bounds"][row]),parts]])
-    print('总错误次数{}'.format(error))    
+                grid=dict()
+                exterior=dict()
+                digital=dict()
+                for x in range(-500,500,precision):
+                    for y in range(-500,500,precision):
+                        if not GeometryAssistant.boundsContain(Polygon(nfp).bounds,[x,y]):
+                            continue
+                        grid_key = str(int(x/precision)).zfill(5) + str(int(y/precision)).zfill(5)
+                        further_calc=False
+                        if not Polygon(nfp).contains(Point([x,y])):
+                            dist=Point([x,y]).distance(Polygon(nfp))
+                            if dist>15:
+                                grid[grid_key]=-1
+                            else:   further_calc=True
+                        else:
+                            depth=GeometryAssistant.getPtNFPPD([x,y], convex_status, nfp, 0.000001)
+                            if depth>15:
+                                grid[grid_key]=depth
+                            else:   further_calc=True
+                        if further_calc:
+                            for m in range(x-10,x+10):
+                                for n in range(y-10,y+10):
+                                    digital_key = str(int(m)).zfill(6) + str(int(n)).zfill(6)
+                                    if not Polygon(nfp).contains(Point([m,n])):
+                                        exterior[digital_key]=1
+                                    else:
+                                        depth=GeometryAssistant.getPtNFPPD([m,n], convex_status, nfp, 0.000001)
+                                        digital[digital_key]=depth
+                writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.dumps(grid),json.dumps(digital),json.dumps(exterior)]])   
 
 if __name__ == '__main__':
     # removeOverlap()
@@ -750,7 +752,7 @@ if __name__ == '__main__':
     # testNFPInter()
     # print(str(int(-1005/10)*10).zfill(5))
     # addBound()
+    PreProccess(12)
     nfpDecomposition()
-    # PreProccess(1)
     # removeOverlap()
-    # jakobs2,swim 未处理完
+    #getKeys()

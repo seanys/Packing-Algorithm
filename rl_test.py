@@ -498,7 +498,7 @@ def getAllInit():
         set_name=target["name"]
         width=target["width"]
         scale=target["scale"]
-        if set_name not in ['blaz']:continue
+        if set_name not in ['shirts']:continue
         print(width)
         # 加载原始数据并缩放
         df = pd.read_csv("data/" + set_name + ".csv")

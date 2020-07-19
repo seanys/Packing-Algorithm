@@ -41,7 +41,6 @@ class GeometryAssistant(object):
                     j=mid-1
                 else:
                     i=mid+1
-            test=cross(part[line-1],pt,part[line])
             if cross(part[line-1],pt,part[line])<bias:
                 return True
         return False
