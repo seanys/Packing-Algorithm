@@ -558,7 +558,7 @@ class PltFunc(object):
         if saving:
             PltFunc.saveFig('figs/LP_Search/{}.png'.format(str(time.strftime("%H:%M:%S", time.localtime()))))
         else:
-            PltFunc.showPlt(width=800, height=800)
+            PltFunc.showPlt(width=1500, height=1500)
 
     def saveFig(path):
         plt.savefig(path)

@@ -1,0 +1,61 @@
+         3673886578 function calls (3659255735 primitive calls) in 3723.098 seconds
+
+14633552/583421   16.218    0.000   32.757    0.000 copy.py:132(deepcopy)
+
+  6262102   13.637    0.000   15.104    0.000 geo_assistant.py:12(getAdjustPts)
+  4828165    9.458    0.000   22.949    0.000 geo_assistant.py:121(verticalInter)
+
+160188846  232.727    0.000  438.055    0.000 geo_assistant.py:140(lineInter)
+
+  6262102    8.338    0.000   17.958    0.000 geo_assistant.py:167(getPointsContained)
+
+  1667408  169.548    0.000  570.568    0.000 geo_assistant.py:175(interBetweenNFPs)
+
+  1233325   38.816    0.000  173.769    0.000 geo_assistant.py:197(interNFPIFR)
+  5046358   49.555    0.000  115.733    0.000 geo_assistant.py:23(judgeContain)
+
+193913908  100.898    0.000  100.898    0.000 geo_assistant.py:244(boundsContain)
+
+ 61583731   64.581    0.000   64.581    0.000 geo_assistant.py:26(cross)
+  9527715   79.191    0.000  103.817    0.000 geo_assistant.py:291(getPolyEdges)
+
+ 78998302  253.705    0.000  253.705    0.000 geo_assistant.py:429(getFootPoint)
+  6135360  144.734    0.000  619.618    0.000 geo_assistant.py:49(getPtNFPPD)
+
+115856141   92.658    0.000  147.952    0.000 geo_assistant.py:78(bounds)
+ 10705329   11.211    0.000   11.211    0.000 geo_assistant.py:85(getLineCoe)
+
+    57539  201.766    0.004 3704.164    0.064 lp_search_opt.py:158(lpSearch)
+
+ 17221871   17.326    0.000   17.326    0.000 lp_search_opt.py:177(<listcomp>)
+ 17221871   47.340    0.000   47.340    0.000 lp_search_opt.py:178(<listcomp>)
+
+    57539   34.753    0.001  757.453    0.013 lp_search_opt.py:253(getAllNFPInter)
+
+    57539   52.815    0.001  162.216    0.003 lp_search_opt.py:283(processSearchTargets)
+ 25789895   65.712    0.000   65.712    0.000 lp_search_opt.py:299(<listcomp>)
+ 17241270   19.091    0.000   19.091    0.000 lp_search_opt.py:300(<listcomp>)
+  6262102   26.300    0.000  718.158    0.000 lp_search_opt.py:304(interBetweenNFPs)
+
+ 61370893  232.820    0.000 2187.218    0.000 lp_search_opt.py:351(getPolyPtPD)
+
+  6262102   26.123    0.000   49.009    0.000 lp_search_opt.py:406(getAdjustPt)
+
+122741786  560.439    0.000  971.159    0.000 lp_search_opt.py:412(newGetAdjustPt)
+
+ 64040871  215.612    0.000  244.733    0.000 lp_search_opt.py:462(computeRow)
+
+495551826/495550429   44.818    0.000   44.819    0.000 {built-in method builtins.len}
+
+683171719  170.112    0.000  170.112    0.000 {built-in method builtins.max}
+516372114  138.407    0.000  138.407    0.000 {built-in method builtins.min}
+
+ 39754208   18.716    0.000   18.716    0.000 {built-in method builtins.pow}
+
+258007776  377.337    0.000  377.337    0.000 {built-in method builtins.round}
+
+    57542   18.291    0.000   18.291    0.000 {built-in method builtins.sorted}
+
+262834249   26.473    0.000   26.473    0.000 {method 'append' of 'list' objects}
+
+258007776   56.269    0.000   56.269    0.000 {method 'zfill' of 'str' objects}

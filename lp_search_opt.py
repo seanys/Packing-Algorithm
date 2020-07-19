@@ -32,16 +32,20 @@ zfill_num = 5
 # trouser 67 65  Swim_clus 89
 
 class LPSearch(object):
-    def __init__(self):
-        self.line_index = 107
+    def __init__(self, **kw):
+        self.line_index = 6
+        self.max_time = 1800
+        if "line_index" in kw:
+            self.line_index = kw["line_index"]
+        if "max_time" in kw:
+            self.max_time = kw["max_time"]
         self.initialProblem(self.line_index) # 获得全部 
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
-        self.max_time = 1800
         
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        self.showPolys()
+        # self.showPolys()
 
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
@@ -586,9 +590,41 @@ class LPSearch(object):
 
 if __name__=='__main__':
     # cProfile.run('LPSearch()')
-    for i in range(5):
-        # LPSearch()
+
+    # 跑Marques
+    # for i in range(5):
+    #     LPSearch(line_index=6,max_time=3600)
+
+    # 跑Dagli_clus
+    # for i in range(5):
+    #     LPSearch(line_index=9,max_time=3600)
+
+    # 跑fu
+    # for i in range(10):
+    #     LPSearch(line_index=2,max_time=1800)
+
+    # 跑albano
+    # for i in range(10):
+    #     LPSearch(line_index=16,max_time=1800)
+
+    # 跑Shape1
+    # for i in range(5):
+    #     LPSearch(line_index=4,max_time=3600)
+    # 跑Shape2
+    # for i in range(5):
+    #     LPSearch(line_index=12,max_time=3600)
+
+    # 跑Shape2_clus_clus
+    # for i in range(5):
+    #     LPSearch(line_index=3,max_time=3600)
+
+    # 跑Dagli
+    # for i in range(5):
+    #     LPSearch(line_index=10,max_time=3600)
+
+    for i in range(10):
         cProfile.run('LPSearch()')
+
     # LPSearch()
     # for i in range(100):
     #     permutation = np.arange(10)
