@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 6
+        self.line_index = 77
         self.max_time = 1800
         if "line_index" in kw:
             self.line_index = kw["line_index"]
