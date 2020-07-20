@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 82
+        self.line_index = 112
         self.max_time = 180000
         if "line_index" in kw:
             self.line_index = kw["line_index"]
@@ -45,7 +45,7 @@ class LPSearch(object):
         
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        self.showPolys()
+        # self.showPolys()
 
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
@@ -83,19 +83,19 @@ class LPSearch(object):
                 with open("record/lp_result/" + self.set_name + "_result_fail.csv","a+") as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerows([[time.asctime( time.localtime(time.time()) ),self.line_index,feasible,self.cur_length,self.total_area/(self.cur_length*self.width),self.orientation,self.polys]])        
-                # self.extendBorder() # 扩大边界并进行下一次检索
-                if search_status == 1:
-                    self.shrinkBorder()
-                    search_status = 0
-                else:
-                    self.extendBorder() # 扩大边界并进行下一次检索
-                    search_status = 1    
+                self.extendBorder() # 扩大边界并进行下一次检索
+                # if search_status == 1:
+                #     self.shrinkBorder()
+                #     search_status = 0
+                # else:
+                #     self.extendBorder() # 扩大边界并进行下一次检索
+                #     search_status = 1    
             if self.total_area/(self.best_length*self.width) > 0.995:
                 break
             if (self.set_name == "jakobs1_clus" or self.set_name == "jakobs1") and self.total_area/(self.best_length*self.width) > 0.8905 \
                 or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and self.total_area/(self.best_length*self.width) > 0.877 \
                     or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and self.total_area/(self.best_length*self.width) > 0.687 \
-                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.best_length*self.width) > 0.767\
+                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.best_length*self.width) > 0.777\
                             or self.set_name == "shirts" and self.total_area/(self.best_length*self.width) > 0.8895:
                         break
                 
@@ -104,7 +104,7 @@ class LPSearch(object):
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
         self.miu = [[1]*self.polys_num for _ in range(self.polys_num)] # 计算重叠权重调整（每次都会更新）
-        N,it = 50,0 # 记录计算次数
+        N,it = 200,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 10
@@ -326,14 +326,18 @@ class LPSearch(object):
         grid_pt, grid_key = self.newGetAdjustPt(relative_pt, grid_precision,5)
         digital_pt, digital_key = self.newGetAdjustPt(relative_pt, digital_precision,6)
         row = self.computeRow(i, j, oi, oj)
+        i,j=j,i
+        oi,oj=oj,oi
+        i=self.polys_type[i]
+        j=self.polys_type[j]
         original_grid_pt, original_digital_pt = [grid_pt[0]+nfp[0][0], grid_pt[1]+nfp[0][1]], [digital_pt[0]+nfp[0][0], digital_pt[1]+nfp[0][1]]
 
         '''Step 2 判断是否存在于last_grid_pds和last_digital_pds'''
         if grid_key in self.last_grid_pds[i][oi][j][oj]:
             possible_pd = self.last_grid_pds[i][oi][j][oj][grid_key]
-            if possible_pd == -1:
+            if possible_pd < -0.9:
                 return 0
-            if possible_pd >= grid_precision: # 如果比较大则直接取该值
+            if possible_pd >= 15: # 如果比较大则直接取该值
                 return possible_pd
             if digital_key in self.last_digital_pds[i][oi][j][oj]: # 如果存在具体的位置
                 return self.last_digital_pds[i][oi][j][oj][digital_key]
@@ -349,6 +353,7 @@ class LPSearch(object):
         nfp_parts = self.nfp_parts[row]
         if len(nfp_parts) > 0:
             if not GeometryAssistant.judgeContain(relative_pt,nfp_parts):
+                # PltFunc.showPolys(nfp_parts)
                 self.last_exterior_pts[i][oi][j][oj][digital_key] = 1
                 return 0
         else:
@@ -402,21 +407,21 @@ class LPSearch(object):
         self.last_nfp_inters = [[[[[[{} for on in range(len(self.allowed_rotation))] for n in range(self.polys_num)] for om in range(len(self.allowed_rotation))] for m in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
         
         # 加载key
-        # all_keys = pd.read_csv("data/new/" + self.set_name + "_key.csv")
-        # for row in range(all_keys.shape[0]):
-        #     i=all_keys["i"][row]
-        #     oi=all_keys["oi"][row]
-        #     j=all_keys["j"][row]
-        #     oj=all_keys["oj"][row]
-        #     grid_dict=json.loads(all_keys["grid"][row])
-        #     digital_dict=json.loads(all_keys["digital"][row])
-        #     exterior_dict=json.loads(all_keys["exterior"][row])
-        #     for key in grid_dict.keys():
-        #         self.last_grid_pds[i][oi][j][oj][key]=grid_dict[key]
-        #     for key in digital_dict.keys():
-        #         self.last_digital_pds[i][oi][j][oj][key]=digital_dict[key]
-        #     for key in exterior_dict.keys():
-        #         self.last_exterior_pts[i][oi][j][oj][key]=exterior_dict[key]
+        all_keys = pd.read_csv("data/new/" + self.set_name + "_key.csv")
+        for row in range(all_keys.shape[0]):
+            i=all_keys["i"][row]
+            oi=all_keys["oi"][row]
+            j=all_keys["j"][row]
+            oj=all_keys["oj"][row]
+            grid_dict=json.loads(all_keys["grid"][row])
+            digital_dict=json.loads(all_keys["digital"][row])
+            exterior_dict=json.loads(all_keys["exterior"][row])
+            for key in grid_dict.keys():
+                self.last_grid_pds[i][oi][j][oj][key]=grid_dict[key]
+            for key in digital_dict.keys():
+                self.last_digital_pds[i][oi][j][oj][key]=digital_dict[key]
+            for key in exterior_dict.keys():
+                self.last_exterior_pts[i][oi][j][oj][key]=exterior_dict[key]
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
@@ -463,7 +468,7 @@ class LPSearch(object):
     def shrinkBorder(self):
         '''收缩边界，将超出的多边形左移'''
         # 收缩边界宽度
-        self.cur_length = self.best_length*(1 - self.ration_dec)
+        self.cur_length = self.cur_length*(1 - self.ration_dec)
         '''设定各种的最值限制'''
         if self.total_area/(self.cur_length*self.width) > 1:
             self.cur_length = self.total_area/self.width
@@ -473,8 +478,8 @@ class LPSearch(object):
             self.cur_length = self.total_area/(self.width*0.8773)
         if (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and self.total_area/(self.cur_length*self.width) > 0.6879:
             self.cur_length = self.total_area/(self.width*0.6879)
-        if (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.cur_length*self.width) > 0.7673:
-            self.cur_length = self.total_area/(self.width*0.7673)
+        if (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.cur_length*self.width) > 0.7773:
+            self.cur_length = self.total_area/(self.width*0.7773)
         if self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8896:
             self.cur_length = self.total_area/(self.width*0.8896)
         # 把形状全部内移
@@ -488,7 +493,7 @@ class LPSearch(object):
 
     def extendBorder(self):
         '''扩大边界'''
-        self.cur_length = self.best_length*(1 + self.ration_inc)
+        self.cur_length = self.cur_length*(1 + self.ration_inc)
         _str = "当前目标利用率" + str(self.total_area/(self.cur_length*self.width))
 
     def getPolygon(self, index, orientation):
