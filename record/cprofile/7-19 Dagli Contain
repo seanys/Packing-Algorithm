@@ -1,0 +1,99 @@
+         2787571469 function calls (2777023654 primitive calls) in 3742.699 seconds
+
+   Ordered by: standard name
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+
+ 32798230   51.621    0.000   51.621    0.000 base.py:222(empty)
+ 13119292   10.982    0.000   52.357    0.000 base.py:239(__del__)
+      433    0.000    0.000    0.001    0.000 base.py:247(is_dtype)
+ 26238584    4.145    0.000    4.145    0.000 base.py:259(_geom)
+ 13119292   14.337    0.000   21.867    0.000 base.py:263(_geom)
+
+10610747/352259   11.348    0.000   22.878    0.000 copy.py:132(deepcopy)
+  9968899    1.074    0.000    1.074    0.000 copy.py:190(_deepcopy_atomic)
+639345/352259    4.346    0.000   20.619    0.000 copy.py:210(_deepcopy_list)
+
+  5409920   11.225    0.000   12.308    0.000 geo_assistant.py:12(getAdjustPts)
+  2152680    4.401    0.000   10.423    0.000 geo_assistant.py:121(verticalInter)
+ 85689742  144.167    0.000  276.506    0.000 geo_assistant.py:140(lineInter)
+  5409920    5.608    0.000   13.413    0.000 geo_assistant.py:167(getPointsContained)
+  1603134   97.883    0.000  349.586    0.000 geo_assistant.py:175(interBetweenNFPs)
+   834139   26.805    0.000  111.494    0.000 geo_assistant.py:197(interNFPIFR)
+144255660   78.477    0.000   78.477    0.000 geo_assistant.py:244(boundsContain)
+
+  8844382   66.545    0.000   86.023    0.000 geo_assistant.py:291(getPolyEdges)
+    31865    0.099    0.000    0.255    0.000 geo_assistant.py:310(getIFRWithBounds)
+   933220    4.755    0.000    5.599    0.000 geo_assistant.py:318(getSlide)
+
+   933220    4.023    0.000    4.023    0.000 geo_assistant.py:374(getBottomPoint)
+
+ 56172152  208.651    0.000  208.651    0.000 geo_assistant.py:429(getFootPoint)
+
+  5606249  122.067    0.000  524.332    0.000 geo_assistant.py:49(getPtNFPPD)
+
+ 89527298   80.968    0.000  129.286    0.000 geo_assistant.py:78(bounds)
+ 12746436   13.289    0.000   13.289    0.000 geo_assistant.py:85(getLineCoe)
+    65859    0.172    0.000    0.431    0.000 geo_assistant.py:92(parallelInter)
+  6559646    2.808    0.000    2.808    0.000 geos.py:577(errcheck_predicate)
+  6559646    3.352    0.000    3.352    0.000 impl.py:56(__getitem__)
+
+       21    8.366    0.398 3738.912  178.043 lp_search_opt.py:104(minimizeOverlap)
+    31865  186.529    0.006 3727.592    0.117 lp_search_opt.py:172(lpSearch)
+
+ 11640319   15.377    0.000   15.377    0.000 lp_search_opt.py:191(<listcomp>)
+ 11640319   40.961    0.000   40.961    0.000 lp_search_opt.py:192(<listcomp>)
+    31865    5.372    0.000  119.685    0.004 lp_search_opt.py:224(getNFPCutTargets)
+    89946    1.562    0.000    1.562    0.000 lp_search_opt.py:236(<listcomp>)
+   834139    1.257    0.000    1.257    0.000 lp_search_opt.py:252(<listcomp>)
+    31865   29.809    0.001  506.503    0.016 lp_search_opt.py:267(getAllNFPInter)
+    31865    0.234    0.000    0.234    0.000 lp_search_opt.py:269(<listcomp>)
+    31865   38.206    0.001  124.400    0.004 lp_search_opt.py:297(processSearchTargets)
+ 18502699   56.183    0.000   56.183    0.000 lp_search_opt.py:313(<listcomp>)
+ 11696700   14.489    0.000   14.489    0.000 lp_search_opt.py:314(<listcomp>)
+  5409920   23.496    0.000  474.386    0.000 lp_search_opt.py:318(interBetweenNFPs)
+
+ 50681175  232.406    0.000 2624.531    0.000 lp_search_opt.py:365(getPolyPtPD)
+
+    46380    0.595    0.000    0.595    0.000 lp_search_opt.py:414(getIndexPD)
+  5409920   23.492    0.000   46.641    0.000 lp_search_opt.py:421(getAdjustPt)
+  
+101362350  498.951    0.000  907.243    0.000 lp_search_opt.py:427(newGetAdjustPt)
+
+   933220    1.548    0.000   14.590    0.000 lp_search_opt.py:445(getNFP)
+    31865    1.758    0.000   20.983    0.001 lp_search_opt.py:452(getCurNFPs)
+   933220    1.180    0.000    4.641    0.000 lp_search_opt.py:472(getBoundsbyRow)
+ 52547615  184.696    0.000  208.941    0.000 lp_search_opt.py:477(computeRow)
+
+  6559646   14.575    0.000   96.450    0.000 point.py:130(_set_coords)
+  6559646   63.741    0.000   69.885    0.000 point.py:196(geos_point_from_py)
+  6559646   10.677    0.000  108.119    0.000 point.py:36(__init__)
+  6559646   16.396    0.000  154.396    0.000 polygon.py:220(__init__)
+  6559646   53.281    0.000  124.778    0.000 polygon.py:500(geos_polygon_from_py)
+
+  6559646  405.881    0.000  423.982    0.000 predicates.py:11(__call__)
+
+ 13119292    9.376    0.000   13.532    0.000 topology.py:16(_validate)
+
+  6559646    2.307    0.000    2.307    0.000 {built-in method _ctypes.POINTER}
+
+ 34426308    4.154    0.000    4.154    0.000 {built-in method builtins.abs}
+
+398964602/398962479   38.005    0.000   38.006    0.000 {built-in method builtins.len}
+412904216  106.907    0.000  106.907    0.000 {built-in method builtins.max}
+323593702   90.059    0.000   90.059    0.000 {built-in method builtins.min}
+
+ 37118238   18.576    0.000   18.576    0.000 {built-in method builtins.pow}
+
+213544540  380.287    0.000  380.287    0.000 {built-in method builtins.round}
+    31868   11.460    0.000   11.460    0.000 {built-in method builtins.sorted}
+
+ 18559119    4.382    0.000    4.382    0.000 {built-in method math.sqrt}
+
+183576699   19.448    0.000   19.448    0.000 {method 'append' of 'list' objects}
+
+ 21223735    2.593    0.000    2.593    0.000 {method 'get' of 'dict' objects}
+
+213544540   51.154    0.000   51.154    0.000 {method 'zfill' of 'str' objects}
+
+  6559646   66.161    0.000   66.161    0.000 {shapely.speedups._speedups.geos_linearring_from_py}

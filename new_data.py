@@ -118,6 +118,7 @@ targets_clus = [{
         "allowed_rotation": 1,
         "width": 1000 
     }]
+
 targets = [{
         "index" : 0,
         "name" : "albano",
@@ -208,16 +209,23 @@ targets = [{
         "scale" : 10,
         "allowed_rotation": 2,
         "width": 790
+    },{
+        "index" : 15,
+        "name" : "blaz_clus",
+        "scale" : 50,
+        "allowed_rotation": 2,
+        "width": 750 
     }]
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
     def __init__(self,index):
+        index = 15
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
-        self.orientation()
+        # self.orientation()
         self.main()
 
     def orientation(self):
@@ -685,7 +693,7 @@ def testInter():
 
 def testBest():
     index = 0
-    _input = pd.read_csv("record/best_result/albano.csv")
+    _input = pd.read_csv("record/best_result/fu.csv")
     polys = json.loads(_input["polys"][index])
     width = _input["width"][index]
     length = GeometryAssistant.getPolysRight(polys)
