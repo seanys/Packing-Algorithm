@@ -720,11 +720,11 @@ def getKeys():
     '''对Key预处理'''
     precision=20
     for target in targets_clus:
-        if not 'dagli' in target['name']:continue
+        if not 'shapes1' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_key.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
-            csvfile.write('i,j,oi,oj,gird,digital,exterior'+'\n')
+            csvfile.write('i,j,oi,oj,grid,digital,exterior'+'\n')
             for row in tqdm(range(data.shape[0])):
                 nfp = json.loads(data["nfp"][row])
                 nfp_parts = json.loads(data["nfp_parts"][row])
@@ -754,6 +754,8 @@ def getKeys():
                             for m in range(x-10,x+10):
                                 for n in range(y-10,y+10):
                                     digital_key = str(int(m)).zfill(6) + str(int(n)).zfill(6)
+                                    if digital_key in exterior.keys() or digital_key in digital.keys():
+                                        continue
                                     if not Polygon(nfp).contains(Point([m,n])):
                                         exterior[digital_key]=1
                                     else:
@@ -772,6 +774,5 @@ if __name__ == '__main__':
     # addBound()
     # PreProccess(12)
     # nfpDecomposition()
-    # PreProccess(17)
     # removeOverlap()
-    #getKeys()
+    getKeys()
