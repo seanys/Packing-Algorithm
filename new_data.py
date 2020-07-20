@@ -708,9 +708,9 @@ def testBest():
 
 def getKeys():
     '''对Key预处理'''
-    precision=20
-    for target in targets_clus:
-        if not 'shapes1' in target['name']:continue
+    precision=10
+    for target in targets:
+        if not 'albano' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_key.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
@@ -732,17 +732,17 @@ def getKeys():
                         further_calc=False
                         if not Polygon(nfp).contains(Point([x,y])):
                             dist=Point([x,y]).distance(Polygon(nfp))
-                            if dist>15:
+                            if dist>7.5:
                                 grid[grid_key]=-1
                             else:   further_calc=True
                         else:
                             depth=GeometryAssistant.getPtNFPPD([x,y], convex_status, nfp, 0.000001)
-                            if depth>15:
+                            if depth>7.5:
                                 grid[grid_key]=depth
                             else:   further_calc=True
                         if further_calc:
-                            for m in range(x-10,x+10):
-                                for n in range(y-10,y+10):
+                            for m in range(x-5,x+5):
+                                for n in range(y-5,y+5):
                                     digital_key = str(int(m)).zfill(6) + str(int(n)).zfill(6)
                                     if digital_key in exterior.keys() or digital_key in digital.keys():
                                         continue
@@ -766,3 +766,4 @@ if __name__ == '__main__':
     # nfpDecomposition()
     # removeOverlap()
     getKeys()
+

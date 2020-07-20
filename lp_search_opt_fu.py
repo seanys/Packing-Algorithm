@@ -21,7 +21,7 @@ import cProfile
 compute_bias = 0.000001
 pd_range = 5
 
-grid_precision = 20
+grid_precision = 10
 # digital_precision = 0.001
 digital_precision = 1
 
@@ -33,8 +33,9 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 112
+        self.line_index = 97
         self.max_time = 180000
+        self.loadKey=False
         if "line_index" in kw:
             self.line_index = kw["line_index"]
         if "max_time" in kw:
@@ -43,9 +44,10 @@ class LPSearch(object):
         self.ration_dec, self.ration_inc = 0.04, 0.01
         self.TEST_MODEL = False
         
+        
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        # self.showPolys()
+        self.showPolys()
 
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
@@ -337,7 +339,7 @@ class LPSearch(object):
             possible_pd = self.last_grid_pds[i][oi][j][oj][grid_key]
             if possible_pd < -0.9:
                 return 0
-            if possible_pd >= 15: # 如果比较大则直接取该值
+            if possible_pd > 7.5: # 如果比较大则直接取该值
                 return possible_pd
             if digital_key in self.last_digital_pds[i][oi][j][oj]: # 如果存在具体的位置
                 return self.last_digital_pds[i][oi][j][oj][digital_key]
@@ -365,7 +367,7 @@ class LPSearch(object):
         convex_status = self.nfps_convex_status[row]
         grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
         self.last_grid_pds[i][oi][j][oj][grid_key] = grid_pd
-        if grid_pd < 15:
+        if grid_pd < 7.5:
             if digital_pt[0] == grid_pt[0] and digital_pt[1] == grid_pt[1]:
                 digital_pd = grid_pd
             else:
@@ -407,21 +409,22 @@ class LPSearch(object):
         self.last_nfp_inters = [[[[[[{} for on in range(len(self.allowed_rotation))] for n in range(self.polys_num)] for om in range(len(self.allowed_rotation))] for m in range(self.polys_num)] for oi in range(len(self.allowed_rotation))] for i in range(self.polys_num)]
         
         # 加载key
-        all_keys = pd.read_csv("data/new/" + self.set_name + "_key.csv")
-        for row in range(all_keys.shape[0]):
-            i=all_keys["i"][row]
-            oi=all_keys["oi"][row]
-            j=all_keys["j"][row]
-            oj=all_keys["oj"][row]
-            grid_dict=json.loads(all_keys["grid"][row])
-            digital_dict=json.loads(all_keys["digital"][row])
-            exterior_dict=json.loads(all_keys["exterior"][row])
-            for key in grid_dict.keys():
-                self.last_grid_pds[i][oi][j][oj][key]=grid_dict[key]
-            for key in digital_dict.keys():
-                self.last_digital_pds[i][oi][j][oj][key]=digital_dict[key]
-            for key in exterior_dict.keys():
-                self.last_exterior_pts[i][oi][j][oj][key]=exterior_dict[key]
+        if self.loadKey:
+            all_keys = pd.read_csv("data/new/" + self.set_name + "_key.csv")
+            for row in range(all_keys.shape[0]):
+                i=all_keys["i"][row]
+                oi=all_keys["oi"][row]
+                j=all_keys["j"][row]
+                oj=all_keys["oj"][row]
+                grid_dict=json.loads(all_keys["grid"][row])
+                digital_dict=json.loads(all_keys["digital"][row])
+                exterior_dict=json.loads(all_keys["exterior"][row])
+                for key in grid_dict.keys():
+                    self.last_grid_pds[i][oi][j][oj][key]=grid_dict[key]
+                for key in digital_dict.keys():
+                    self.last_digital_pds[i][oi][j][oj][key]=digital_dict[key]
+                for key in exterior_dict.keys():
+                    self.last_exterior_pts[i][oi][j][oj][key]=exterior_dict[key]
 
     def getNFP(self, i, j, oi, oj):
         '''根据形状和角度获得NFP的情况'''
