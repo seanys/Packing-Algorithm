@@ -34,7 +34,7 @@ zfill_num = 5
 class LPSearch(object):
     def __init__(self, **kw):
         self.line_index = 2
-        self.max_time = 3600
+        self.max_time = 7200
         if "line_index" in kw:
             self.line_index = kw["line_index"]
         if "max_time" in kw:
@@ -45,7 +45,7 @@ class LPSearch(object):
         
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        self.showPolys()
+        # self.showPolys()
 
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
@@ -96,7 +96,9 @@ class LPSearch(object):
                 or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and self.total_area/(self.cur_length*self.width) > 0.877 \
                     or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and self.total_area/(self.cur_length*self.width) > 0.687 \
                         or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.cur_length*self.width) > 0.767\
-                            or self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8895:
+                            or self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8895\
+                                or self.set_name == "marques" and self.total_area/(self.cur_length*self.width) > 0.9145\
+                                    or self.set_name == "fu" and self.total_area/(self.cur_length*self.width) > 0.924:
                         break
                 
 
@@ -501,6 +503,10 @@ class LPSearch(object):
             self.cur_length = self.total_area/(self.width*0.7673)
         if self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8896:
             self.cur_length = self.total_area/(self.width*0.8896)
+        if self.set_name == "marques" and self.total_area/(self.cur_length*self.width) > 0.9150:
+            self.cur_length = self.total_area/(self.width*0.9150)
+        if self.set_name == "fu" and self.total_area/(self.cur_length*self.width) > 0.9250:
+            self.cur_length = self.total_area/(self.width*0.9250)
         # 把形状全部内移
         for index,poly in enumerate(self.polys):
             right_pt = GeometryAssistant.getRightPoint(poly)
@@ -592,6 +598,11 @@ class LPSearch(object):
 if __name__=='__main__':
     # cProfile.run('LPSearch()')
 
+    # Albano
+    # for i in range(10):
+    #     LPSearch(line_index=16,max_time=3600)
+
+
     # 跑Marques
     # for i in range(5):
     #     LPSearch(line_index=6,max_time=3600)
@@ -615,16 +626,21 @@ if __name__=='__main__':
     # for i in range(5):
     #     LPSearch(line_index=12,max_time=3600)
 
-    # 跑Shape2_clus_clus
-    # for i in range(5):
-    #     LPSearch(line_index=3,max_time=3600)
+    # 跑blaz_clus
+    # for i in range(10):
+    #     LPSearch(line_index=19,max_time=1800)
 
-    # 跑Dagli
-    # for i in range(5):
-    #     LPSearch(line_index=10,max_time=3600)
+    # 跑jakobs2_clus
+    # for i in range(10):
+    #     LPSearch(line_index=8,max_time=1800)
+
+    # 跑Shirts
+    # for i in range(10):
+    #     LPSearch(line_index=5,max_time=7200)
 
     for i in range(10):
-        cProfile.run('LPSearch()')
+        LPSearch()
+        # cProfile.run('LPSearch()')
 
     # LPSearch()
     # for i in range(100):

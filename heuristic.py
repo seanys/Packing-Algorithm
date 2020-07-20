@@ -303,7 +303,6 @@ class newNFPAssistant(object):
     def judgeType(self,poly):
         # 判断形状类别，用于计算具体的NFP
         area = int(Polygon(poly).area)
-        # print(area)
         for i in range(self.all_polys.shape[0]):
             new_poly = json.loads(self.all_polys["o_0"][i])
             test_poly_area = Polygon(new_poly).area
@@ -311,7 +310,6 @@ class newNFPAssistant(object):
                 return i
         print("NFP错误")
     
-index = 4
 targets = [{
         "index" : 0,
         "name" : "albano",
@@ -414,8 +412,14 @@ targets = [{
         "scale" : 50,
         "allowed_rotation": 2,
         "width": 750
+    },{
+        "index" : 17,
+        "name" : "dagli_clus",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
     }]
-index = 0
+index = 8
 
 def getDataNew():
     print(targets[index]["name"])
@@ -435,7 +439,6 @@ def getDataNew():
     return polygons
 
 if __name__=='__main__':
-    index = 16
     polys = getDataNew()
     
     total_area = 0
