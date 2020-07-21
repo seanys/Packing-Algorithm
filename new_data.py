@@ -177,7 +177,7 @@ targets = [{
         "index" : 9,
         "name" : "marques",
         "scale" : 10,
-        "allowed_rotation": 2,
+        "allowed_rotation": 4,
         "width": 1040
     },{
         "index" : 10,
@@ -215,18 +215,25 @@ targets = [{
         "scale" : 50,
         "allowed_rotation": 2,
         "width": 750 
+    },{
+        "index" : 16,
+        "name" : "dagli_clus",
+        "scale" : 20,
+        "allowed_rotation": 2,
+        "width": 1200
     }]
+
 class PreProccess(object):
     '''
     预处理NFP以及NFP divided函数
     '''
     def __init__(self,index):
-        index = 15
+        index = 16
         self.set_name = targets[index]["name"]
         self.min_angle = 360/targets[index]["allowed_rotation"]
         self.zoom = targets[index]["scale"]
-        # self.orientation()
-        self.main()
+        self.orientation()
+        # self.main()
 
     def orientation(self):
         fu = pd.read_csv("data/" + self.set_name + ".csv")
@@ -527,11 +534,14 @@ def cluster():
     # print(_arr)
 
 def removeOverlap():
-    _input = pd.read_csv("record/best_result/albano.csv")
-    polys = json.loads(_input["polys"][0])
+    _input = pd.read_csv("record/best_result/fu.csv")
+    polys = json.loads(_input["polys"][5])
+    right = GeometryAssistant.getPolysRight(polys)
+    PltFunc.addLineColor([[right,0],[right,760]])
+    PltFunc.addLineColor([[0,760],[right,760]])
 
-    # GeoFunc.slidePoly(polys[4],240.0-229.55213892219976,-3.1130634730287)
-    # GeoFunc.slidePoly(polys[21],80-79.71600103769902,0)
+    # GeoFunc.slidePoly(polys[12],150-154.9999999999999,500-499.54301309142534)
+    # GeoFunc.slidePoly(polys[22],0,500-494.54301309142545)
     # GeoFunc.slidePoly(polys[22],0,-3.1130634730287)
     # GeoFunc.slidePoly(polys[16],120.0-119.71600103769902,-3.1130634730287)
     # GeoFunc.slidePoly(polys[6],100.0-99.71600103769902,0)
@@ -542,14 +552,14 @@ def removeOverlap():
     # PltFunc.addPolygon(polys[8])
     # PltFunc.addPolygon(polys[5])
     for i,poly in enumerate(polys):
-        print(i)
+        # print(i)
         PltFunc.addPolygon(poly)
-        PltFunc.showPlt(width=2000,height=2000)
+        # PltFunc.showPlt(width=2000,height=2000)
     # print(polys[18])
-    # print(polys[21])
-    # print(polys[3])
+    # print(polys[12])
+    # print(polys[5])
 
-    # PltFunc.showPlt()
+    PltFunc.showPlt(width=1000,height=1000)
     # PltFunc.showPolys(polys)
     # print(polys)
 
@@ -633,7 +643,7 @@ def nfpDecomposition():
     #         print(target['name'])
     error=0
     for target in targets:
-        if not 'shirts' in target['name']:continue
+        if not 'dagli_clus' in target['name']:continue
         data = pd.read_csv("data/{}_nfp.csv".format(target['name']))
         with open("data/new/{}_nfp.csv".format(target['name']),"w+") as csvfile:
             writer = csv.writer(csvfile)
@@ -752,7 +762,7 @@ def getKeys(target):
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.dumps(grid),json.dumps(digital),json.dumps(exterior)]])   
 
 if __name__ == '__main__':
-    # removeOverlap()
+    removeOverlap()
     # testBest()
     # addEmptyDecom("swim")
     # testInter()
