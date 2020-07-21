@@ -33,9 +33,9 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 97
+        self.line_index = 89
         self.max_time = 180000
-        self.loadKey=False
+        self.loadKey=True
         if "line_index" in kw:
             self.line_index = kw["line_index"]
         if "max_time" in kw:
@@ -47,8 +47,7 @@ class LPSearch(object):
         
         _str = "初始利用率为：" + str(self.total_area/(self.cur_length*self.width))
         OutputFunc.outputAttention(self.set_name,_str)
-        self.showPolys()
-
+        self.max_overlap=5
         self.recordStatus("record/lp_result/" + self.set_name + "_result_success.csv")
         self.recordStatus("record/lp_result/" + self.set_name + "_result_fail.csv")
         self.main()
