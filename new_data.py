@@ -534,32 +534,37 @@ def cluster():
     # print(_arr)
 
 def removeOverlap():
-    _input = pd.read_csv("record/best_result/fu.csv")
-    polys = json.loads(_input["polys"][5])
+    _input = pd.read_csv("record/best_result/blaz_clus.csv")
+    polys = json.loads(_input["polys"][3])
+    width = 750
     right = GeometryAssistant.getPolysRight(polys)
-    PltFunc.addLineColor([[right,0],[right,760]])
-    PltFunc.addLineColor([[0,760],[right,760]])
+    print("当前利用率:",810000/(right*width))
+    PltFunc.addLineColor([[right,0],[right,width]])
+    PltFunc.addLineColor([[0,width],[right,width]])
 
-    # GeoFunc.slidePoly(polys[12],150-154.9999999999999,500-499.54301309142534)
-    # GeoFunc.slidePoly(polys[22],0,500-494.54301309142545)
+    # GeoFunc.slidePoly(polys[4],129.20122783641358-131.4932401147777,-3.5)
+    # GeoFunc.slidePoly(polys[13],4,-4)
     # GeoFunc.slidePoly(polys[22],0,-3.1130634730287)
     # GeoFunc.slidePoly(polys[16],120.0-119.71600103769902,-3.1130634730287)
     # GeoFunc.slidePoly(polys[6],100.0-99.71600103769902,0)
     # GeoFunc.slidePoly(polys[8],-2.424242424242436,0)
 
+    # PltFunc.showPolys(polys)
     # GeoFunc.slidePoly(polys[3],-2.382,0)
     # PltFunc.addPolygon(polys[20])
     # PltFunc.addPolygon(polys[8])
     # PltFunc.addPolygon(polys[5])
     for i,poly in enumerate(polys):
         # print(i)
+        # print(poly)
         PltFunc.addPolygon(poly)
-        # PltFunc.showPlt(width=2000,height=2000)
+        # PltFunc.showPlt(width=700,height=700)
     # print(polys[18])
-    # print(polys[12])
-    # print(polys[5])
+    PltFunc.showPlt(width=1400,height=1400)
+    # print(polys[4])
+    # print(polys[6])
 
-    PltFunc.showPlt(width=1000,height=1000)
+    # PltFunc.showPlt(width=1000,height=1000)
     # PltFunc.showPolys(polys)
     # print(polys)
 
@@ -775,4 +780,4 @@ if __name__ == '__main__':
     # PreProccess(12)
     # nfpDecomposition()
     # removeOverlap()
-    getKeys()
+    # getKeys()

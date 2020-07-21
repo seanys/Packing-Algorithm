@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 2
+        self.line_index = 18
         self.max_time = 7200
         if "line_index" in kw:
             self.line_index = kw["line_index"]
@@ -92,13 +92,13 @@ class LPSearch(object):
                     search_status = 1    
             if self.total_area/(self.best_length*self.width) > 0.995:
                 break
-            if (self.set_name == "jakobs1_clus" or self.set_name == "jakobs1") and self.total_area/(self.best_length*self.width) > 0.8905 \
-                or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and self.total_area/(self.cur_length*self.width) > 0.877 \
-                    or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and self.total_area/(self.cur_length*self.width) > 0.687 \
-                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and self.total_area/(self.cur_length*self.width) > 0.767\
-                            or self.set_name == "shirts" and self.total_area/(self.cur_length*self.width) > 0.8895\
-                                or self.set_name == "marques" and self.total_area/(self.cur_length*self.width) > 0.9145\
-                                    or self.set_name == "fu" and self.total_area/(self.cur_length*self.width) > 0.924:
+            if (self.set_name == "jakobs1_clus" or self.set_name == "jakobs1") and feasible == True and self.total_area/(self.best_length*self.width) > 0.8905 \
+                or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and feasible == True and self.total_area/(self.cur_length*self.width) > 0.877 \
+                    or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and feasible == True and self.total_area/(self.cur_length*self.width) > 0.687 \
+                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and feasible == True and self.total_area/(self.cur_length*self.width) > 0.767\
+                            or self.set_name == "shirts" and feasible == True and self.total_area/(self.cur_length*self.width) > 0.8895\
+                                or self.set_name == "marques" and feasible == True and self.total_area/(self.cur_length*self.width) > 0.9145\
+                                    or self.set_name == "fu" and feasible == True and self.total_area/(self.cur_length*self.width) > 0.924:
                         break
                 
 
