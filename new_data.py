@@ -535,7 +535,7 @@ def cluster():
 
 def removeOverlap():
     _input = pd.read_csv("record/best_result/blaz_clus.csv")
-    polys = json.loads(_input["polys"][3])
+    polys = json.loads(_input["polys"][4])
     width = 750
     right = GeometryAssistant.getPolysRight(polys)
     print("当前利用率:",810000/(right*width))
@@ -778,7 +778,7 @@ if __name__ == '__main__':
     # PreProccess(12)
     # nfpDecomposition()
     # removeOverlap()
-    for target in targets:
-        if target['name'] in ['shapes0']:
-            getKeys(target)
+    # for target in targets:
+    #     if target['name'] in ['shapes0']:
+    #         getKeys(target)
 
