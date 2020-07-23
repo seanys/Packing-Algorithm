@@ -767,7 +767,7 @@ def getKeys(target):
             writer.writerows([[data["i"][row],data["j"][row],data["oi"][row],data["oj"][row],json.dumps(grid),json.dumps(digital),json.dumps(exterior)]])   
 
 if __name__ == '__main__':
-    removeOverlap()
+    # removeOverlap()
     # testBest()
     # addEmptyDecom("swim")
     # testInter()
@@ -781,4 +781,3 @@ if __name__ == '__main__':
     # for target in targets:
     #     if target['name'] in ['shapes0']:
     #         getKeys(target)
-
