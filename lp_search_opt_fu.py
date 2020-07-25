@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 19
+        self.line_index = 6
         self.max_time = 180000
         self.loadKey=True
         if "line_index" in kw:
@@ -105,7 +105,7 @@ class LPSearch(object):
     def minimizeOverlap(self):
         '''最小化某个重叠情况'''
         self.miu = [[1]*self.polys_num for _ in range(self.polys_num)] # 计算重叠权重调整（每次都会更新）
-        N,it = 300,0 # 记录计算次数
+        N,it = 200,0 # 记录计算次数
         Fitness = 9999999999999 # 记录Fitness即全部的PD
         if self.TEST_MODEL == True: # 测试模式
             N = 10
