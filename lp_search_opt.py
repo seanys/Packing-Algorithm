@@ -33,9 +33,10 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 2
-        self.max_time = 3600
-        self.loadKey=True
+        self.line_index = 5
+        self.max_time = 7200
+        self.loadKey = False
+
         if "line_index" in kw:
             self.line_index = kw["line_index"]
         if "max_time" in kw:
@@ -65,7 +66,7 @@ class LPSearch(object):
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True or search_times == 5:
-                PltFunc.showPolys(self.polys,saving=True)
+                # PltFunc.showPolys(self.polys,saving=True)
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
                 OutputFunc.outputInfo(self.set_name,_str)
@@ -94,12 +95,12 @@ class LPSearch(object):
             if self.total_area/(self.best_length*self.width) > 0.995:
                 break
             if (self.set_name == "jakobs1_clus" or self.set_name == "jakobs1") and feasible == True and self.total_area/(self.best_length*self.width) > 0.8905 \
-                or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and feasible == True and self.total_area/(self.cur_length*self.width) > 0.877 \
-                    or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and feasible == True and self.total_area/(self.cur_length*self.width) > 0.687 \
-                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and feasible == True and self.total_area/(self.cur_length*self.width) > 0.767\
-                            or self.set_name == "shirts" and feasible == True and self.total_area/(self.cur_length*self.width) > 0.8895\
-                                or self.set_name == "marques" and feasible == True and self.total_area/(self.cur_length*self.width) > 0.9145\
-                                    or self.set_name == "fu" and feasible == True and self.total_area/(self.cur_length*self.width) > 0.924:
+                or (self.set_name == "jakobs2_clus" or self.set_name == "jakobs2") and feasible == True and self.total_area/(self.best_length*self.width) > 0.877 \
+                    or (self.set_name == "shapes0_clus" or self.set_name == "shapes0") and feasible == True and self.total_area/(self.best_length*self.width) > 0.687 \
+                        or (self.set_name == "shapes1_clus" or self.set_name == "shapes1") and feasible == True and self.total_area/(self.best_length*self.width) > 0.767\
+                            or (self.set_name == "shirts" and feasible == True and self.total_area/(self.cur_length*self.width)) > 0.8895\
+                                or (self.set_name == "marques" and feasible == True and self.total_area/(self.best_length*self.width)) > 0.9145\
+                                    or (self.set_name == "fu" and feasible == True and self.total_area/(self.best_length*self.width)) > 0.924:
                         break
                 
 
@@ -658,8 +659,8 @@ if __name__=='__main__':
     # for i in range(10):
     #     LPSearch(line_index=5,max_time=7200)
 
-    # for i in range(10):
-    #     cProfile.run('LPSearch()')
+    for i in range(10):
+        cProfile.run('LPSearch()')
 
     LPSearch()
     # for i in range(100):
