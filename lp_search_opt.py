@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 5
+        self.line_index = 2
         self.max_time = 7200
         self.loadKey = False
 
@@ -66,7 +66,7 @@ class LPSearch(object):
             self.updateAllPairPD() # 更新当前所有重叠
             feasible = self.minimizeOverlap() # 开始最小化重叠
             if feasible == True or search_times == 5:
-                # PltFunc.showPolys(self.polys,saving=True)
+                PltFunc.showPolys(self.polys,saving=True)
                 search_status = 0
                 _str = "当前利用率为：" + str(self.total_area/(self.cur_length*self.width))
                 OutputFunc.outputInfo(self.set_name,_str)
@@ -300,23 +300,38 @@ class LPSearch(object):
     
     def processSearchTargets(self, all_original_inters, nfp_neighbor):
         '''删除重复目标并增加邻接，求解最终的邻接部分'''
-        all_nfp_inters = sorted(all_original_inters, key = operator.itemgetter(0, 1))
-        new_all_search_targets = [] 
-
         # 删除检索位置冗余
-        for k,target in enumerate(all_nfp_inters):
-            if abs(target[0] - all_nfp_inters[k-1][0]) < compute_bias and abs(target[1] - all_nfp_inters[k-1][1]) < compute_bias:
-                new_all_search_targets[-1][2] = list(set(new_all_search_targets[-1][2] + target[2]))
-                continue
-            new_all_search_targets.append([target[0],target[1],target[2]])
-
+        all_search_targets = dict()
+        all_search_pts = dict()
+        for target in all_original_inters:
+            target_key=self.newGetAdjustPt([target[0],target[1]],0.001,8)
+            target_key_str=target_key[1]
+            all_search_pts[target_key_str]=target_key[0]
+            if target_key_str in all_search_targets:
+                all_search_targets[target_key_str]=all_search_targets[target_key_str]+target[2]
+            else:
+                all_search_targets[target_key_str]=target[2]
+        new_all_search_targets=[]
+        # all_nfp_inters = sorted(all_original_inters, key = operator.itemgetter(0, 1))
+        # for k,target in enumerate(all_nfp_inters):
+        #     if abs(target[0] - all_nfp_inters[k-1][0]) < compute_bias and abs(target[1] - all_nfp_inters[k-1][1]) < compute_bias:
+        #         new_all_search_targets[-1][2] = list(set(new_all_search_targets[-1][2] + target[2]))
+        #         continue
+        #     new_all_search_targets.append([target[0],target[1],target[2]])
+        # print(len(new_all_search_targets))
         # 增加邻域部分
-        for i,search_target in enumerate(new_all_search_targets):
-            neighbor = nfp_neighbor[search_target[2][0]]
-            for possible_orignal in search_target[2][0:]:
+        for key in all_search_targets:
+            search_target=all_search_targets[key]
+            neighbor = nfp_neighbor[search_target[0]]
+            for possible_orignal in search_target[0:]:
                 neighbor = [k for k in neighbor if k in nfp_neighbor[possible_orignal]]
-            simple_neighbor = [k for k in neighbor if k not in search_target[2]]
-            new_all_search_targets[i].append(simple_neighbor)
+            simple_neighbor = [k for k in neighbor if k not in search_target]
+            one_target=[]
+            one_target.append(all_search_pts[key][0])
+            one_target.append(all_search_pts[key][1])
+            one_target.append(all_search_targets[key])
+            one_target.append(simple_neighbor)
+            new_all_search_targets.append(one_target)
         return new_all_search_targets
 
     def interBetweenNFPs(self, i, oi, m, om, n, on, cur_nfps, ifr_bounds, bounds1, bounds2):
@@ -431,8 +446,9 @@ class LPSearch(object):
         return new_pt, target_key
 
     def newGetAdjustPt(self, pt, precision, zfill_num):
-        '''按照精度四舍五入'''
-        new_pt = [round(pt[0]/precision)*precision, round(pt[1]/precision)*precision]
+        '''按照精度四舍五入
+        0730: round改为int提升性能'''
+        new_pt = [int(pt[0]/precision+0.5)*precision, int(pt[1]/precision+0.5)*precision]
         target_key = str(int(new_pt[0]/precision)).zfill(zfill_num) + str(int(new_pt[1]/precision)).zfill(zfill_num)
         return new_pt, target_key
     
@@ -659,8 +675,8 @@ if __name__=='__main__':
     # for i in range(10):
     #     LPSearch(line_index=5,max_time=7200)
 
-    for i in range(10):
-        cProfile.run('LPSearch()')
+    # for i in range(10):
+    #     cProfile.run('LPSearch()')
 
     LPSearch()
     # for i in range(100):
