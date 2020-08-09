@@ -33,7 +33,7 @@ zfill_num = 5
 
 class LPSearch(object):
     def __init__(self, **kw):
-        self.line_index = 69
+        self.line_index = 59
         self.max_time = 720000
         self.loadKey=True
         if "line_index" in kw:
@@ -364,17 +364,22 @@ class LPSearch(object):
     
         '''Step 4 求解PD结果（存在冗余计算）'''
         convex_status = self.nfps_convex_status[row]
-        grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
-        self.last_grid_pds[i][oi][j][oj][grid_key] = grid_pd
-        if grid_pd < 7.5:
-            if digital_pt[0] == grid_pt[0] and digital_pt[1] == grid_pt[1]:
-                digital_pd = grid_pd
-            else:
-                digital_pd = GeometryAssistant.getPtNFPPD(original_digital_pt, convex_status, nfp, self.bias)
-            self.last_digital_pds[i][oi][j][oj][digital_key] = digital_pd
-            return digital_pd
+        # grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
+        # self.last_grid_pds[i][oi][j][oj][grid_key] = grid_pd
+        # if grid_pd < 7.5:
+        #     if digital_pt[0] == grid_pt[0] and digital_pt[1] == grid_pt[1]:
+        #         digital_pd = grid_pd
+        #     else:
+        #         digital_pd = GeometryAssistant.getPtNFPPD(original_digital_pt, convex_status, nfp, self.bias)
+        #     self.last_digital_pds[i][oi][j][oj][digital_key] = digital_pd
+        #     return digital_pd
 
-        return grid_pd
+        # return grid_pd
+
+        digital_pd = GeometryAssistant.getPtNFPPD(original_digital_pt, convex_status, nfp, self.bias)
+        self.last_grid_pds[i][oi][j][oj][grid_key] = digital_pd
+        self.last_digital_pds[i][oi][j][oj][digital_key] = digital_pd
+        return digital_pd
         
     def getIndexPD(self,i,top_pt,oi):
         '''获得某个形状的全部PD，是调整后的结果'''

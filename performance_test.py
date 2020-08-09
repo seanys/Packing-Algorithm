@@ -10,17 +10,18 @@ from time import time
 import matplotlib.pyplot as plt
 
 class PD_test(object):
-    def __init__(self, index, precision):
+    def __init__(self, index):
+        self.TEST_NUM = 100000
+        self.compute_bias = 1e-7
+        self.initialProblem(index)
+
+    def main(self, precision):
         '''
         precision: [grid_precision, digital_precision]
         '''
-        self.TEST_NUM = 100000
         self.precision = precision
         self.threshold = precision[0]*0.75
-        self.bias, self.compute_bias = 0.1, 1e-7
-        self.initialProblem(index)
-
-    def main(self):
+        self.initialRecord()
         self.stat = [0, 0, 0, 0, 0, 0, 0]
         start = time()
         for i in range(self.TEST_NUM):
@@ -33,10 +34,10 @@ class PD_test(object):
         end = time()
         print('精确度:{}, 运行时间: {}'.format(self.precision, end-start))
         print('存在grid, 使用grid, 存在digital, 存在exterior, 算出不包含, 总计算, 冗余计算: {}'.format(self.stat))
-        file = open('record/pd_test.csv', 'a')
-        res = str(self.precision[0])+', '+str(end-start)+', '+str(self.stat).replace('[', '').replace(']', '')
-        file.write(res+'\n')
-        file.close()
+        # file = open('record/pd_test.csv', 'a')
+        # res = str(self.precision[0])+', '+str(end-start)+', '+str(self.stat).replace('[', '').replace(']', '')
+        # file.write(res+'\n')
+        # file.close()
         return end-start
 
     def getPolyPtPD(self, pt, row):
@@ -73,19 +74,23 @@ class PD_test(object):
             print('nfp_parts error')
 
         '''Step 4 求解PD结果（存在冗余计算）'''
-        grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
-        self.last_grid_pds[row][grid_key] = grid_pd
+        # grid_pd = GeometryAssistant.getPtNFPPD(original_grid_pt, convex_status, nfp, self.bias)
+        # self.last_grid_pds[row][grid_key] = grid_pd
+        # self.stat[5] = self.stat[5]+1
+        # if grid_pd < self.threshold:
+        #     if abs(digital_pt[0]-grid_pt[0])<self.compute_bias and abs(digital_pt[1]-grid_pt[1])<self.compute_bias:
+        #         digital_pd = grid_pd
+        #     else:
+        #         self.stat[6] = self.stat[6]+1
+        #         digital_pd = GeometryAssistant.getPtNFPPD(original_digital_pt, convex_status, nfp, self.bias)
+        #     self.last_digital_pds[row][digital_key] = digital_pd
+        #     return digital_pd
         self.stat[5] = self.stat[5]+1
-        if grid_pd < self.threshold:
-            if abs(digital_pt[0]-grid_pt[0])<self.compute_bias and abs(digital_pt[1]-grid_pt[1])<self.compute_bias:
-                digital_pd = grid_pd
-            else:
-                self.stat[6] = self.stat[6]+1
-                digital_pd = GeometryAssistant.getPtNFPPD(original_digital_pt, convex_status, nfp, self.bias)
-            self.last_digital_pds[row][digital_key] = digital_pd
-            return digital_pd
-
-        return grid_pd
+        digital_pd = GeometryAssistant.getPtNFPPD(original_digital_pt, convex_status, nfp, self.bias)
+        self.last_grid_pds[row][grid_key] = digital_pd
+        self.last_digital_pds[row][digital_key] = digital_pd
+        return digital_pd
+        # return grid_pd
 
     def getAdjustPt(self, pt, precision, zfill_num):
         new_pt = [int(pt[0]/precision+0.5)*precision, int(pt[1]/precision+0.5)*precision]
@@ -109,12 +114,10 @@ class PD_test(object):
         self.polys_num = len(self.polys)
         self.types_num = _input["types_num"][index] # 记录全部形状的种类
         self.orientation, self.best_orientation = loads(_input["orientation"][index]),loads(_input["orientation"][index]) # 当前的形状状态（主要是角度）
-        self.total_area = _input["total_area"][index] # 用来计算利用率
-        self.use_ratio = [] # 记录利用率
         self.getPreData() # 获得NFP和全部形状
-        self.cur_length = GeometryAssistant.getPolysRight(self.polys) # 获得当前高度
-        self.best_length = self.cur_length # 最佳高度
         print("一共",self.polys_num,"个形状")
+
+    def initialRecord(self):
         self.last_grid_pds = [{} for row in range(len(self.all_nfps))]
         self.last_digital_pds = [{} for row in range(len(self.all_nfps))]
         self.last_exterior_pts = [{} for row in range(len(self.all_nfps))]
@@ -149,8 +152,9 @@ class PD_test(object):
             self.nfp_parts.append(loads(nfps["nfp_parts"][i]))
 
 t=[]
+pdt=PD_test(69)
 for p in range(1,200):
-    t.append(PD_test(2,[p,1]).main())
+    t.append(pdt.main([p,1]))
 
 plt.plot(range(1,200),t)
 plt.show()
